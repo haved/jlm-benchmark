@@ -11,6 +11,7 @@ The machines used for running the bechmarks requires the following:
  - Can build and run the revision of `jlm-opt` specified in `justfile`.
  - Has Python 3 with `matplotlib` and `pandas` to run the benchmarks and plot the results.
  - Some steps use `just` as a command runner.
+
 The simplest way of getting everything set up is using the provided Apptainer image definition file.
 If you want to install dependencies locally, see the commands in `jlm-benchmark.def`.
 
@@ -66,10 +67,11 @@ just benchmark-release -j8
 just benchmark-release-anf -j8
 ```
 This will only test each configuration once per file, yet still take a long time.
-The =-j8= can be changed to use more workers.
+The `-j8` can be changed to use more workers.
 
 ## Running on SLURM
-In order to speed up the process, the work can be split across a SLURM cluster.
+In order to benchmark each configuration multiple times in a reasonable amount of time,
+the work has to be split across a SLURM cluster.
 `sbatch` is not available inside the apptainer, so run it from outside.
 The array job divides all the work into separate jobs.
 Each job will start its own container using the specified apptainer image.
