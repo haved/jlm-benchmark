@@ -1,0 +1,19 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%post
+    apt update
+    apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib lmod locales doxygen make ninja-build just g++
+    locale-gen en_US.UTF-8
+    update-locale
+
+    # Setup LLVM 18
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+    apt install -y software-properties-common
+    add-apt-repository deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main
+    apt update
+    apt install -y llvm-18-dev clang-18 clang-format-18
+    pipx install "lit~=18.0"
+
+    # Cleanup to reduce image size
+    apt-get clean

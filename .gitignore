@@ -1,0 +1,7 @@
+build/
+statistics/
+statistics-out/
+slurm-log/
+jlm/
+jlm-benchmark.sif
+.env
