@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=56c
 #SBATCH --mem=32G
-#SBATCH --time=4-0
+#SBATCH --time=8-0
 #SBATCH -o slurm-log/single-%j.out # STDOUT
 set -euo pipefail
 
@@ -29,7 +29,7 @@ fi
     --builddir build/release-anf/ \
     --statsdir statistics/release-anf \
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-    --benchmarkIterations 5
+    --benchmarkIterations 1
 
 ./benchmark.py \
     --offset "${JLM_OFFSET}" \
