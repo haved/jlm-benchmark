@@ -3,7 +3,7 @@ set dotenv-load
 # Get the JLM_PATH environment variable, or set it to the default
 export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
-jlm-commit := "bcfd810264fe03a39f6a903b9850026442f4d056"
+jlm-commit := "8c89ff18bc273d2db028814d047d03727dc820d1"
 
 default:
     @just --list
@@ -56,14 +56,15 @@ benchmark-release-anf flags="":
 # Aggregate statistics from runs of both release and release-anf
 aggregate-both:
     mkdir -p statistics-out
-    ./aggregate.py --stats-in statistics/release --stats-out statistics-out/release
-    ./aggregate.py --stats-in statistics/release-anf --stats-out statistics-out/release-anf
+    ./analysis/aggregate.py --clean --stats-in statistics/release --stats-out statistics-out/release
+    ./analysis/aggregate.py --clean --stats-in statistics/release-anf --stats-out statistics-out/release-anf
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    @echo "TODO"
+    # ./analysis/plot-file-sizes.py --stats statistics-out/release --out results
+    ./analysis/compare-anf.py
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean:

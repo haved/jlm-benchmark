@@ -5,3 +5,5 @@ slurm-log/
 jlm/
 jlm-benchmark.sif
 .env
+
+archives

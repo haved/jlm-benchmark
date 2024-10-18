@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+import os
+import os.path
+import sys
+import shutil
+import pandas as pd
+import argparse
+#import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+from matplotlib import ticker
+import seaborn as sns
+import numpy as np
+
+def load_aggregated_statistics(stats_folder):
+    file_data = pd.read_csv(os.path.join(stats_folder, "file_data.csv"))
+    file_config_data = pd.read_csv(os.path.join(stats_folder, "file_config_data.csv"))
+    return file_data, file_config_data
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Analyze statistics about file sizes')
+    parser.add_argument('--stats', dest='stats', action='store', required=True,
+                        help='Specify the folder for aggregated statistics')
+    parser.add_argument('--out', dest='out_dir', action='store', required=True,
+                        help='The output folder for plots')
+    parser.add_argument('--clean', dest='clean', action='store_true',
+                        help='Delete output folder first')
+    args = parser.parse_args()
+
+    file_data, file_config_data = load_aggregated_statistics(args.stats)
+
+    if args.clean:
+        shutil.rmtree(args.out_dir, ignore_errors=True)
+
+    if not os.path.exists(args.out_dir):
+        os.mkdir(args.out_out)
+
+    # Only care about non-empty cfiles
+    file_data = file_data[file_data['#RvsdgNodes'] > 0]
+
+    file_data['#Constraints'] = (file_data['#BaseConstraints'] + file_data['#SupersetConstraints'] + file_data['#StoreConstraints'] +
+                                 file_data['#LoadConstraints'] + file_data['#FunctionCallConstraints'] + file_data['#FlagConstraints'])
+
+    order = ["505.mcf", "544.nab", "557.xz", "525.x264", "507.cactuBSSN", "538.imagick", "502.gcc", "526.blender"]
+    file_data.sort_values(by="program", key=lambda col: col.map(lambda v: order.index(v)), inplace=True)
+
+    grouped = file_data.groupby('program')
+
+    table = pd.DataFrame({
+        'C file count': grouped['cfile'].count(),
+        'Mean IR instr': grouped['#RvsdgNodes'].mean().astype(int),
+        'Max IR instr': grouped['#RvsdgNodes'].max(),
+        'Mean Pointer Objects': grouped['#PointerObjects'].mean().astype(int),
+        'Max Pointer Objects': grouped['#PointerObjects'].max(),
+        'Mean Constraints': grouped['#Constraints'].mean().astype(int),
+        'Max Constraints': grouped['#Constraints'].max(),
+    }, index=order)
+    # print(table)
+
+    print(table.columns)
+    for row in table.index:
+        print(f"{row:<13} &" , end=" ")
+        for c in table.columns:
+            number = table.loc[row, c]
+            number = f"{number:_}"
+            number = number.replace("_", "\\;")
+            print(f"& {number:>8}", end=" ")
+        print("\\\\")
+
+    #fig = go.Figure()
+    #fig.add_trace(go.Box(y=program_files['#RvsdgNodes'], marker_color='darkblue'))
+    #fig.write_image(os.path.join(args.out_dir, program + ".pdf"))
+
+    sns.set_theme(style="whitegrid", palette=None)
+    fig, ax = plt.subplots(figsize=(10,4))
+    sns.boxplot(data=file_data, x="#RvsdgNodes", y="program", showmeans=True, meanline=True, meanprops={"color": ".1"},
+                color=".8", linecolor=".1", fliersize="5", ax=ax)
+
+    #for artist in ax.lines:
+    #    if artist.get_linestyle() == "None":
+    #        pos = artist.get_ydata()
+    #        artist.set_ydata(pos + np.random.uniform(-.09, .09, len(pos)))
+
+    # ax.grid(axis="x")
+
+    # ax.spines['top'].set_visible(False)
+    # ax.spines['right'].set_visible(False)
+    # ax.spines['bottom'].set_visible(False)
+    # ax.spines['left'].set_visible(False)
+    # ax.get_xaxis().set_ticks([])
+    # ax.get_yaxis().set_ticks([])
+    # ax.margins(y=0)
+
+    ax.set_xlabel("IR instruction count")
+    ax.set_ylabel(None)
+
+    # ax.set_xlim((0, 500000))
+    ax.set_xscale("log")
+
+    plt.tight_layout(pad=1)
+
+    fig.savefig(os.path.join(args.out_dir, "IR-instruction-counts.pdf"))
+
+if __name__ == "__main__":
+    main()

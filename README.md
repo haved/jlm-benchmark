@@ -68,6 +68,7 @@ just benchmark-release-anf -j8
 ```
 This will only test each configuration once per file, yet still take a long time.
 The `-j8` can be changed to use more workers.
+Extra flags can be passed to run only a subset of tasks, and `--dry-run` can be used to print the tasks left to be done.
 
 ## Running on SLURM
 In order to benchmark each configuration multiple times in a reasonable amount of time,

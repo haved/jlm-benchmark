@@ -24,8 +24,8 @@ def line_to_dict(stats_line):
 
 def extract_statistics(stats_folder):
     """
-    Create one dataframe with one row for each llfile
-    and one dataframe with one row for each (llfile, configuration) combination.
+    Create one dataframe with one row for each cfile
+    and one dataframe with one row for each (cfile, configuration) combination.
     @return file_data, file_config_data
     """
 
@@ -38,18 +38,23 @@ def extract_statistics(stats_folder):
             print(f"Ignoring file {filename}", file=sys.stderr)
             continue
 
-        llfile = filename[:-4] # Remove .log
+        cfile = filename[:-4] # Remove .log
+        if "+" in cfile:
+            program = cfile.split("+")[0]
+        else:
+            program = ""
 
         file_config_rows = []
 
         with open(os.path.join(stats_folder, filename), encoding='utf-8') as stats_file:
             line_iter = iter(stats_file)
 
-            file_stats = {"llfile": llfile}
+            file_stats = {"cfile": cfile, "program": program}
 
             # The first line are statistics from analyzing and solving and making the PointsToGraph
             first_line = next(line_iter)
             file_stats.update(line_to_dict(first_line))
+
             file_datas.append(file_stats)
 
             # All other lines are statistics from just solving
@@ -58,6 +63,7 @@ def extract_statistics(stats_folder):
 
         file_config_data = pd.DataFrame(file_config_rows)
 
+        file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
         file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
 
         with_nan0 = file_config_data.fillna(0)
@@ -68,12 +74,12 @@ def extract_statistics(stats_folder):
             + with_nan0["ConstraintSolvingNaiveTimer[ns]"])
 
         file_config_data.reset_index(inplace=True)
-        file_config_data["llfile"] = llfile
+        file_config_data["cfile"] = cfile
         file_config_datas.append(file_config_data)
 
-    file_datas = pd.DataFrame(file_datas).set_index("llfile")
+    file_datas = pd.DataFrame(file_datas).set_index("cfile")
     file_config_datas = pd.concat(file_config_datas)
-    file_config_datas = file_config_datas.join(file_datas, on="llfile", how="left", rsuffix="_collision")
+    file_config_datas = file_config_datas.join(file_datas, on="cfile", how="left", rsuffix="_collision")
     file_config_datas.drop(list(file_config_datas.filter(regex="_collision")), axis=1, inplace=True)
     return file_datas, file_config_datas
 
@@ -98,13 +104,14 @@ def get_mean_time_per_config(file_config_data):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Compile benchmarks using jlm-opt')
+    parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folder.'
+                                     'Mainly creates two aggregation files, plus some extra statistics files.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', required=True,
-                        help='Specify the sources.txt file to scan for benchmarks in')
+                        help='The folder where raw .log files are located')
     parser.add_argument('--stats-out', dest='stats_out', action='store', required=True,
-                        help='Specify the sources.txt file to scan for benchmarks in')
+                        help='Where aggregated statistics files should be placed')
     parser.add_argument('--clean', dest='clean', action='store_true',
-                        help='Clean up cache of extracted data before running')
+                        help='Remove previous extracted aggregation files before running')
     args = parser.parse_args()
 
     if args.clean:

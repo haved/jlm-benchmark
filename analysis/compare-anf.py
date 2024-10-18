@@ -6,76 +6,151 @@ import seaborn as sns
 import numpy as np
 
 default = pd.read_csv("statistics-out/release/file_config_data.csv")
+default["Configuration"] = "ImP_" + default["Configuration"]
 anf = pd.read_csv("statistics-out/release-anf/file_config_data.csv")
 
+for cfile in set(default["cfile"]).symmetric_difference(anf["cfile"]):
+    print(f"cfile not present in both default and anf: {cfile}")
+
+# Make a single unified dataframe containing all files with all configurations
+all_configs = pd.concat([default, anf], ignore_index=True)
+
+# Remove empty files
+all_configs = all_configs[all_configs["#RvsdgNodes"] > 0]
+
 # Use the config that is fastest on average with flags
-DEFAULT_BEST_CONFIG = "Solver=Worklist_Policy=FirstInFirstOut_PIP"
-DEFAULT_BEST_SANS_PIP_CONFIG = "Solver=Worklist_Policy=FirstInFirstOut"
+BEST_CONFIG = "ImP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
+BEST_CONFIG_SANS_PIP = "ImP_Solver=Worklist_Policy=FirstInFirstOut"
+BEST_CONFIG_SANS_IMP = "OVS_Solver=Worklist_Policy=LeastRecentlyFired_OnlineCD"
 
-default_with_best_config = default[default["Configuration"] == DEFAULT_BEST_CONFIG].set_index('llfile').add_suffix("_default")
-default_with_best_sans_pip_config = default[default["Configuration"] == DEFAULT_BEST_SANS_PIP_CONFIG].set_index('llfile').add_suffix("_default_sans_pip")
+# This dataframe contains one column with the total time per interesting choice of configuration
+total_time_ns = pd.DataFrame(index=pd.Index(all_configs["cfile"]).unique())
 
-def get_fastest_config_per_llfile(df):
-    df_per_llfile = df.groupby('llfile')['TotalTime[ns]'].idxmin()
-    return df.loc[df_per_llfile,:].set_index('llfile')
+def add_column_to_total_time(data, column_name):
+    data = data.set_index("cfile")
+    total_time_ns[column_name] = data["TotalTime[ns]"]
 
-anf_with_fastest_config = get_fastest_config_per_llfile(anf).add_suffix("_anf")
-default_with_fastest_config = get_fastest_config_per_llfile(default).add_suffix("_default_fastest")
+# Adds the TotalTime from all_configs where the configuration matches the given config
+def add_column_with_config(config_name, column_name):
+    only_given_config = all_configs[all_configs["Configuration"] == config_name]
+    add_column_to_total_time(only_given_config, column_name)
 
-for llfile in default_with_best_config.index.difference(anf_with_fastest_config.index):
-    print(f"llfile in default, not in anf: {llfile}")
-for llfile in anf_with_fastest_config.index.difference(default_with_best_config.index):
-    print(f"llfile in anf, not in default: {llfile}")
+add_column_with_config(BEST_CONFIG, "best_config")
+add_column_with_config(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
+add_column_with_config(BEST_CONFIG_SANS_IMP, "best_config_sans_imp")
 
-joined = default_with_best_config.join(anf_with_fastest_config, how="inner")
-joined = joined.join(default_with_fastest_config, how="inner")
-joined = joined.join(default_with_best_sans_pip_config, how="inner")
+# Among all rows in data, picks the fastest TotalTime per cfile and uses that
+def add_oracle_config_per_cfile(data, column_name):
+    idx_per_cfile = data.groupby("cfile")["TotalTime[ns]"].idxmin()
+    add_column_to_total_time(data.loc[idx_per_cfile, :], column_name)
 
-joined = joined.sort_values("TotalTime[ns]_default", ascending=True)
+all_configs_sans_pip = all_configs[~all_configs["Configuration"].str.contains("PIP")]
+all_configs_sans_naive = all_configs[~all_configs["Configuration"].str.contains("Naive")]
+all_configs_sans_pip_or_naive = all_configs_sans_naive[~all_configs_sans_naive["Configuration"].str.contains("PIP")]
+all_configs_sans_imp = all_configs[~all_configs["Configuration"].str.contains("ImP")]
+all_configs_only_naive = all_configs[all_configs["Configuration"].str.contains("Naive")]
 
-# CUTOFF = 1e6
-# joined = joined[(joined["TotalTime[ns]_default"] > CUTOFF) | (joined["TotalTime[ns]_anf"] > CUTOFF)]
+add_oracle_config_per_cfile(all_configs, "oracle")
+add_oracle_config_per_cfile(all_configs_sans_pip, "oracle_sans_pip")
+add_oracle_config_per_cfile(all_configs_sans_naive, "oracle_sans_naive")
+add_oracle_config_per_cfile(all_configs_sans_pip_or_naive, "oracle_sans_pip_or_naive")
+add_oracle_config_per_cfile(all_configs_sans_imp, "oracle_sans_imp")
+add_oracle_config_per_cfile(all_configs_only_naive, "oracle_only_naive")
 
-speedup = joined["TotalTime[ns]_anf"] / joined["TotalTime[ns]_default"]
-print("Mean speedup:", speedup.mean())
+total_time_ns.sort_values("best_config", ascending=True, inplace=True)
 
-total_time_default = joined["TotalTime[ns]_default"].values
-total_time_default_sans_pip = joined["TotalTime[ns]_default_sans_pip"].values
-total_time_anf = joined["TotalTime[ns]_anf"].values
-total_time_default_fastest = joined["TotalTime[ns]_default_fastest"].values
+def print_table_header():
+    us = "\\unit{\\micro\\second}"
+    print(" & \\multicolumn{4}{c}{" + f"Total solving time [{us}]" + "} \\\\")
+    print("Configuration & Mean & p50 & p99 & max \\\\")
+    print("\\midrule")
 
-x = range(len(joined))
-plt.figure(figsize=(11,11))
-# plt.ylim(-1e7, 0.25 * 1e9)
+def print_table_row(name, column_name):
+    print(f"{name:<30}", end=" ")
+
+    average_us = total_time_ns[column_name].mean() / 1000
+    p50_us = total_time_ns[column_name].quantile(q=0.5) / 1000
+    p99_us = total_time_ns[column_name].quantile(q=0.99) / 1000
+    slowest_us = total_time_ns[column_name].max() / 1000
+
+    for number in [average_us, p50_us, p99_us, slowest_us]:
+        number = f"{number:_.0f}"
+        number = number.replace("_", "\\;")
+        print(f"& {number:>8}", end=" ")
+    print("\\\\")
+
+print_table_header()
+#print_table_row("Oracle", "oracle")
+print_table_row("\\texttt{ImP+WL=FIFO+PIP}", "best_config")
+#print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip")
+#print_table_row("Oracle without \\texttt{Naive}", "oracle_sans_naive")
+#print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
+#print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
+#print_table_row("\\texttt{ImP+WL=FIFO}", "best_config_sans_pip")
+print_table_row("Oracle without \\texttt{ImP}", "oracle_sans_imp")
+print_table_row("\\texttt{OVS+WL=LRF+OnlineCD}", "best_config_sans_imp")
+
+CUTOFF = 1e4
+total_time_cutoff = total_time_ns[(total_time_ns["best_config"] > CUTOFF) | (total_time_ns["oracle_sans_imp"] > CUTOFF)]
+
+print("C files before cutoff:", len(total_time_ns), "after cutoff:", len(total_time_cutoff))
+print("Mean speedup:", (total_time_ns["oracle_sans_imp"] / total_time_ns["best_config"]).mean())
+print("Mean speedup (with cutoff):", (total_time_cutoff["oracle_sans_imp"] / total_time_cutoff["best_config"]).mean())
+print("Total speedup:", total_time_ns["oracle_sans_imp"].sum() / total_time_ns["best_config"].sum())
+print("Total speedup (with cutoff):", total_time_cutoff["oracle_sans_imp"].sum() / total_time_cutoff["best_config"].sum())
+
+#x = np.linspace(0, 1, len(total_time_cutoff))
+x = range(len(total_time_cutoff))
+
+plt.figure(figsize=(7,3))
 plt.yscale("log")
 
-def plot_given_config(config, color):
-    default_with_given_config = default[default["Configuration"] == config].set_index('llfile').add_suffix("_config")
-    given_joined = joined.join(default_with_given_config, how="inner")
-    plt.scatter(x=x, y=given_joined["TotalTime[ns]_config"].values, color=color, label=config, alpha=0.3)
+plt.scatter(x=x, y=total_time_cutoff["best_config"]/1000, color="blue", alpha=0.3, label="ImP+WL=FIFO+PIP")
+plt.scatter(x=x, y=total_time_cutoff["oracle_sans_imp"]/1000, color="red", alpha=0.3, label="Oracle without ImP")
 
-plt.scatter(x=x, y=total_time_default, color='blue', alpha=0.3)
-plt.scatter(x=x, y=total_time_anf, color='red', alpha=0.3)
-plt.scatter(x=x, y=total_time_default_sans_pip, color='green', alpha=0.3)
+plt.ylabel("Solving time [$\\mu$s]")
+plt.xlabel("File number")
+# plt.margins(x=10)
 
-#speedup =  joined["TotalTime[ns]_default"] / joined["TotalTime[ns]_default_fastest"]
-#print("Mean speedup from oracle:", speedup.mean())
-
-#speedup = joined["TotalTime[ns]_default"].sum() / joined["TotalTime[ns]_default_fastest"].sum()
-#print("Total speedup: ", speedup)
-
-# plot_given_config("Solver=Naive", 'green')
-# plot_given_config("Solver=Worklist_Policy=FirstInFirstOut", 'green')
 plt.grid()
-# plt.title()
+plt.legend()
+plt.tight_layout(pad=0.2)
+plt.savefig("results/default_best_vs_oracle_without_imp.pdf")
 
-#plt.savefig("above1ms_log.pdf")
+### Now we wish to compare PIP and no PIP
+print(" ==== NOW COMPARING PIP AGAINST NO PIP ==== ")
 
-plt.figure()
+print_table_header()
+#print_table_row("Oracle", "oracle")
+print_table_row("\\texttt{ImP+WL=FIFO+PIP}", "best_config")
+#print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip")
+#print_table_row("Oracle without \\texttt{Naive}", "oracle_sans_naive")
+#print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
+#print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
+#print_table_row("\\texttt{ImP+WL=FIFO}", "best_config_sans_pip")
+print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip_or_naive")
+print_table_row("\\texttt{ImP+WL=FIFO}", "best_config_sans_pip")
 
-ratio = total_time_anf / total_time_default
-ratio.sort()
+
+plt.figure(figsize=(7,3))
 plt.yscale("log")
-plt.plot(np.linspace(0,100,len(ratio)), ratio, color='blue')
+
+plt.scatter(x=x, y=total_time_cutoff["best_config"]/1000, color="blue", alpha=0.3, label="ImP+WL=FIFO+PIP")
+plt.scatter(x=x, y=total_time_cutoff["oracle_sans_pip_or_naive"]/1000, color="green", alpha=0.3, label="Oracle without PIP")
+
+plt.ylabel("Solving time [$\\mu$s]")
+plt.xlabel("File number")
+# plt.margins(x=10)
+
 plt.grid()
-plt.show()
+plt.legend()
+plt.tight_layout(pad=0.2)
+plt.savefig("results/default_best_vs_oracle_without_pip.pdf")
+
+print(" ==== Some final stats ==== ")
+print("Number of configurations:", len(all_configs["Configuration"].unique()))
+print("Number of configurations with ImP:", len(default["Configuration"].unique()))
+print("Number of configurations without ImP:", len(anf["Configuration"].unique()))
+
+print("Number of configurations with ImP and PIP:", len(default.loc[default["Configuration"].str.contains("PIP"), "Configuration"].unique()))
+print(default["Configuration"].unique())
