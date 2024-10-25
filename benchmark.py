@@ -7,11 +7,16 @@ import shutil
 import hashlib
 import pandas as pd
 import datetime
+import time
 import argparse
 import re
 import tempfile
 import threading
 import concurrent.futures
+import queue
+
+class TaskTimeoutError(Exception):
+    pass
 
 class Options:
     DEFAULT_LLVM_BINDIR = "/usr/local/lib/llvm18/bin/"
@@ -20,12 +25,20 @@ class Options:
     DEFAULT_STATS_DIR = "statistics/default/"
     DEFAULT_JLM_OPT = "../jlm/build-release/jlm-opt"
 
-    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt):
+    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt, statistics_suffix, timeout):
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
         self.opt = os.path.join(llvm_bindir, "opt")
         self.llvm_link = os.path.join(llvm_bindir, "llvm-link")
+
+        # Allows statistics that are somehow different to not override each other
+        self.statistics_suffix = statistics_suffix if statistics_suffix is not None else ""
+
+        # Allow setting a timeout on running subprocesses. In seconds.
+        # When reached, the task's action function raises a TaskTimeoutError
+        # Any other task that relies on the output of the task is skipped
+        self.timeout = timeout
 
         self.build_dir = build_dir
         self.stats_dir = stats_dir
@@ -41,19 +54,78 @@ class Options:
 
 options: Options = None
 
-def run_command(args, cwd=None, env_vars=None, silent=True):
-    if not silent:
+def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", timeout=None):
+    """
+    Runs the given command, with the given environment variables set.
+    :param verbose: how much output to provide
+     - 0 no output unless the command fails, in which case stdout and stderr are printed
+     - 1 if no new output has been produced in 1 minute, the last line is printed. Stderr is always printed.
+     - 2 prints the command being run, as well as all output immediately
+    :param timeout: the timeout for the command, in seconds. If reached, TaskTimeoutError is raised
+    """
+    assert verbose in [0, 1, 2]
+
+    if verbose >= 2:
         print(f"# {' '.join(args)}")
 
-    result = subprocess.run(args, cwd=cwd, env=env_vars, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    kwargs = {}
+    if verbose in [0, 1]:
+        kwargs["stdout"] = subprocess.PIPE
+    if verbose == 0:
+        kwargs["stderr"] = subprocess.PIPE
+    process = subprocess.Popen(args, cwd=cwd, env=env_vars, text=True, bufsize=1, **kwargs)
 
-    if result.returncode != 0:
-        print(f"Command failed: {args}")
-        print(f"Stdout:\n{result.stdout.decode('utf-8')}")
-        print(f"Stderr:\n{result.stderr.decode('utf-8')}")
+    if verbose == 1:
+        # Use a queue and a separate thread to send lines as they come
+        qu = queue.Queue()
+        def enqueue_output():
+            for line in process.stdout:
+                qu.put(line.strip('\n'))
+            qu.put(None)
+        threading.Thread(target=enqueue_output, daemon=True).start()
+
+        # Make note of the start time to handle timeouts
+        start_time = time.time()
+        read_lines = 0
+        line = ""
+        while line is not None:
+
+            # Check if we have timed out
+            if timeout is not None and time.time() - start_time > timeout:
+                process.kill()
+                raise TaskTimeoutError()
+
+            try:
+                line = qu.get(timeout=60)
+                read_lines += 1
+            except queue.Empty:
+                if read_lines == 0:
+                    continue
+                print_line = f"{print_prefix}: {datetime.datetime.now().strftime('%b %d. %H:%M:%S')}: "
+                if read_lines > 1:
+                    print_line += f"[Skip {read_lines - 1}] "
+                print_line += line
+                print(print_line, flush=True)
+                read_lines = 0
+
+        # If we had a timeout, remove the time already spent
+        if timeout is not None:
+            timeout = timeout - (time.time() - start_time)
+            timeout = max(timeout, 1)
+
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        raise TaskTimeoutError()
+
+    if process.returncode != 0:
+        print(f"Command failed: {args} with returncode: {process.returncode}")
+        if stdout is not None:
+            print(f"Stdout:", stdout)
+        if stdin is not None:
+            print(f"Stderr:", stderr)
         raise RuntimeError("subprocess failed")
-
-    return (result.stdout, result.stderr)
 
 
 def move_stats_file(temp_dir, stats_output):
@@ -80,7 +152,7 @@ class Task:
         self.action = action
 
     def run(self):
-        self.action()
+        self.action(self)
 
 def any_output_matches(task, regex):
     """Returns true if any one of the output files of the given task contains a match for the given regex"""
@@ -89,6 +161,96 @@ def any_output_matches(task, regex):
 def all_outputs_exist(task):
     """Returns true if all outputs of the given task already exist"""
     return all(os.path.exists(of) for of in task.output_files)
+
+def run_all_tasks(tasks, workers=1, dryrun=False):
+    """
+    Runs all tasks in the given list.
+    Assumes that tasks have already been assigned a global index.
+    :dryrun: If true, do not actually run any tasks
+    :return: three lists of tasks: tasks_finished, tasks_timed_out, tasks_skipped
+    """
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
+    # Indices of tasks that have been submitted, or will never be submitted due to depending on a timed out task
+    submitted_tasks = set()
+    # Output files of some task that has not finished
+    files_not_ready = set()
+    # Output files that will never arrive, due to some task it depends on timing out
+    timed_out_files = set()
+
+    tasks_finished = []
+    tasks_timed_out = []
+    tasks_skipped = []
+
+    # First make a pass across all tasks, marking all output files as not ready
+    for task in tasks:
+        # Mark all outputs as not ready
+        for output_file in task.output_files:
+            if output_file in files_not_ready:
+                print(f"error: Multiple tasks produce the output file {output_file}")
+                exit(1)
+            files_not_ready.add(output_file)
+
+    def run_task(i, task):
+        prefix = f"[{i+1}/{len(tasks)}] ({task.index}) {task.name}"
+        if dryrun:
+            print(f"{prefix} (dry-run)")
+        else:
+            print(f"{prefix} starting...", flush=True)
+            task_start_time = datetime.datetime.now()
+            try:
+                task.run()
+            except TaskTimeoutError:
+                task_duration = (datetime.datetime.now() - task_start_time)
+                print(f"{prefix} timed out after {task_duration}!", flush=True)
+                tasks_timed_out.append(task)
+                timed_out_files.update(task.output_files)
+                return
+            else:
+                task_duration = (datetime.datetime.now() - task_start_time)
+                print(f"{prefix} took {task_duration}", flush=True)
+
+        tasks_finished.append(task)
+        # Remove all output files from not_ready
+        for output_file in task.output_files:
+            files_not_ready.remove(output_file)
+
+    running_futures = set()
+
+    # All tasks where none of the input files are in files_not_ready can be submitted
+    while len(submitted_tasks) < len(tasks):
+        for i, task in enumerate(tasks):
+            if i in submitted_tasks:
+                continue
+
+            # Check if this task depends on any files that have been declared timed out, and thus will never arrive
+            if any(input_file in timed_out_files for input_file in task.input_files):
+                print(f"({task.index}) {task.name} is skipped due to depending on a timed out task", flush=True)
+                timed_out_files.update(task.output_files)
+                submitted_tasks.add(i)
+                tasks_skipped.append(task)
+                continue
+
+            if any(input_file in files_not_ready for input_file in task.input_files):
+                continue
+
+            # submit it!
+            submitted_tasks.add(i)
+            running_futures.add(executor.submit(run_task, i, task))
+
+        wait = concurrent.futures.wait(running_futures, return_when=concurrent.futures.FIRST_COMPLETED)
+        running_futures = wait.not_done
+
+        # Check if any of the finished futures raised an exception, and abort
+        for d in wait.done:
+            if d.exception() is not None:
+                raise d.exception()
+
+    # Wait for all tasks to finish
+    executor.shutdown(wait=True)
+
+    assert len(tasks_finished) + len(tasks_timed_out) + len(tasks_skipped) == len(tasks)
+    return (tasks_finished, tasks_timed_out, tasks_skipped)
 
 
 def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_output,
@@ -124,7 +286,7 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
     tasks.append(Task(name=f"Compile {full_name} to LLVM IR",
                       input_files=[cfile],
                       output_files=[clang_out],
-                      action=lambda: run_command(clang_command, cwd=workdir, env_vars=combined_env_vars)))
+                      action=lambda task: run_command(clang_command, cwd=workdir, env_vars=combined_env_vars, timeout=options.timeout)))
 
     if opt_flags is not None:
         # use --debug-pass-manager to print more pass info
@@ -132,16 +294,16 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
         tasks.append(Task(name=f"opt {full_name}",
                           input_files=[clang_out],
                           output_files=[opt_out],
-                          action=lambda: run_command(opt_command, env_vars=combined_env_vars)))
+                          action=lambda task: run_command(opt_command, env_vars=combined_env_vars, timeout=options.timeout)))
     else:
         opt_out = clang_out
 
     if jlm_opt_flags is not None:
 
-        def jlm_opt_action():
+        def jlm_opt_action(task):
             with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
                 jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                run_command(jlm_opt_command, env_vars=combined_env_vars)
+                run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=1, print_prefix=f"({task.index})", timeout=options.timeout)
                 move_stats_file(tmpdir, stats_output)
 
         tasks.append(Task(name=f"jlm-opt {full_name}",
@@ -189,7 +351,7 @@ def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, st
         tasks.append(Task(name=f"llvm-link {full_name}",
                           input_files=compiled_cfiles,
                           output_files=llvm_link_out,
-                          action=lambda: run_command(llvm_link_command, env_vars=combined_env_vars)))
+                          action=lambda task: run_command(llvm_link_command, env_vars=combined_env_vars, timeout=options.timeout)))
 
         if opt_flags is not None:
             # use --debug-pass-manager to print more pass info
@@ -197,17 +359,17 @@ def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, st
             tasks.append(Task(name=f"opt {full_name}",
                               input_files=[llvm_link_out],
                               output_files=[opt_out],
-                              action=lambda: run_command(opt_command, env_vars=combined_env_vars)))
+                              action=lambda task: run_command(opt_command, env_vars=combined_env_vars, timeout=options.timeout)))
         else:
             opt_out = llvm_link_out
 
         if jlm_opt_flags is not None:
             assert llvm_link_flags is not None
 
-            def jlm_opt_action():
+            def jlm_opt_action(task):
                 with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
                     jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                    run_command(jlm_opt_command, env_vars=combined_env_vars)
+                    run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=1, print_prefix=f"({task.index})", timeout=options.timeout)
                     move_stats_file(tmpdir, stats_output)
 
             tasks.append(Task(name=f"jlm_opt {full_name}",
@@ -228,7 +390,7 @@ def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, st
         tasks.append(Task(name=f"clang (link) {full_name}",
                           input_files=compiled_cfiles,
                           output_files=clang_link_out,
-                          action=lambda: run_command(clang_command, env_vars=combined_env_vars)))
+                          action=lambda task: run_command(clang_command, env_vars=combined_env_vars, timeout=options.timeout)))
 
     return (llvm_link_out, opt_out, jlm_opt_out, clang_link_out)
 
@@ -275,7 +437,7 @@ class Benchmark:
 
         for cfile, ofile, args in self.cfiles:
             full_name = self.get_full_cfile_name(cfile)
-            stats_output = os.path.join(stats_dir, f"{full_name}.log")
+            stats_output = os.path.join(stats_dir, f"{full_name}{options.statistics_suffix}.log")
             _, _, outfile = compile_file(tasks, full_name=full_name, workdir=self.workdir, cfile=cfile,
                                          extra_clang_flags=[*self.extra_clang_flags, *args],
                                          opt_flags=self.opt_flags,
@@ -294,7 +456,7 @@ class Benchmark:
                 compiled_non_cfiles.append(self.non_cfiles[ofile])
             else:
                 raise ValueError(f"No object file found for ofile '{ofile}'")
-        stats_output = os.path.join(stats_dir, f"{self.name}.log")
+        stats_output = os.path.join(stats_dir, f"{self.name}{options.statistics_suffix}.log")
         link_and_optimize(tasks, self.name, compiled_cfiles, compiled_non_cfiles,
                           llvm_link_flags=self.llvm_link_flags,
                           opt_flags=self.linked_opt_flags,
@@ -371,11 +533,16 @@ def run_benchmarks(benchmarks,
                    eager=False,
                    workers=1,
                    dryrun=False):
+    """
+    Creates tasks for all the given benchmarks and executes them.
+    Subsets of tasks can be executed by using offsets, limits and strides.
+    Returns 1 if any tasks timed out, 0 otherwise
+    """
     start_time = datetime.datetime.now()
 
     tasks = [task for bench in benchmarks for task in bench.get_tasks(options.get_stats_dir(), env_vars)]
     for i, task in enumerate(tasks):
-        task.total_index = i
+        task.index = i
 
     if offset != 0:
         tasks = tasks[offset:]
@@ -393,64 +560,28 @@ def run_benchmarks(benchmarks,
         if len(tasks) != pre_skip_len:
             print(f"Skipping {pre_skip_len - len(tasks)} tasks due to laziness, leaving {len(tasks)}")
 
-
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
-    # Indices of tasks that have been submitted
-    submitted_tasks = set()
-    # Output files of some task that has not finished
-    files_not_ready = set()
-
-    # First make a pass across all tasks, marking all output files as not ready
-    for task in tasks:
-        # Mark all outputs as not ready
-        for output_file in task.output_files:
-            if output_file in files_not_ready:
-                print(f"error: Multiple tasks produce the output file {output_file}")
-                exit(1)
-            files_not_ready.add(output_file)
-
-    def run_task(i, task):
-        prefix = f"[{i+1}/{len(tasks)}] ({task.total_index}) {task.name}"
-        if dryrun:
-            print(f"{prefix} (dry-run)")
-        else:
-            print(f"{prefix} starting...", flush=True)
-            task_start_time = datetime.datetime.now()
-            task.run()
-            task_duration = (datetime.datetime.now() - task_start_time)
-            print(f"{prefix} took {task_duration}", flush=True)
-
-        # Remove all output files from not_ready
-        for output_file in task.output_files:
-            files_not_ready.remove(output_file)
-
-    running_futures = set()
-
-    # All tasks where none of the input files are in files_not_ready can be submitted
-    while len(submitted_tasks) < len(tasks):
-        for i, task in enumerate(tasks):
-            if i in submitted_tasks:
-                continue
-            if any(input_file in files_not_ready for input_file in task.input_files):
-                continue
-
-            # submit it!
-            submitted_tasks.add(i)
-            running_futures.add(executor.submit(run_task, i, task))
-
-        wait = concurrent.futures.wait(running_futures, return_when=concurrent.futures.FIRST_COMPLETED)
-        running_futures = wait.not_done
-
-        # Check if any of the finished futures raised an exception, and abort
-        for d in wait.done:
-            if d.exception() is not None:
-                raise d.exception()
-
-    # Wait for all tasks to finish
-    executor.shutdown(wait=True)
+    tasks_finished, tasks_timed_out, tasks_skipped = run_all_tasks(tasks, workers, dryrun)
 
     end_time = datetime.datetime.now()
     print(f"Done in {end_time - start_time}")
+
+    # If we timed out on or skipped some tasks, list them at the end and return status code 1
+    if len(tasks_timed_out) != 0:
+        print(f"WARNING: {len(tasks_timed_out)} tasks timed out:")
+        for task in tasks_timed_out:
+            print(f"  ({task.index}) {task.name}")
+        if len(tasks_skipped) != 0:
+            print(f"WARNING: and {len(tasks_skipped)} tasks were skipped due to depending on timed out tasks:")
+            for task in tasks_skipped:
+                print(f"  ({task.index}) {task.name}")
+        return 1
+    else:
+        assert len(tasks_skipped) == 0
+        return 0
+
+
+def intOrNone(value):
+    return int(value) if value is not None else None
 
 
 def main():
@@ -471,6 +602,9 @@ def main():
     parser.add_argument('--list', dest='list_benchmarks', action='store_true',
                     help='List (filtered) benchmarks and exit')
 
+    parser.add_argument('--jlmExactConfig', dest='jlm_exact_config', action='store', default=None,
+                        help='Run jlm-opt with only the specified configuration index. Adds the index to the statistics name.')
+
     parser.add_argument('--offset', metavar='O', dest='offset', action='store', default="0",
                     help='Skip the first O tasks. [0]')
     parser.add_argument('--limit', metavar='L', dest='limit', action='store', default=None,
@@ -481,6 +615,8 @@ def main():
                     help='Makes tasks run even if all their outputs exist')
     parser.add_argument('--dry-run', dest='dryrun', action='store_true',
                     help='Prints the name of each task that would run, but does not run it')
+    parser.add_argument('--timeout', dest='timeout', action='store', default=None,
+                    help='Sets a maximum allowed runtime for subprocesses. In seconds. The process may run for at most a minute longer.')
 
     parser.add_argument('-j', metavar='N', dest='workers', action='store', default='1',
                     help='Run up to N tasks in parallel when possible')
@@ -492,11 +628,16 @@ def main():
                     help='Remove the build and stats folders before running')
     args = parser.parse_args()
 
+    jlm_exact_config = intOrNone(args.jlm_exact_config)
+    statistics_suffix = f"_config{jlm_exact_config}" if jlm_exact_config is not None else None
+
     global options
     options = Options(llvm_bindir=args.llvm_bindir,
                       build_dir=args.build_dir,
                       stats_dir=args.stats_dir,
-                      jlm_opt=args.jlm_opt)
+                      jlm_opt=args.jlm_opt,
+                      statistics_suffix=statistics_suffix,
+                      timeout=intOrNone(args.timeout))
 
     dryrun = args.dryrun
     if not dryrun:
@@ -529,11 +670,15 @@ def main():
     if dryrun: # There is no point in multithreading the dryruns
         workers = 1
 
-    env_vars = {
-        "JLM_ANDERSEN_TEST_ALL_CONFIGS": args.benchmarkIterations,
-        "JLM_ANDERSEN_DOUBLE_CHECK": "YES",
-        "LD_LIBRARY_PATH": "/usr/local/lib/llvm18/lib",
-    }
+    if jlm_exact_config is not None:
+        env_vars = {
+            "JLM_ANDERSEN_USE_EXACT_CONFIG": str(jlm_exact_config)
+        }
+    else:
+        env_vars = {
+            "JLM_ANDERSEN_TEST_ALL_CONFIGS": args.benchmarkIterations,
+            "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
+        }
 
     for bench in benchmarks:
         # bench.opt_flags = ["--passes=mem2reg"]
@@ -543,7 +688,7 @@ def main():
         # Disable linking with clang
         bench.clang_link_flags = None
 
-    run_benchmarks(benchmarks,
+    return run_benchmarks(benchmarks,
                    env_vars=env_vars,
                    offset=offset,
                    limit=limit,
@@ -553,4 +698,5 @@ def main():
                    dryrun=dryrun)
 
 if __name__ == "__main__":
-    main()
+    returncode = main()
+    sys.exit(returncode)

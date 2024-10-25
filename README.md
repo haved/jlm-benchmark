@@ -63,12 +63,19 @@ Benchmarking all C files with both the release and release-anf targets of `jlm-o
 # Optional: clean up any existing benchmark results first
 just purge
 
-just benchmark-release -j8
-just benchmark-release-anf -j8
+just benchmark-release "-j8 --timeout=1000"
+just benchmark-release-anf "-j8 --timeout=1000"
 ```
 This will only test each configuration once per file, yet still take a long time.
-The `-j8` can be changed to use more workers.
-Extra flags can be passed to run only a subset of tasks, and `--dry-run` can be used to print the tasks left to be done.
+The `-j8` can be changed to use more worker threads.
+
+By passing `--timeout=1000`, the maximum amount of time any `jlm-opt` process gets to use is limited to 1000 seconds.
+When finished, all tasks that timed out will be listed, and the script will exit with status code 1.
+Keep in mind that omitting the slowest files will skew the results.
+
+Running the benchmark script again will skip all tasks that have already finished, unless the `--eager` flag is passed. Running with `--dry-run` will quickly print the set of tasks left to be done.
+
+Extra flags can be passed to run only a subset of tasks. See `--help` for details.
 
 ## Running on SLURM
 In order to benchmark each configuration multiple times in a reasonable amount of time,
@@ -84,10 +91,10 @@ APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm.sh
 # Analysis
 ## Aggregating statistics
 The benchmark script dumps statistics for individual alias analysis passes to `statistics/<target>`.
-The processing of these statistics is dumped to `statistics-out/<target>`.
+The processing of all these statistics `.log` files is dumped to `statistics-out/`.
 
 ```sh
-just aggregate-both
+just aggregate
 ```
 
 ## Analysis scripts

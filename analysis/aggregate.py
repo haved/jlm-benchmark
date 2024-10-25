@@ -5,6 +5,7 @@ import sys
 import shutil
 import pandas as pd
 import argparse
+import re
 
 def line_to_dict(stats_line):
     statistic, _, *stats = stats_line.split(" ")
@@ -22,6 +23,28 @@ def line_to_dict(stats_line):
         stats_dict[stat_name] = stat_value
     return stats_dict
 
+PER_FILE_STATS = [
+    "#RvsdgNodes", "#PointerObjects", "#PointerObjectsCanPoint",
+    "#MemoryPointerObjects", "#RegisterPointerObjects",
+    "#RegistersMappedToPointerObject",
+    "#BaseConstraints", "#SupersetConstraints", "#StoreConstraints",
+    "#LoadConstraints", "#FunctionCallConstraints", "#FlagConstraints"
+]
+def keep_file_stats(program, cfile, line_stats):
+    """
+    Takes the first line of statistics and only keeps statistics that are based on the file itself
+    """
+    stats = {
+        "cfile": cfile,
+        "program": program
+    }
+    for stat in PER_FILE_STATS:
+        if stat in line_stats:
+            stats[stat] = line_stats[stat]
+        else:
+            pass # TODO: Print warning
+    return stats
+
 def extract_statistics(stats_folder):
     """
     Create one dataframe with one row for each cfile
@@ -30,7 +53,7 @@ def extract_statistics(stats_folder):
     """
 
     files = os.listdir(stats_folder)
-    file_datas = []
+    file_datas = {}
     file_config_datas = []
 
     for filename in files:
@@ -38,49 +61,55 @@ def extract_statistics(stats_folder):
             print(f"Ignoring file {filename}", file=sys.stderr)
             continue
 
-        cfile = filename[:-4] # Remove .log
-        if "+" in cfile:
-            program = cfile.split("+")[0]
-        else:
-            program = ""
+        cfile = filename[:-4] # remove .log
+        single_config_file = False
+        match_config_suffix = re.search("_config[0-9]+$", cfile)
+        if match_config_suffix is not None:
+            single_config_file = True
+            cfile = cfile[:match_config_suffix.start()]
+
+        program = filename.split("+")[0]
 
         file_config_rows = []
 
         with open(os.path.join(stats_folder, filename), encoding='utf-8') as stats_file:
             line_iter = iter(stats_file)
 
-            file_stats = {"cfile": cfile, "program": program}
-
-            # The first line are statistics from analyzing and solving and making the PointsToGraph
             first_line = next(line_iter)
-            file_stats.update(line_to_dict(first_line))
+            line_stats = line_to_dict(first_line)
 
-            file_datas.append(file_stats)
+            # Do we want to include the very first line of statistics?
+            if single_config_file:
+                file_config_rows.append(line_stats)
 
-            # All other lines are statistics from just solving
+            file_stats = keep_file_stats(program, cfile, line_stats)
+            if cfile not in file_datas:
+                file_datas[cfile] = file_stats
+
+            # All other lines are statistics from just solving using different configurations
             for line in line_iter:
-                file_config_rows.append(line_to_dict(line))
+                line_stats = file_stats.copy()
+                line_stats.update(line_to_dict(line))
+                file_config_rows.append(line_stats)
 
         file_config_data = pd.DataFrame(file_config_rows)
-
         file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
-        file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
-
-        with_nan0 = file_config_data.fillna(0)
-        file_config_data["TotalTime[ns]"] = (
-            with_nan0["OVSTimer[ns]"]
-            + with_nan0["OfflineNormTimer[ns]"]
-            + with_nan0["ConstraintSolvingWorklistTimer[ns]"]
-            + with_nan0["ConstraintSolvingNaiveTimer[ns]"])
 
         file_config_data.reset_index(inplace=True)
         file_config_data["cfile"] = cfile
         file_config_datas.append(file_config_data)
 
-    file_datas = pd.DataFrame(file_datas).set_index("cfile")
+    file_datas = pd.DataFrame(file_datas.values()).set_index("cfile")
     file_config_datas = pd.concat(file_config_datas)
-    file_config_datas = file_config_datas.join(file_datas, on="cfile", how="left", rsuffix="_collision")
-    file_config_datas.drop(list(file_config_datas.filter(regex="_collision")), axis=1, inplace=True)
+
+    # Calculate a TotalTime column, using 0 where values are missing
+    with_nan0 = file_config_datas.fillna(0)
+    file_config_datas["TotalTime[ns]"] = (
+        with_nan0["OVSTimer[ns]"]
+        + with_nan0["OfflineNormTimer[ns]"]
+        + with_nan0["ConstraintSolvingWorklistTimer[ns]"]
+        + with_nan0["ConstraintSolvingNaiveTimer[ns]"])
+
     return file_datas, file_config_datas
 
 
@@ -89,7 +118,31 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
         file_data = pd.read_csv(file_data_out)
         file_config_data = pd.read_csv(file_config_data_out)
     else:
-        file_data, file_config_data = extract_statistics(stats_in)
+        file_data_release, file_config_data_release = extract_statistics(os.path.join(stats_in, "release"))
+        file_data_release_anf, file_config_data_release_anf = extract_statistics(os.path.join(stats_in, "release-anf"))
+
+        # Check that no cfiles only exist in one of the versions
+        for cfile in file_data_release.index.symmetric_difference(file_data_release_anf.index):
+            print(f"WARNING: The cfile {cfile} is present only with IP or EP, but not both!")
+
+        file_data = pd.concat([file_data_release.reset_index(), file_data_release_anf.reset_index()], axis="rows")
+        file_data.drop_duplicates(subset="cfile", inplace=True)
+        file_data.set_index("cfile", inplace=True)
+
+        file_config_data_release["Configuration"] = "IP_" + file_config_data_release["Configuration"]
+        file_config_data_release_anf["Configuration"] = "EP_" + file_config_data_release_anf["Configuration"]
+
+        file_config_data = pd.concat([file_config_data_release, file_config_data_release_anf], axis="rows")
+
+        # Check that no cfile has multiple occurances of the same configuration
+        # This could happen if a file has analyzed both regularly, and individually per config
+        num_cfile_config_pairs = file_config_data.groupby(['cfile', 'Configuration']).size()
+        num_cfile_config_pairs = num_cfile_config_pairs[num_cfile_config_pairs > 1]
+        for cfile, config in num_cfile_config_pairs.index:
+            print(f"WARNING: Multiple files provide the following combination: ({cfile}, {config})")
+        if len(num_cfile_config_pairs) > 0:
+            print("NOTE: You should not run the same files both using and not using --jlmExactConfig")
+
         file_data.to_csv(file_data_out)
         file_config_data.to_csv(file_config_data_out, index=False)
 
@@ -104,12 +157,12 @@ def get_mean_time_per_config(file_config_data):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folder.'
+    parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folders.'
                                      'Mainly creates two aggregation files, plus some extra statistics files.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', required=True,
-                        help='The folder where raw .log files are located')
+                        help='The folder where release and release_anf with log files are located')
     parser.add_argument('--stats-out', dest='stats_out', action='store', required=True,
-                        help='Where aggregated statistics files should be placed')
+                        help='Folder where aggregated statistics files should be placed')
     parser.add_argument('--clean', dest='clean', action='store_true',
                         help='Remove previous extracted aggregation files before running')
     args = parser.parse_args()
