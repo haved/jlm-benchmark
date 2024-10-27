@@ -6,11 +6,11 @@ Note that you will need a distribution of the file `cpu2017.tar.xz`, not provide
 # Setup
 First, clone this repository to a suitable location.
 
-The machines used for running the bechmarks requires the following:
+The machines used for running the bechmarks require the following:
  - Has `llvm-18`/`clang-18`.
  - Can build and run the revision of `jlm-opt` specified in `justfile`.
- - Has Python 3 with `matplotlib` and `pandas` to run the benchmarks and plot the results.
- - Some steps use `just` as a command runner.
+ - Has Python 3 with `matplotlib`, `seaborn` and `pandas`, to run the benchmarks and plot the results.
+ - The steps below use `just` as a command runner.
 
 The simplest way of getting everything set up is using the provided Apptainer image definition file.
 If you want to install dependencies locally, see the commands in `jlm-benchmark.def`.
@@ -85,6 +85,7 @@ The array job divides all the work into separate jobs.
 Each job will start its own container using the specified apptainer image.
 
 ``` sh
+mkdir -p build statistics
 APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm.sh
 ```
 

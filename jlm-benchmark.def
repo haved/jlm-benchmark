@@ -3,7 +3,7 @@ From: ubuntu:24.04
 
 %post
     apt update
-    apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib lmod locales doxygen make ninja-build just g++
+    apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn lmod locales doxygen make ninja-build just g++
     locale-gen en_US.UTF-8
     update-locale
 

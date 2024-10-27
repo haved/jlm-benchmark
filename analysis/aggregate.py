@@ -52,6 +52,9 @@ def extract_statistics(stats_folder):
     @return file_data, file_config_data
     """
 
+    if not os.path.exists(stats_folder):
+        return pd.DataFrame(), pd.DataFrame()
+
     files = os.listdir(stats_folder)
     file_datas = {}
     file_config_datas = []
@@ -104,11 +107,16 @@ def extract_statistics(stats_folder):
 
     # Calculate a TotalTime column, using 0 where values are missing
     with_nan0 = file_config_datas.fillna(0)
-    file_config_datas["TotalTime[ns]"] = (
-        with_nan0["OVSTimer[ns]"]
-        + with_nan0["OfflineNormTimer[ns]"]
-        + with_nan0["ConstraintSolvingWorklistTimer[ns]"]
-        + with_nan0["ConstraintSolvingNaiveTimer[ns]"])
+    total_time = 0
+    if "OVSTimer[ns]" in with_nan0:
+        total_time += with_nan0["OVSTimer[ns]"]
+    if "OfflineNormTimer[ns]" in with_nan0:
+        total_time += with_nan0["OfflineNormTimer[ns]"]
+    if "ConstraintSolvingWorklistTimer[ns]" in with_nan0:
+        total_time += with_nan0["ConstraintSolvingWorklistTimer[ns]"]
+    if "ConstraintSolvingNaiveTimer[ns]" in with_nan0:
+        total_time += with_nan0["ConstraintSolvingNaiveTimer[ns]"]
+    file_config_datas["TotalTime[ns]"] = total_time
 
     return file_datas, file_config_datas
 
@@ -129,8 +137,10 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
         file_data.drop_duplicates(subset="cfile", inplace=True)
         file_data.set_index("cfile", inplace=True)
 
-        file_config_data_release["Configuration"] = "IP_" + file_config_data_release["Configuration"]
-        file_config_data_release_anf["Configuration"] = "EP_" + file_config_data_release_anf["Configuration"]
+        if len(file_config_data_release) != 0:
+            file_config_data_release["Configuration"] = "IP_" + file_config_data_release["Configuration"]
+        if len(file_config_data_release_anf) != 0:
+            file_config_data_release_anf["Configuration"] = "EP_" + file_config_data_release_anf["Configuration"]
 
         file_config_data = pd.concat([file_config_data_release, file_config_data_release_anf], axis="rows")
 
