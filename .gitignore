@@ -6,6 +6,8 @@ jlm/
 jlm-benchmark.sif
 .env
 
-archives/
+archives/*
 statistics-oct25-testing/
 statistics-out-oct04/
+
+!archives/statistics-out-oct04.tar.gz

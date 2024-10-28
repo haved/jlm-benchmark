@@ -60,6 +60,11 @@ aggregate:
     mkdir -p statistics-out
     ./analysis/aggregate.py --clean --stats-in statistics --stats-out statistics-out
 
+# Extract aggregated statistics from an archived run instead of aggregating statistics from the statistics folder
+extract-aggregated:
+    rm -rf statistics-out
+    tar -xzf archives/statistics-out-oct04.tar.gz -C .
+
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists

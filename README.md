@@ -98,6 +98,13 @@ The processing of all these statistics `.log` files is dumped to `statistics-out
 just aggregate
 ```
 
+## Alternative: Extracting aggregated statistics
+The repository also contains aggregated statistics from a complete run. Extract them using
+
+``` sh
+just extract-aggregated
+```
+
 ## Analysis scripts
 Inside the `analysis/` directory, there are some scripts for doing extra analysis and plotting graphs from the aggregated statistics. Run them all using:
 ``` sh
