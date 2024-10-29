@@ -90,8 +90,8 @@ total_time_ns.sort_values("best_config_sans_pip", ascending=True, inplace=True)
 
 def print_table_header():
     us = "\\unit{\\micro\\second}"
-    print(" & \\multicolumn{5}{c}{" + f"Total solving time [{us}]" + "} \\\\")
-    print("Configuration & Sum & Mean & p50 & p99 & max \\\\")
+    print(" & \\multicolumn{8}{c}{" + f"Solver Runtime [{us}]" + "} \\\\")
+    print("Configuration & p10 & p25 & p50 & p90 & p99 & Max & Mean & Sum\\\\")
     print("\\midrule")
 
 def print_table_row(name, column_name):
@@ -99,11 +99,14 @@ def print_table_row(name, column_name):
 
     sum_us = total_time_ns[column_name].sum() / 1000
     average_us = total_time_ns[column_name].mean() / 1000
+    p10_us = total_time_ns[column_name].quantile(q=0.1) / 1000
+    p25_us = total_time_ns[column_name].quantile(q=0.25) / 1000
     p50_us = total_time_ns[column_name].quantile(q=0.5) / 1000
+    p90_us = total_time_ns[column_name].quantile(q=0.9) / 1000
     p99_us = total_time_ns[column_name].quantile(q=0.99) / 1000
     slowest_us = total_time_ns[column_name].max() / 1000
 
-    for number in [sum_us, average_us, p50_us, p99_us, slowest_us]:
+    for number in [p10_us, p25_us, p50_us, p90_us, p99_us, slowest_us, average_us, sum_us]:
         number = f"{number:_.0f}"
         number = number.replace("_", "\\;")
         print(f"& {number:>8}", end=" ")
@@ -117,8 +120,8 @@ print_table_header()
 #print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
 #print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
 print_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", "best_config_sans_pip")
-print_table_row("Oracle with \\texttt{EP}", "oracle_with_ep")
-print_table_row("\\texttt{EP+OVS+WL(LRF)+OnlineCD}", "best_config_with_ep")
+print_table_row("\\texttt{EP} Oracle", "oracle_with_ep")
+print_table_row("\\texttt{EP+OVS+WL(LRF)+OCD}", "best_config_with_ep")
 
 x = range(len(total_time_ns))
 
