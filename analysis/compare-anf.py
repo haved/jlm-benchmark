@@ -200,7 +200,6 @@ print(" ==== NOW COMPARING PIP AGAINST NO PIP ==== ")
 total_time_ns.sort_values("best_config", ascending=True, inplace=True)
 
 print_table_header()
-print_table_row("\\texttt{IP+WL(FIFO)+PIP}", "best_config")
 #print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip")
 #print_table_row("Oracle without \\texttt{Naive}", "oracle_sans_naive")
 #print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
@@ -208,7 +207,8 @@ print_table_row("\\texttt{IP+WL(FIFO)+PIP}", "best_config")
 #print_table_row("\\texttt{ImP+WL=FIFO}", "best_config_sans_pip")
 #print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip_or_naive")
 print_table_row(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
-print_table_row("IP+WL(FIFO)", "ip_fifo")
+print_table_row("\\texttt{IP+WL(FIFO)}", "ip_fifo")
+print_table_row("\\texttt{IP+WL(FIFO)+PIP}", "best_config")
 
 # =================== Default best (with PIP) ratio against default best without pip =============
 plt.figure(figsize=(7,3))
