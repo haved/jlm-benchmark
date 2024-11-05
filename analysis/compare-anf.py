@@ -23,10 +23,10 @@ def ensure_consistent_per_cfile(column):
         print(f"ERROR: Different configurations have different values of {column} in {cfile}")
     if len(non_unique_cfiles) > 0:
         exit(1)
-#ensure_consistent_per_cfile("#PointsToRelations")
-#ensure_consistent_per_cfile("#PointsToExternalRelations")
-#ensure_consistent_per_cfile("#CanPointsEscaped")
-#ensure_consistent_per_cfile("#CantPointsEscaped")
+ensure_consistent_per_cfile("#PointsToRelations")
+ensure_consistent_per_cfile("#PointsToExternalRelations")
+ensure_consistent_per_cfile("#CanPointsEscaped")
+ensure_consistent_per_cfile("#CantPointsEscaped")
 
 # Remove empty files
 file_data = file_data[file_data["#RvsdgNodes"] > 0]
@@ -45,6 +45,7 @@ BEST_CONFIG_WITH_EP = "EP_OVS_Solver=Worklist_Policy=LeastRecentlyFired_OnlineCD
 BEST_CONFIG_PRETTY = "IP+WL(FIFO)+PIP"
 BEST_CONFIG_SANS_PIP_PRETTY = "IP+WL(FIFO)+LCD+DP"
 BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY = "IP+WL(FIFO)"
+BEST_CONFIG_WITH_EP_PRETTY = "EP+OVS+WL(LRF)+OVS"
 
 # This dataframe contains one column with the total time per interesting choice of configuration
 total_time_ns = file_data.set_index("cfile")
@@ -197,7 +198,7 @@ plt.savefig("results/best_config_with_ovs_ratio_best_config.pdf")
 
 # ======================= Now we wish to compare PIP and no PIP =================================
 print(" ==== NOW COMPARING PIP AGAINST NO PIP ==== ")
-total_time_ns.sort_values("best_config", ascending=True, inplace=True)
+total_time_ns.sort_values("best_config_just_without_pip", ascending=True, inplace=True)
 
 print_table_header()
 #print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip")
@@ -232,7 +233,7 @@ data_below = data[data["y"] <= 100]
 
 plt.scatter(x=data_above["x"], y=data_above["y"], color="red", marker=".", alpha=0.3, label="IP+WL(FIFO) is faster", zorder=100)
 plt.scatter(x=data_below["x"], y=data_below["y"], color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP is faster", zorder=100)
-plt.xlabel("Files sorted by " + BEST_CONFIG_PRETTY + " solving time")
+plt.xlabel("Files sorted by " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + " solving time")
 plt.ylabel("Runtime ratio\n" + BEST_CONFIG_PRETTY + " / " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY)
 
 plt.grid(zorder=0)
@@ -322,33 +323,67 @@ def draw_memory_use(data, file_out):
     plt.tight_layout(pad=0.2)
     plt.savefig(file_out)
 
-draw_memory_use(best_config_data, "results/explicit_pointees_best.pdf")
-draw_memory_use(best_config_with_ep_data, "results/explicit_pointees_best_ep.pdf")
+#draw_memory_use(best_config_data, "results/explicit_pointees_best.pdf")
+#draw_memory_use(best_config_with_ep_data, "results/explicit_pointees_best_ep.pdf")
+
+def print_explicit_pointees_table_header():
+    print(" & \\multicolumn{8}{c}{Number of explicit pointees} \\\\")
+    print("Configuration & p10 & p25 & p50 & p90 & p99 & Max & Mean \\\\")
+    print("\\midrule")
+
+def print_explicit_pointees_table_row(name, config_name):
+    print(f"{name:<30}", end=" ")
+
+    explicit_pointees = all_configs.loc[all_configs["Configuration"]==config_name, "#ExplicitPointees"]
+    average = explicit_pointees.mean()
+    p10 = explicit_pointees.quantile(q=0.1)
+    p25 = explicit_pointees.quantile(q=0.25)
+    p50 = explicit_pointees.quantile(q=0.5)
+    p90 = explicit_pointees.quantile(q=0.9)
+    p99 = explicit_pointees.quantile(q=0.99)
+    slowest = explicit_pointees.max()
+
+    for number in [p10, p25, p50, p90, p99, slowest, average]:
+        number = f"{number:_.0f}"
+        number = number.replace("_", "\\;")
+        print(f"& {number:>8}", end=" ")
+    print("\\\\")
+
+print_explicit_pointees_table_header()
+print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_WITH_EP_PRETTY + "}", BEST_CONFIG_WITH_EP)
+print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", BEST_CONFIG_SANS_PIP)
+print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_PRETTY + "}", BEST_CONFIG)
 
 # ===== Percentage escaped =============
 
 filtered = best_config_data # [best_config_data["#PointerObjects"] > 30]
 
-escaped_ratio = (filtered["#CanPointsEscaped"] + filtered["#CantPointsEscaped"]) / filtered["#MemoryPointerObjects"]
-plt.figure(figsize=(7,3))
-plt.hist(x=escaped_ratio, bins=20)
-plt.savefig("results/escaped_ratio.pdf")
+escaped_ratio = (filtered["#CanPointsEscaped"] + filtered["#CantPointsEscaped"]) / (filtered["#MemoryPointerObjects"])
 
-points_to_external_ratio = filtered["#PointsToExternalRelations"] / filtered["#PointerObjectsCanPoint"]
-plt.figure(figsize=(7,3))
-plt.hist(x=points_to_external_ratio, bins=20)
-plt.savefig("results/ptexternal_ratio.pdf")
+points_to_external_ratio = filtered["#PointsToExternalRelations"] / (filtered["#RegisterPointerObjects"] + filtered["#MemoryPointerObjectsCanPoint"])
 
 plt.figure(figsize=(7,7))
-data=pd.crosstab(pd.cut(escaped_ratio, 10), pd.cut(points_to_external_ratio, 10))
+
+escaped_categories = pd.Categorical(np.floor(escaped_ratio * 10), categories=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+points_to_external_categories = pd.Categorical(np.floor(points_to_external_ratio * 10), categories=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+print("Escaped <= 50%:", sum(escaped_ratio <= .5) / len(escaped_ratio))
+print("PtE <= 50%:", sum(points_to_external_ratio <= .5) / len(points_to_external_ratio))
+
+print("Escaped <= 70%:", sum(escaped_ratio <= .7) / len(escaped_ratio))
+print("PtE <= 70%:", sum(points_to_external_ratio <= .7) / len(points_to_external_ratio))
+
+data=pd.crosstab(points_to_external_categories, escaped_categories, dropna=False)
 ax = sns.heatmap(data=data, annot=True, fmt='.6g')
 ax.invert_yaxis()
-plt.tight_layout()
-plt.ylabel("Escape %")
-plt.xlabel("PointsToAllEscaped %")
-plt.savefig("results/heatmap.pdf")
 
-print(escaped_ratio[escaped_ratio > 0.96])
+plt.xlabel("Number of memory locations $x$ marked $\\Omega \\sqsupseteq \\{x\\}$")
+plt.ylabel("Number of pointers $p$ marked $p \\sqsupseteq \\Omega$")
+plt.xticks([0,1,2,3,4,5,6,7,8,9,10], labels=["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"])
+plt.yticks([0,1,2,3,4,5,6,7,8,9,10], labels=["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"])
+
+plt.tight_layout()
+plt.savefig("results/heatmap.pdf")
 
 #print(total_time_ns[total_time_ns["best_config"]>1e8])
 

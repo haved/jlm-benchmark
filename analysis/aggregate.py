@@ -24,9 +24,9 @@ def line_to_dict(stats_line):
     return stats_dict
 
 PER_FILE_STATS = [
-    "#RvsdgNodes", "#PointerObjects", "#PointerObjectsCanPoint",
-    "#MemoryPointerObjects", "#RegisterPointerObjects",
-    "#RegistersMappedToPointerObject",
+    "#RvsdgNodes", "#PointerObjects", "#MemoryPointerObjects", "#MemoryPointerObjectsCanPoint",
+    "#RegisterPointerObjects", "#RegistersMappedToPointerObject",
+    "#AllocaPointerObjects", "#MallocPointerObjects", "#GlobalPointerObjects", "#FunctionPointerObjects", "#ImportPointerObjects",
     "#BaseConstraints", "#SupersetConstraints", "#StoreConstraints",
     "#LoadConstraints", "#FunctionCallConstraints", "#FlagConstraints"
 ]
