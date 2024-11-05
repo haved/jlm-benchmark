@@ -5,8 +5,8 @@ slurm-log/
 jlm/
 jlm-benchmark.sif
 .env
-
 archives/*
+results/
 statistics-oct25-testing/
 statistics-out-oct04/
 
