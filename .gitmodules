@@ -1,0 +1,3 @@
+[submodule "sources/emacs"]
+	path = sources/emacs
+	url = https://github.com/emacs-mirror/emacs.git

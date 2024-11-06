@@ -3,7 +3,7 @@ set dotenv-load
 # Get the JLM_PATH environment variable, or set it to the default
 export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
-jlm-commit := "d60e1f123ae0ddab84edccfc53a88e9f3f750daf"
+jlm-commit := "11ae1d605a043ffefa8364183063fa8fdf69925c"
 
 default:
     @just --list

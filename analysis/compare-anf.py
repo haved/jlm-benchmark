@@ -9,31 +9,12 @@ import numpy as np
 file_data = pd.read_csv("statistics-out/file_data.csv")
 all_configs = pd.read_csv("statistics-out/file_config_data.csv")
 
-# Check that all cfiles have been tested with all 212 configurations
-configs_per_cfile = all_configs.groupby("cfile")["Configuration"].nunique()
-missing_configs = configs_per_cfile[configs_per_cfile != 180]
-if len(missing_configs) != 0:
-    print("WARNING: Some cfiles have not been evaluated with all configs!")
-    print(missing_configs)
-
-def ensure_consistent_per_cfile(column):
-    num_different_counts = all_configs.groupby("cfile")[column].nunique()
-    non_unique_cfiles = num_different_counts[num_different_counts > 1].index
-    for cfile in non_unique_cfiles:
-        print(f"ERROR: Different configurations have different values of {column} in {cfile}")
-    if len(non_unique_cfiles) > 0:
-        exit(1)
-ensure_consistent_per_cfile("#PointsToRelations")
-ensure_consistent_per_cfile("#PointsToExternalRelations")
-ensure_consistent_per_cfile("#CanPointsEscaped")
-ensure_consistent_per_cfile("#CantPointsEscaped")
-
 # Remove empty files
 file_data = file_data[file_data["#RvsdgNodes"] > 0]
 all_configs = all_configs[all_configs["#RvsdgNodes"] > 0]
 
-# Remove NORM to see what effect it has. Answer: VERY little effect on oracle
-all_configs = all_configs[~all_configs["Configuration"].str.contains("NORM")]
+# Assert we have no NORM
+assert all_configs["Configuration"].str.contains("NORM").sum() == 0
 
 # Use the config that is fastest on average with flags
 BEST_CONFIG = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"

@@ -28,7 +28,7 @@ PER_FILE_STATS = [
     "#RegisterPointerObjects", "#RegistersMappedToPointerObject",
     "#AllocaPointerObjects", "#MallocPointerObjects", "#GlobalPointerObjects", "#FunctionPointerObjects", "#ImportPointerObjects",
     "#BaseConstraints", "#SupersetConstraints", "#StoreConstraints",
-    "#LoadConstraints", "#FunctionCallConstraints", "#FlagConstraints"
+    "#LoadConstraints", "#FunctionCallConstraints", "#ScalarFlagConstraints", "#OtherFlagConstraints"
 ]
 def keep_file_stats(program, cfile, line_stats):
     """
@@ -105,6 +105,16 @@ def extract_statistics(stats_folder):
     file_datas = pd.DataFrame(file_datas.values()).set_index("cfile")
     file_config_datas = pd.concat(file_config_datas)
 
+    # Check that no cfile has multiple occurances of the same configuration
+    # This could happen if a file has analyzed both regularly, and individually per config
+    num_cfile_config_pairs = file_config_data.groupby(['cfile', 'Configuration']).size()
+    num_cfile_config_pairs = num_cfile_config_pairs[num_cfile_config_pairs > 1]
+    for cfile, config in num_cfile_config_pairs.index:
+        print(f"WARNING: Multiple files provide the following combination: ({cfile}, {config})")
+    if len(num_cfile_config_pairs) > 0:
+        print("NOTE: You should not run the same files both using and not using --jlmExactConfig")
+        file_config_data = file_config_data.groupby(["cfile", "Configuration"]).mean(numeric_only=True).reset_index()
+
     # Calculate a TotalTime column, using 0 where values are missing
     with_nan0 = file_config_datas.fillna(0)
     total_time = 0
@@ -129,10 +139,6 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
         file_data_release, file_config_data_release = extract_statistics(os.path.join(stats_in, "release"))
         file_data_release_anf, file_config_data_release_anf = extract_statistics(os.path.join(stats_in, "release-anf"))
 
-        # Check that no cfiles only exist in one of the versions
-        for cfile in file_data_release.index.symmetric_difference(file_data_release_anf.index):
-            print(f"WARNING: The cfile {cfile} is present only with IP or EP, but not both!")
-
         file_data = pd.concat([file_data_release.reset_index(), file_data_release_anf.reset_index()], axis="rows")
         file_data.drop_duplicates(subset="cfile", inplace=True)
         file_data.set_index("cfile", inplace=True)
@@ -144,14 +150,22 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
         file_config_data = pd.concat([file_config_data_release, file_config_data_release_anf], axis="rows")
 
-        # Check that no cfile has multiple occurances of the same configuration
-        # This could happen if a file has analyzed both regularly, and individually per config
-        num_cfile_config_pairs = file_config_data.groupby(['cfile', 'Configuration']).size()
-        num_cfile_config_pairs = num_cfile_config_pairs[num_cfile_config_pairs > 1]
-        for cfile, config in num_cfile_config_pairs.index:
-            print(f"WARNING: Multiple files provide the following combination: ({cfile}, {config})")
-        if len(num_cfile_config_pairs) > 0:
-            print("NOTE: You should not run the same files both using and not using --jlmExactConfig")
+        # Check that all cfiles have been tested with all configurations
+        configs_per_cfile = file_config_data.groupby("cfile")["Configuration"].nunique()
+        missing_configs = configs_per_cfile[configs_per_cfile != 180]
+        if len(missing_configs) != 0:
+            print(f"WARNING: {len(missing_configs)} cfiles have not been evaluated with all configs!")
+        if 0 < len(missing_configs) < 10:
+            print(missing_configs)
+
+        # Make sure all configurations agree on solution statistics that should be identical
+        for column in ["#PointsToRelations", "#PointsToExternalRelations", "#CanPointsEscaped", "#CantPointsEscaped"]:
+            num_different_counts = file_config_data.groupby("cfile")[column].nunique()
+            non_unique_cfiles = num_different_counts[num_different_counts > 1].index
+            for cfile in non_unique_cfiles:
+                print(f"ERROR: Different configurations have different values of {column} in {cfile}")
+            if len(non_unique_cfiles) > 0:
+                exit(1)
 
         file_data.to_csv(file_data_out)
         file_config_data.to_csv(file_config_data_out, index=False)
