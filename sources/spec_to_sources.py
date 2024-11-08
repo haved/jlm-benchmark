@@ -13,8 +13,8 @@ BANNED_ARGS = [
     "-O3",
     "-Os",
     "-Oz",
-     "-JAAAndersenAgnostic",
-     "-JAAAndersenRegionAware"
+    "-JAAAndersenAgnostic",
+    "-JAAAndersenRegionAware"
 ]
 
 C_COMPILERS = [
@@ -25,6 +25,8 @@ C_COMPILERS = [
 ]
 
 LINKERS = [
+    "gcc",
+    "g++",
     "clang",
     "clang++",
     "/usr/local/lib/llvm18/bin/clang",
@@ -37,6 +39,8 @@ OTHER_COMPILERS = [
     "gfortran",
     "/usr/bin/gfortran"
 ]
+
+
 
 def is_cc_command(cmd):
     args = cmd.split()

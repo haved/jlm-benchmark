@@ -14,13 +14,14 @@ import tempfile
 import threading
 import concurrent.futures
 import queue
+import json
 
 class TaskTimeoutError(Exception):
     pass
 
 class Options:
     DEFAULT_LLVM_BINDIR = "/usr/local/lib/llvm18/bin/"
-    DEFAULT_SOURCES = "sources/sources.txt"
+    DEFAULT_SOURCES = "sources/sources.json"
     DEFAULT_BUILD_DIR = "build/default/"
     DEFAULT_STATS_DIR = "statistics/default/"
     DEFAULT_JLM_OPT = "../jlm/build-release/jlm-opt"
@@ -123,7 +124,7 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
         print(f"Command failed: {args} with returncode: {process.returncode}")
         if stdout is not None:
             print(f"Stdout:", stdout)
-        if stdin is not None:
+        if stderr is not None:
             print(f"Stderr:", stderr)
         raise RuntimeError("subprocess failed")
 
@@ -175,10 +176,11 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
     submitted_tasks = set()
     # Output files of some task that has not finished
     files_not_ready = set()
-    # Output files that will never arrive, due to some task it depends on timing out
-    timed_out_files = set()
+    # Output files that will never arrive, due to some task it depends on failing or timing out
+    skippable_out_files = set()
 
     tasks_finished = []
+    tasks_failed = []
     tasks_timed_out = []
     tasks_skipped = []
 
@@ -204,7 +206,11 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
                 task_duration = (datetime.datetime.now() - task_start_time)
                 print(f"{prefix} timed out after {task_duration}!", flush=True)
                 tasks_timed_out.append(task)
-                timed_out_files.update(task.output_files)
+                skippable_out_files.update(task.output_files)
+                return
+            except:
+                tasks_failed.append(task)
+                skippable_out_files.update(task.output_files)
                 return
             else:
                 task_duration = (datetime.datetime.now() - task_start_time)
@@ -224,9 +230,9 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
                 continue
 
             # Check if this task depends on any files that have been declared timed out, and thus will never arrive
-            if any(input_file in timed_out_files for input_file in task.input_files):
-                print(f"({task.index}) {task.name} is skipped due to depending on a timed out task", flush=True)
-                timed_out_files.update(task.output_files)
+            if any(input_file in skippable_out_files for input_file in task.input_files):
+                print(f"({task.index}) {task.name} is skipped due to depending on a failed or timed out task", flush=True)
+                skippable_out_files.update(task.output_files)
                 submitted_tasks.add(i)
                 tasks_skipped.append(task)
                 continue
@@ -249,8 +255,8 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
     # Wait for all tasks to finish
     executor.shutdown(wait=True)
 
-    assert len(tasks_finished) + len(tasks_timed_out) + len(tasks_skipped) == len(tasks)
-    return (tasks_finished, tasks_timed_out, tasks_skipped)
+    assert len(tasks_finished) + len(tasks_failed) + len(tasks_timed_out) + len(tasks_skipped) == len(tasks)
+    return (tasks_finished, tasks_failed, tasks_timed_out, tasks_skipped)
 
 
 def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_output,
@@ -395,28 +401,53 @@ def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, st
     return (llvm_link_out, opt_out, jlm_opt_out, clang_link_out)
 
 
+def find_common_prefix(strings):
+    prefix, *rest = strings
+    for string in rest:
+        while not string.startswith(prefix):
+            prefix = prefix[:-1]
+    return prefix
+
+class CFile:
+    def __init__(self, working_dir, cfile, ofile, arguments):
+        """
+        :param working_dir: the folder from which to compile, relative to CWD
+        :param cfile: the C file to compile, relative to working_dir
+        :param ofile: the ofile originally produced by this command, relative to CWD
+        :param arguments: flags to pass to the compiler
+        """
+        self.working_dir = working_dir
+        self.cfile = cfile
+        self.ofile = ofile
+        self.arguments = arguments
+
+    def get_abspath(self):
+        return os.path.abspath(os.path.join(self.working_dir, self.cfile))
+
 class Benchmark:
-    def __init__(self, name, workdir, cfiles, non_cfiles, linkfiles, linkflags):
+    def __init__(self, name, cfiles, linker_workdir, ofiles, linkflags):
         """
         Constructs a benchmark representing a single program.
         The input passed to this constructor represents the "standard" compile+link pipeline.
         This can be customized by modifying the fields on the constructed class.
 
+        If any cfile produces one of the ofiles needed for linking, the produced ofile is used instead.
+        This is why all ofiles need to be listed relative to CWD.
+
         :param name: the name of the program
-        :param workdir: the directory to compile C files from
-        :param cfiles: a list of C files, described as tuples:
-         - c file path relative to workdir
-         - name of output object file
-         - list of flags passed to the compiler for this C file
-        :param non_cfiles: a mapping from ofile name, to the full path of a ready .o file on disk
-        :param linkfiles: list of object files that were linked
+        :param cfiles: a list of instances of CFile
+        :param link_workdir: the folder in which to execute the linker
+        :param ofiles: the list of object files to be linked, relative to CWD
         :param linkflags: list of linker flags, or none to disable linking
         """
         self.name = name
-        self.workdir = workdir
         self.cfiles = cfiles
-        self.non_cfiles = non_cfiles
-        self.linkfiles = linkfiles
+        self.linker_workdir = linker_workdir
+        self.ofiles = ofiles
+        self.linkflags = linkflags
+
+        # Avoid including parts of the source paths that are shared between all cfiles in the program
+        self.common_abspath = find_common_prefix(cfile.get_abspath() for cfile in self.cfiles)
 
         self.extra_clang_flags = []
         self.opt_flags = None
@@ -427,7 +458,11 @@ class Benchmark:
         self.clang_link_flags = linkflags
 
     def get_full_cfile_name(self, cfile):
-        return f"{self.name}+{cfile}".replace("/", "_")
+        """Get a cfile name, including the program name, and enough of the path to make it unique"""
+        abspath = cfile.get_abspath()
+        assert abspath.startswith(self.common_abspath)
+        path = abspath[len(self.common_abspath):]
+        return f"{self.name}+{path}".replace("/", "_")
 
     def get_tasks(self, stats_dir, env_vars):
         tasks = []
@@ -435,89 +470,57 @@ class Benchmark:
         # Maps from the ofile name used in sources, to the ofile path we use
         cfile_ofile_mapping = {}
 
-        for cfile, ofile, args in self.cfiles:
+        for cfile in self.cfiles:
             full_name = self.get_full_cfile_name(cfile)
             stats_output = os.path.join(stats_dir, f"{full_name}{options.statistics_suffix}.log")
-            _, _, outfile = compile_file(tasks, full_name=full_name, workdir=self.workdir, cfile=cfile,
-                                         extra_clang_flags=[*self.extra_clang_flags, *args],
+            _, _, outfile = compile_file(tasks, full_name=full_name, workdir=cfile.working_dir, cfile=cfile.cfile,
+                                         extra_clang_flags=[*self.extra_clang_flags, *cfile.arguments],
                                          opt_flags=self.opt_flags,
                                          jlm_opt_flags=self.jlm_opt_flags,
                                          env_vars=env_vars,
                                          stats_output=stats_output)
-            cfile_ofile_mapping[ofile] = outfile
+            cfile_ofile_mapping[cfile.ofile] = outfile
 
-        compiled_cfiles = []
-        compiled_non_cfiles = []
-
-        for ofile in self.linkfiles:
-            if ofile in cfile_ofile_mapping:
-                compiled_cfiles.append(cfile_ofile_mapping[ofile])
-            elif ofile in self.non_cfiles:
-                compiled_non_cfiles.append(self.non_cfiles[ofile])
-            else:
-                raise ValueError(f"No object file found for ofile '{ofile}'")
-        stats_output = os.path.join(stats_dir, f"{self.name}{options.statistics_suffix}.log")
-        link_and_optimize(tasks, self.name, compiled_cfiles, compiled_non_cfiles,
-                          llvm_link_flags=self.llvm_link_flags,
-                          opt_flags=self.linked_opt_flags,
-                          jlm_opt_flags=self.linked_jlm_opt_flags,
-                          clang_link_flags=self.clang_link_flags,
-                          env_vars=env_vars, stats_output=stats_output)
+        #stats_output = os.path.join(stats_dir, f"{self.name}{options.statistics_suffix}.log")
+        #link_and_optimize(tasks, self.name, compiled_cfiles, compiled_non_cfiles,
+        #                  llvm_link_flags=self.llvm_link_flags,
+        #                  opt_flags=self.linked_opt_flags,
+        #                  jlm_opt_flags=self.linked_jlm_opt_flags,
+        #                  clang_link_flags=self.clang_link_flags,
+        #                  env_vars=env_vars, stats_output=stats_output)
 
         return tasks
 
 
-def get_benchmarks(sources_txt):
-    """Returns a list of c files to compile"""
+def get_benchmarks(sources_json):
+    """ Returns benchmarks to be compiled """
+
+    # Everything in the sources file is relative to the sources file, so add its path
+    sources_folder = os.path.dirname(sources_json)
 
     benchmarks = []
 
-    name = None
-    workdir = None
-    cfiles = None
-    ofiles = None
+    with open(sources_json, 'r') as sources_fd:
+        programs = json.load(sources_fd)
 
-    with open(sources_txt, 'r', encoding='utf-8') as sources_file:
-        for line in sources_file:
-            line = line.strip()
-            if line.startswith("WORKDIR"):
-                _, workdir, NAME, name = line.split(" ")
-                assert NAME == "NAME"
-                workdir = os.path.join(os.path.dirname(sources_txt), workdir)
+    for name, data in programs.items():
+        linker_workdir = os.path.join(sources_folder, data["linker_workdir"])
+        ofiles = [os.path.join(sources_folder, ofile) for ofile in data["ofiles"]]
+        linker_arguments = data["linker_arguments"]
 
-                assert cfiles is None
-                cfiles = []
-                ofiles = {}
+        cfiles = []
+        for cfile_data in data["cfiles"]:
+            working_dir = os.path.join(sources_folder, cfile_data["working_dir"])
+            cfile = cfile_data["cfile"]
+            ofile = os.path.join(sources_folder, cfile_data["ofile"])
+            arguments = cfile_data["arguments"]
+            cfiles.append(CFile(working_dir=working_dir, cfile=cfile, ofile=ofile, arguments=arguments))
 
-            elif line.startswith("COMPILE"):
-                _, cfile, INTO, ofile, WITHARGS, *args = line.split(" ")
-                assert INTO == "INTO"
-                assert WITHARGS == "WITHARGS"
-                cfiles.append((cfile, ofile, args))
-
-            elif line.startswith("OFILE"):
-                _, ofile, COMPILER, _, FULLPATH, fullpath = line.split(" ")
-                assert COMPILER == "COMPILER"
-                assert FULLPATH == "FULLPATH"
-                ofiles[ofile] = fullpath
-
-            elif line.startswith("LINK"):
-                assert cfiles is not None
-                line_split = line.split(" ")
-                into = line_split.index("INTO")
-                withargs = line_split.index("WITHARGS")
-                assert into + 2 == withargs
-                linkfiles = line_split[1:into]
-                # target_binary = line_split[into+1]
-                ldflags = line_split[withargs+1:]
-                benchmarks.append(Benchmark(name, workdir, cfiles, ofiles, linkfiles, ldflags))
-
-                # This makes the program crash if the next line sources.txt is not a WORKDIR
-                cfiles = None
-                ofiles = None
-
-            else:
-                raise ValueError("Unknown line type in sources.txt")
+        benchmarks.append(Benchmark(name=name,
+                                    cfiles=cfiles,
+                                    linker_workdir=linker_workdir,
+                                    ofiles=ofiles,
+                                    linkflags=linker_arguments))
 
     # Sort benchmarks in order of ascending number of C files
     benchmarks.sort(key=lambda bench: len(bench.cfiles))
@@ -560,25 +563,30 @@ def run_benchmarks(benchmarks,
         if len(tasks) != pre_skip_len:
             print(f"Skipping {pre_skip_len - len(tasks)} tasks due to laziness, leaving {len(tasks)}")
 
-    tasks_finished, tasks_timed_out, tasks_skipped = run_all_tasks(tasks, workers, dryrun)
+    tasks_finished, tasks_failed, tasks_timed_out, tasks_skipped = run_all_tasks(tasks, workers, dryrun)
 
     end_time = datetime.datetime.now()
     print(f"Done in {end_time - start_time}")
+
+    # If we timed out on or skipped some tasks, list them at the end and return status code 1
+    if len(tasks_failed) != 0:
+        print(f"WARNING: {len(tasks_failed)} tasks failed:")
+        for task in tasks_failed:
+            print(f"  ({task.index}) {task.name}")
 
     # If we timed out on or skipped some tasks, list them at the end and return status code 1
     if len(tasks_timed_out) != 0:
         print(f"WARNING: {len(tasks_timed_out)} tasks timed out:")
         for task in tasks_timed_out:
             print(f"  ({task.index}) {task.name}")
-        if len(tasks_skipped) != 0:
-            print(f"WARNING: and {len(tasks_skipped)} tasks were skipped due to depending on timed out tasks:")
-            for task in tasks_skipped:
-                print(f"  ({task.index}) {task.name}")
-        return 1
-    else:
-        assert len(tasks_skipped) == 0
-        return 0
 
+    if len(tasks_skipped) != 0:
+        print(f"WARNING: and {len(tasks_skipped)} tasks were skipped due to depending on failed or timed out tasks:")
+        for task in tasks_skipped:
+            print(f"  ({task.index}) {task.name}")
+
+    # Only give return code 0 if all attempted tasks finished successfully
+    return 0 if len(tasks_finished) == len(tasks) else 1
 
 def intOrNone(value):
     return int(value) if value is not None else None
@@ -589,7 +597,7 @@ def main():
     parser.add_argument('--llvmbin', dest='llvm_bindir', action='store', default=Options.DEFAULT_LLVM_BINDIR,
                         help='Specify bindir of LLVM tools and clang')
     parser.add_argument('--sources', dest='sources_file', action='store', default=Options.DEFAULT_SOURCES,
-                    help=f'Specify the sources.txt file to scan for benchmarks in [{Options.DEFAULT_SOURCES}]')
+                    help=f'Specify the sources.json file to scan for benchmarks in [{Options.DEFAULT_SOURCES}]')
     parser.add_argument('--builddir', dest='build_dir', action='store', default=Options.DEFAULT_BUILD_DIR,
                     help=f'Specify the build folder to build benchmarks in. [{Options.DEFAULT_BUILD_DIR}]')
     parser.add_argument('--statsdir', dest='stats_dir', action='store', default=Options.DEFAULT_STATS_DIR,
@@ -657,7 +665,7 @@ def main():
     if args.list_benchmarks:
         print(f"{len(benchmarks)} benchmarks:")
         for bench in benchmarks:
-            print(f"  {bench.name:<20} {len(bench.cfiles):4d} C files, {len(bench.non_cfiles):4d} non-C files")
+            print(f"  {bench.name:<20} {len(bench.cfiles):4d} C files") #, {len(bench.non_cfiles):4d} non-C files")
         sys.exit(0)
 
     offset = int(args.offset)

@@ -86,8 +86,11 @@ Each job will start its own container using the specified apptainer image.
 
 ``` sh
 mkdir -p build statistics
+rm -rf slurm-log
 APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm.sh
 ```
+
+<!-- The APPTAINER_CONTAINER may not cotain a ~ for the home folder, so use /cluster/home/<username> -->
 
 # Analysis
 ## Aggregating statistics
