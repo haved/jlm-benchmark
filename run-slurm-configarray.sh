@@ -25,7 +25,7 @@ fi
 
 ./benchmark.py \
     --filter=blender \
-    --offset=$(TASK_INDEX) --limit=1 \
+    --offset=$TASK_INDEX --limit=1 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release-anf \
     --statsdir statistics/release-anf \
