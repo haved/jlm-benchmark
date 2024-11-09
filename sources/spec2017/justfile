@@ -35,13 +35,13 @@ run-cpu2017 config="clang-config": install-cpu2017 install-configs
     runcpu --config={{config}} --size=test --copies=1 --noreportable --iterations=1 \
         502.gcc \
         505.mcf \
+        507.cactuBSSN \
         525.x264 \
         526.blender \
         538.imagick \
         557.xz \
         544.nab \
         999.specrand
-        # Skip 507.cactuBSSN due to using Fortran
 
 terminate-cpu2017:
     killall specperl

@@ -80,14 +80,20 @@ class CFile:
             "arguments": self.arguments
             }
 
+    def get_cfile_path(self):
+        """ Gets the path of the cfile relative to SCRIPT_ROOT """
+        return os.path.normpath(os.path.join(self.working_dir, self.cfile))
+
+
 class Program:
     """
     Represents a single program linked together from a set of object files.
     When the object file is the result of compiling a C file, the compilation command is included.
     All ofile paths, and the elffile path, are stored relative to SCRIPT_ROOT
     """
-    def __init__(self, cfiles, linker_workdir, ofiles, elffile, linker_arguments):
+    def __init__(self, folder, cfiles, linker_workdir, ofiles, elffile, linker_arguments):
         """
+        :param folder: the folder in which the program is, relative to SCRIPT_ROOT
         :param cfiles: a list of CFile objects representing compiling C files into object files
         :param linker_wordir: the working dir of the linking command
         :param ofiles: a list of linked of object file paths, all relative to linker_workdir
@@ -95,6 +101,7 @@ class Program:
         :param linker_arguments: extra arguments given to the linker
         """
 
+        self.folder = folder
         self.cfiles = cfiles.copy()
         self.linker_workdir = linker_workdir
         self.ofiles = [make_relative_to(os.path.join(linker_workdir, ofile), SCRIPT_ROOT) for ofile in ofiles]
@@ -109,6 +116,32 @@ class Program:
             "elffile": self.elffile,
             "linker_arguments": self.linker_arguments
             }
+
+    def remove_duplicate_cfiles(self):
+        seen = set()
+        def false_if_seen(cfile):
+            abspath = cfile.get_cfile_path()
+            if abspath in seen:
+                return False
+            seen.add(abspath)
+            return True
+        self.cfiles = [cfile for cfile in self.cfiles if false_if_seen(cfile)]
+
+    def get_loc(self):
+        """
+        Counts the number of lines of C and header files.
+        Returns the pair (LOC, num C files)
+        """
+        run = subprocess.run(["cloc", self.folder, '--include-lang=C,C/C++ Header', "--json"], capture_output=True)
+        if run.returncode != 0:
+            raise ValueError(f"Counting lines of code for {self.folder} failed")
+        data = json.loads(run.stdout)
+
+        nCFiles = data["C"]["nFiles"]
+        if nCFiles != len(self.cfiles):
+            print(f"Warning: The folder {self.folder} contains {nCFiles}, but only {len(self.cfiles)} are included")
+
+        return data["SUM"]["code"], nCFiles
 
 
 # ================================================================================
@@ -145,6 +178,10 @@ def parse_cc_command(line, working_dir):
         raise ValueError(f"Multiple positional args: {positional}")
     cfile = positional[0]
 
+    # Skip C++ files
+    if cfile.endswith(".cpp"):
+        return None
+
     return CFile(working_dir, cfile, ofile, flags)
 
 def parse_link_command(line, working_dir, cfiles):
@@ -167,7 +204,8 @@ def parse_link_command(line, working_dir, cfiles):
     flags = [arg for arg in args if arg.startswith("-")]
     ofiles = [arg for arg in args if not arg.startswith("-")]
 
-    return Program(cfiles=cfiles, linker_workdir=working_dir, ofiles=ofiles, elffile=elffile, linker_arguments=flags)
+    return Program(folder=working_dir, cfiles=cfiles, linker_workdir=working_dir,
+                   ofiles=ofiles, elffile=elffile, linker_arguments=flags)
 
 def program_from_spec_make(make_out_file):
     make_out_file = os.path.abspath(make_out_file)
@@ -215,7 +253,7 @@ def program_from_spec(spec_program):
     return program_from_spec_make(make_out_file)
 
 # =====================================================================
-#      Creates a program using the verbose output of a makefile
+#      Creates a program using compile_commands.json
 # =====================================================================
 def program_from_folder(folder, make_clean):
     if make_clean:
@@ -225,7 +263,12 @@ def program_from_folder(folder, make_clean):
 
     compile_commands_file = os.path.join(folder, "compile_commands.json")
     if make_clean or not os.path.isfile(compile_commands_file):
-        print(f"The folder {folder} is missing make.out, running make")
+        print(f"The folder {folder} is missing compile_commands.json, running configure and make")
+
+        run = subprocess.run(["./configure"], cwd=folder)
+        if run.returncode != 0:
+            raise ValueError(f"Running configure in {folder} exited with status code {run.returncode}")
+
         run = subprocess.run(["bear", "--", "make"], cwd=folder)
         if run.returncode != 0:
             raise ValueError(f"Running make in {folder} exited with status code {run.returncode}")
@@ -238,6 +281,11 @@ def program_from_folder(folder, make_clean):
         compiler, *arguments = command["arguments"]
         working_dir = command["directory"]
         cfile = command["file"]
+
+        # Skip C++
+        if cfile.endswith(".cpp"):
+            continue
+
         cfile_basename = os.path.basename(cfile)
         if "output" in command:
             ofile = command["output"]
@@ -254,10 +302,13 @@ def program_from_folder(folder, make_clean):
 
         cfiles.append(CFile(working_dir=working_dir, cfile=cfile, ofile=ofile, arguments=arguments))
 
-    return Program(cfiles=cfiles, linker_workdir=folder, ofiles=[], elffile="", linker_arguments=[])
+    program = Program(folder=folder, cfiles=cfiles, linker_workdir=folder,
+                      ofiles=[], elffile="", linker_arguments=[])
+    program.remove_duplicate_cfiles()
+    return program
 
-SPEC_PROGRAMS = ["502.gcc", "505.mcf", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
-OTHER_PROGRAMS = ["emacs"]
+SPEC_PROGRAMS = ["502.gcc", "505.mcf", "507.cactuBSSN", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
+OTHER_PROGRAMS = ["emacs", "ghostscript-10.04.0"]
 
 def main():
     parser = argparse.ArgumentParser(description='Turn programs into a sources.json file')
@@ -267,6 +318,8 @@ def main():
                         help="Optional regex filter that program names must include")
     parser.add_argument('--output', dest='output', action='store', default='sources.json',
                         help="The name of the destination json file [sources.json]")
+    parser.add_argument('--cloc', dest='cloc', action='store_true',
+                        help="Print the number of lines of C code in each program")
     parser.add_argument('--make_clean', dest='make_clean', action='store_true',
                         help="For programs built from this script, runs 'make clean' before making")
     args = parser.parse_args()
@@ -296,6 +349,12 @@ def main():
             continue
         print(f"Doing program {program}")
         programs[program] = program_from_folder(program, make_clean=args.make_clean)
+
+    if args.cloc:
+        print(f"{'Program':<20} | {'#Files':>20} | {'KLOC':>20}")
+        for name, program in programs.items():
+            loc, filecount = program.get_loc()
+            print(f"{name:<20} | {filecount:>20} | {loc/1000:>20}")
 
     # We can not place the sources.json file anywhere else, as that messes with relative paths
     assert "/" not in args.output
