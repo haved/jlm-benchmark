@@ -49,7 +49,7 @@ C_COMPILERS = ["clang", "clang18", "gcc", "jlc", "cc"]
 LINKERS = ["clang", "clang18", "clang++", "clang++18", "gcc", "jlc", "cc"]
 
 SPEC_PROGRAMS = ["502.gcc", "505.mcf", "507.cactuBSSN", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
-OTHER_PROGRAMS = ["emacs", "ghostscript-10.04.0", "gdb-15.2", "wine-9.21", "sendmail-8.18.1"]
+OTHER_PROGRAMS = ["emacs-29.4", "ghostscript-10.04.0", "gdb-15.2", "wine-9.21", "sendmail-8.18.1"]
 
 # Files whose absolute path end in the following are excluded.
 # This can be due to use of inline assembly, computed goto or special intrinsics

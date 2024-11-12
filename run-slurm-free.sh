@@ -7,7 +7,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
 #SBATCH --array=0-875
-#SBATCH -o slurm-log/output.%a.out # STDOUT
+#SBATCH -o slurm-log/output-free.%a.out # STDOUT
 set -euo pipefail
 
 SELF=./run-slurm-free.sh
@@ -31,7 +31,7 @@ fi
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
     --benchmarkIterations 5 \
-    --timeout 43000 \
+    --timeout 30000 \
     -j 2 || true
 
 ./benchmark.py \
@@ -42,5 +42,5 @@ fi
     --statsdir statistics/release-anf \
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
     --benchmarkIterations 1 \
-    --timeout 43000 \
+    --timeout 30000 \
     -j 2

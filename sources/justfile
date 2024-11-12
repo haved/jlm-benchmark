@@ -12,14 +12,14 @@ default:
 
 
 download-emacs:
-    [ -d emacs ] || (\
-        git clone https://github.com/emacs-mirror/emacs.git emacs && \
-        cd emacs && \
-        git checkout emacs-30.0.92 \
+    [ -d emacs-29.4 ] || (\
+        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz &&\
+        tar xzf emacs-29.4.tar.gz &&\
+        rm emacs-29.4.tar.gz \
     )
 
 build-emacs: download-emacs
-    cd emacs && make clean && bear -- make -j12
+    cd emacs-29.4 && make clean && bear -- make -j12
 
 download-ghostscript:
     [ -d ghostscript-10.04.0 ] || (\
