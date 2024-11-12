@@ -1,0 +1,70 @@
+
+default:
+    @echo "Helper for downloading, extracting and building benchmark programs"
+    @echo "For downloading and building all non-propriatary benchmarks, do:"
+    @echo "    just build-all-free"
+    @echo ""
+    @echo "If you also have the file cpu2017.tar.xz, place it somewhere, and run"
+    @echo "    just build-all-spec <path/to/cpu2017.tar.xz>"
+    @echo ""
+    @echo "Once you have built the benchmarks you want to include, create the index sources.json by running"
+    @echo "    just create-sources-json"
+
+
+download-emacs:
+    [ -d emacs ] || (\
+        git clone https://github.com/emacs-mirror/emacs.git emacs && \
+        cd emacs && \
+        git checkout emacs-30.0.92 \
+    )
+
+build-emacs: download-emacs
+    cd emacs && make clean && bear -- make
+
+download-ghostscript:
+    [ -d ghostscript-10.04.0 ] || (\
+        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz &&\
+        tar xzf ghostscript-10.04.0.tar.gz &&\
+        rm ghostscript-10.04.0.tar.gz \
+    )
+
+build-ghostscript: download-ghostscript
+    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make
+
+download-gdb:
+    [ -d gdb-15.2 ] || (\
+        wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz &&\
+        tar xzf gdb-15.2.tar.gz &&\
+        rm gdb-15.2.tar.gz \
+    )
+
+build-gdb: download-gdb
+    cd gdb-15.2 && ./configure && make clean && bear -- make
+
+download-wine:
+    [ -d wine-9.21 ] || (\
+        wget https://dl.winehq.org/wine/source/9.x/wine-9.21.tar.xz &&\
+        tar xJf wine-9.21.tar.xz &&\
+        rm wine-9.21.tar.xz \
+    )
+
+build-wine:
+    cd wine-9.21 && ./configure && make clean && bear -- make server/wineserver
+
+download-sendmail:
+    [ -d sendmail.8.18.1 ] || (\
+        wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz &&\
+        tar xzf sendmail.8.18.1.tar.gz &&\
+        rm sendmail.8.18.1.tar.gz \
+    )
+
+build-sendmail: download-sendmail
+    cd sendmail-8.18.1 && \
+    make clean && \
+    bear -- make
+
+
+build-all-free: build-emacs build-ghostscript build-gdb build-wine build-sendmail
+
+create-sources-json flags="":
+    ./create_sources_json.py {{flags}}

@@ -22,7 +22,21 @@ IGNORED_ARGUMENTS = [
     "-g",
     "-g1",
     "-g2",
-    "-g3"
+    "-g3",
+    "-ggdb0",
+    "-ggdb1",
+    "-ggdb2",
+    "-ggdb3",
+    "--debug",
+    "-gdwarf",
+    "-gdwarf-1",
+    "-gdwarf-2",
+    "-gdwarf-3",
+    "-gdwarf-4",
+    "-gdwarf-5",
+    "-gdwarf32",
+    "-gdwarf64",
+    "-gfull"
 ]
 
 REPLACED_ARGUMENTS = {
@@ -31,28 +45,59 @@ REPLACED_ARGUMENTS = {
 
 IGNORED_LINKER_ARGUMENTS = []
 
-C_COMPILERS = ["clang", "clang18", "gcc", "jlc"]
-LINKERS = ["clang", "clang18", "clang++", "clang++18", "gcc", "jlc"]
+C_COMPILERS = ["clang", "clang18", "gcc", "jlc", "cc"]
+LINKERS = ["clang", "clang18", "clang++", "clang++18", "gcc", "jlc", "cc"]
+
+SPEC_PROGRAMS = ["502.gcc", "505.mcf", "507.cactuBSSN", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
+OTHER_PROGRAMS = ["emacs", "ghostscript-10.04.0", "gdb-15.2", "wine-9.21", "sendmail-8.18.1"]
+
+# Files whose absolute path end in the following are excluded.
+# This can be due to use of inline assembly, computed goto or special intrinsics
+SKIPPED_FILES = [
+    "wine-9.21/server/queue.c",
+    "wine-9.21/server/mapping.c",
+    "wine-9.21/server/winstation.c",
+    "emacs/lib/memset_explicit.c",
+    "emacs/src/bytecode.c",
+    "gdb-15.2/libiberty/sha1.c",
+    "gdb-15.2/libbacktrace/mmap.c",
+    "gdb-15.2/libbacktrace/dwarf.c",
+    "gdb-15.2/libbacktrace/elf.c",
+    "ghostscript-10.04.0/leptonica/src/bytearray.c",
+    "ghostscript-10.04.0/leptonica/src/boxbasic.c",
+    "ghostscript-10.04.0/leptonica/src/ccbord.c",
+    "ghostscript-10.04.0/leptonica/src/compare.c",
+    "ghostscript-10.04.0/leptonica/src/dnabasic.c",
+    "ghostscript-10.04.0/leptonica/src/gplot.c",
+    "ghostscript-10.04.0/leptonica/src/fpix1.c",
+    "ghostscript-10.04.0/leptonica/src/numabasic.c",
+    "ghostscript-10.04.0/leptonica/src/pix1.c",
+    "ghostscript-10.04.0/leptonica/src/pixabasic.c",
+    "ghostscript-10.04.0/leptonica/src/ptabasic.c",
+    "ghostscript-10.04.0/leptonica/src/regutils.c",
+    "ghostscript-10.04.0/leptonica/src/sarray1.c",
+    "ghostscript-10.04.0/leptonica/src/writefile.c"
+]
 
 def make_relative_to(path, base):
     """
     Makes a path relative to base. Is must be an absolute path, or relative to the SCRIPT_ROOT.
-    Asserts that path exists.
-    Asserts that base is a directory, and a superfolder of path.
+    Asserts that base is a directory.
     """
     if not path.startswith("/"):
         path = os.path.abspath(path)
-    assert os.path.exists(path)
 
     base = os.path.abspath(base)
     if not os.path.isdir(base):
         raise ValueError(f"{base} is not a directory")
 
-    base = base + "/"
-    if not path.startswith(base):
-        raise ValueError(f"Can not make path {path} relative to {base}")
-
-    return path[len(base):]
+    prefix = ""
+    while True:
+        if path.startswith(base + "/"):
+            result = prefix + path[len(base)+1:]
+            return result
+        prefix += "../"
+        base = os.path.dirname(base)
 
 class CFile:
     """
@@ -72,6 +117,8 @@ class CFile:
         self.ofile = make_relative_to(os.path.join(working_dir, ofile), SCRIPT_ROOT)
         self.arguments = [REPLACED_ARGUMENTS.get(arg, arg) for arg in arguments if arg not in IGNORED_ARGUMENTS]
 
+        assert os.path.isfile(os.path.join(self.working_dir, self.cfile))
+
     def to_dict(self):
         return {
             "working_dir": self.working_dir,
@@ -83,6 +130,22 @@ class CFile:
     def get_cfile_path(self):
         """ Gets the path of the cfile relative to SCRIPT_ROOT """
         return os.path.normpath(os.path.join(self.working_dir, self.cfile))
+
+    def get_loc(self):
+        """
+        Counts the number of lines of code in the C file
+        """
+        run = subprocess.run(["cloc", self.get_cfile_path(), "--json"], capture_output=True)
+        if run.returncode != 0:
+            raise ValueError(f"Counting lines of code for {self.get_cfile_path()} failed")
+        data = json.loads(run.stdout)
+
+        if "C" in data:
+            return data["C"]["code"]
+        else:
+            # Cloc may mistakenly count C as C++ when stored as .cc files
+            assert "C++" in data
+            return data["C++"]["code"]
 
 
 class Program:
@@ -108,6 +171,9 @@ class Program:
         self.elffile = make_relative_to(os.path.join(linker_workdir, elffile), SCRIPT_ROOT)
         self.linker_arguments = [arg for arg in linker_arguments if arg not in IGNORED_LINKER_ARGUMENTS]
 
+        self.remove_skipped_cfiles()
+        self.remove_duplicate_cfiles()
+
     def to_dict(self):
         return {
             "cfiles": [cfile.to_dict() for cfile in self.cfiles],
@@ -127,33 +193,27 @@ class Program:
             return True
         self.cfiles = [cfile for cfile in self.cfiles if false_if_seen(cfile)]
 
+    def remove_skipped_cfiles(self):
+        def should_skip(cfile):
+            abspath = cfile.get_cfile_path()
+            return any(abspath.endswith(path) for path in SKIPPED_FILES)
+
+        self.cfiles = [cfile for cfile in self.cfiles if not should_skip(cfile)]
+
     def get_loc(self):
-        """
-        Counts the number of lines of C and header files.
-        Returns the pair (LOC, num C files)
-        """
-        run = subprocess.run(["cloc", self.folder, '--include-lang=C,C/C++ Header', "--json"], capture_output=True)
-        if run.returncode != 0:
-            raise ValueError(f"Counting lines of code for {self.folder} failed")
-        data = json.loads(run.stdout)
-
-        nCFiles = data["C"]["nFiles"]
-        if nCFiles != len(self.cfiles):
-            print(f"Warning: The folder {self.folder} contains {nCFiles}, but only {len(self.cfiles)} are included")
-
-        return data["SUM"]["code"], nCFiles
+        return sum(cfile.get_loc() for cfile in self.cfiles), len(self.cfiles)
 
 
 # ================================================================================
 #                Functions for extracting build steps from SPEC2017
 # ================================================================================
 
-def extract_o(args):
-    assert "-o" in args
-    output_index = args.index("-o")
-    ofile = args[output_index + 1]
-    # Remove the ofile part of args
-    return ofile, args[:output_index] + args[output_index+2:]
+def extract(flag, args):
+    assert flag in args
+    output_index = args.index(flag)
+    value = args[output_index + 1]
+    # Remove the flag and value part of args
+    return value, args[:output_index] + args[output_index+2:]
 
 def parse_cc_command(line, working_dir):
     args = shlex.split(line)
@@ -169,7 +229,7 @@ def parse_cc_command(line, working_dir):
     if "-c" not in args:
         return None
 
-    ofile, args = extract_o(args)
+    ofile, args = extract("-o", args)
 
     flags = [arg for arg in args if arg.startswith("-")]
     positional = [arg for arg in args if not arg.startswith("-")]
@@ -182,7 +242,10 @@ def parse_cc_command(line, working_dir):
     if cfile.endswith(".cpp"):
         return None
 
-    return CFile(working_dir, cfile, ofile, flags)
+    # Replace build/-path with src/ to avoid relying on the build folder existsing
+    working_dir_src = re.sub(r'/build/build_base_[^/]*', '/src', working_dir)
+
+    return CFile(working_dir_src, cfile, ofile, flags)
 
 def parse_link_command(line, working_dir, cfiles):
     args = shlex.split(line)
@@ -199,7 +262,7 @@ def parse_link_command(line, working_dir, cfiles):
     if "-c" in args:
         return None
 
-    elffile, args = extract_o(args)
+    elffile, args = extract("-o", args)
 
     flags = [arg for arg in args if arg.startswith("-")]
     ofiles = [arg for arg in args if not arg.startswith("-")]
@@ -255,23 +318,12 @@ def program_from_spec(spec_program):
 # =====================================================================
 #      Creates a program using compile_commands.json
 # =====================================================================
-def program_from_folder(folder, make_clean):
-    if make_clean:
-        run = subprocess.run(["make", "clean"], cwd=folder)
-        if run.returncode != 0:
-            raise ValueError(f"Running 'make clean' in {folder} failed with status code {run.returncode}")
+def program_from_folder(folder):
 
     compile_commands_file = os.path.join(folder, "compile_commands.json")
-    if make_clean or not os.path.isfile(compile_commands_file):
-        print(f"The folder {folder} is missing compile_commands.json, running configure and make")
-
-        run = subprocess.run(["./configure"], cwd=folder)
-        if run.returncode != 0:
-            raise ValueError(f"Running configure in {folder} exited with status code {run.returncode}")
-
-        run = subprocess.run(["bear", "--", "make"], cwd=folder)
-        if run.returncode != 0:
-            raise ValueError(f"Running make in {folder} exited with status code {run.returncode}")
+    if not os.path.isfile(compile_commands_file):
+        print(f"The folder {folder} is missing compile_commands.json, skipping")
+        return None
 
     with open(compile_commands_file, 'r') as compile_commands_fd:
         commands = json.load(compile_commands_fd)
@@ -282,9 +334,19 @@ def program_from_folder(folder, make_clean):
         working_dir = command["directory"]
         cfile = command["file"]
 
-        # Skip C++
+        # Skip files compiled with e.g. g++
+        if not any(compiler.endswith(c) for c in C_COMPILERS):
+            continue
+
+        # Also skip files with the C++ type
         if cfile.endswith(".cpp"):
             continue
+
+        # Skip -x c++
+        if "-x" in arguments:
+            lang, argument = extract("-x", arguments)
+            if lang not in ["c", "C"]:
+                continue
 
         cfile_basename = os.path.basename(cfile)
         if "output" in command:
@@ -295,7 +357,7 @@ def program_from_folder(folder, make_clean):
 
         # If there is a -o, remove it and the output file
         if "-o" in arguments:
-            _, arguments = extract_o(arguments)
+            _, arguments = extract("-o", arguments)
 
         # Remove the input file as well
         arguments = [arg for arg in arguments if not arg.endswith(cfile_basename)]
@@ -304,11 +366,9 @@ def program_from_folder(folder, make_clean):
 
     program = Program(folder=folder, cfiles=cfiles, linker_workdir=folder,
                       ofiles=[], elffile="", linker_arguments=[])
-    program.remove_duplicate_cfiles()
+
     return program
 
-SPEC_PROGRAMS = ["502.gcc", "505.mcf", "507.cactuBSSN", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
-OTHER_PROGRAMS = ["emacs", "ghostscript-10.04.0"]
 
 def main():
     parser = argparse.ArgumentParser(description='Turn programs into a sources.json file')
@@ -320,15 +380,13 @@ def main():
                         help="The name of the destination json file [sources.json]")
     parser.add_argument('--cloc', dest='cloc', action='store_true',
                         help="Print the number of lines of C code in each program")
-    parser.add_argument('--make_clean', dest='make_clean', action='store_true',
-                        help="For programs built from this script, runs 'make clean' before making")
     args = parser.parse_args()
 
     if args.list:
-        print("Available programs in SPEC (must be built separately, see spec2017/README.md):")
+        print("Known programs in SPEC:")
         for p in SPEC_PROGRAMS:
             print(f" - {p}")
-        print("Available other programs (will be built from this script using 'bear'):")
+        print("Known other programs:")
         for p in OTHER_PROGRAMS:
             print(f" - {p}")
         exit(0)
@@ -341,14 +399,18 @@ def main():
     for program in SPEC_PROGRAMS:
         if should_skip(program):
             continue
-        print(f"Doing program {program}")
-        programs[program] = program_from_spec(program)
+        print(f"Trying to index program {program}")
+        program_object = program_from_spec(program)
+        if program_object is not None:
+            programs[program] = program_object
 
     for program in OTHER_PROGRAMS:
         if should_skip(program):
             continue
-        print(f"Doing program {program}")
-        programs[program] = program_from_folder(program, make_clean=args.make_clean)
+        print(f"Trying to index program {program}")
+        program_object = program_from_folder(program)
+        if program_object is not None:
+            programs[program] = program_object
 
     if args.cloc:
         print(f"{'Program':<20} | {'#Files':>20} | {'KLOC':>20}")

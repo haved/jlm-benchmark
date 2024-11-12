@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#SBATCH --partition=CPUQ
+#SBATCH --account=share-ie-idi
+#SBATCH --job-name=jlm-andersen-spec
+#SBATCH --cpus-per-task=2
+#SBATCH --constraint=56c
+#SBATCH --mem=64G
+#SBATCH --time=24:00:00
+#SBATCH --array=0-875
+#SBATCH -o slurm-log/output.%a.out # STDOUT
+set -euo pipefail
+
+SELF=./run-slurm-free.sh
+
+if [ -z ${APPTAINER_NAME+x} ]; then
+    # re-execute this script in an apptainer
+    exec apptainer exec "$APPTAINER_CONTAINER" "$SELF" "$@"
+fi
+
+# Default JLM_PATH, but let the .env file override it
+JLM_PATH="jlm"
+if [ -f .env ]; then
+    source .env
+fi
+
+./benchmark.py \
+    "--filter=emacs|ghostscript|gdb|wine|sendmail" \
+    --offset=$((SLURM_ARRAY_TASK_ID * 4)) --limit=4 \
+    --llvmbin "$(llvm-config-18 --bindir)" \
+    --builddir build/release \
+    --statsdir statistics/release \
+    --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
+    --benchmarkIterations 5 \
+    --timeout 43000 \
+    -j 2 || true
+
+./benchmark.py \
+    "--filter=emacs|ghostscript|gdb|wine|sendmail" \
+    --offset=$((SLURM_ARRAY_TASK_ID * 4)) --limit=4 \
+    --llvmbin "$(llvm-config-18 --bindir)" \
+    --builddir build/release-anf \
+    --statsdir statistics/release-anf \
+    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
+    --benchmarkIterations 1 \
+    --timeout 43000 \
+    -j 2

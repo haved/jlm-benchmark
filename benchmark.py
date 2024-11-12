@@ -25,13 +25,20 @@ class Options:
     DEFAULT_BUILD_DIR = "build/default/"
     DEFAULT_STATS_DIR = "statistics/default/"
     DEFAULT_JLM_OPT = "../jlm/build-release/jlm-opt"
+    DEFAULT_JLM_OPT_VERBOSITY = 1
 
-    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt, statistics_suffix, timeout):
+    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt, jlm_opt_verbosity, statistics_suffix, timeout):
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
         self.opt = os.path.join(llvm_bindir, "opt")
         self.llvm_link = os.path.join(llvm_bindir, "llvm-link")
+
+        self.build_dir = build_dir
+        self.stats_dir = stats_dir
+
+        self.jlm_opt = jlm_opt
+        self.jlm_opt_verbosity = jlm_opt_verbosity
 
         # Allows statistics that are somehow different to not override each other
         self.statistics_suffix = statistics_suffix if statistics_suffix is not None else ""
@@ -40,11 +47,6 @@ class Options:
         # When reached, the task's action function raises a TaskTimeoutError
         # Any other task that relies on the output of the task is skipped
         self.timeout = timeout
-
-        self.build_dir = build_dir
-        self.stats_dir = stats_dir
-
-        self.jlm_opt = jlm_opt
 
     def get_build_dir(self, filename=""):
         return os.path.abspath(os.path.join(self.build_dir, filename))
@@ -309,7 +311,8 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
         def jlm_opt_action(task):
             with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
                 jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=1, print_prefix=f"({task.index})", timeout=options.timeout)
+                run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
+                            print_prefix=f"({task.index})", timeout=options.timeout)
                 move_stats_file(tmpdir, stats_output)
 
         tasks.append(Task(name=f"jlm-opt {full_name}",
@@ -375,7 +378,8 @@ def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, st
             def jlm_opt_action(task):
                 with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
                     jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                    run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=1, print_prefix=f"({task.index})", timeout=options.timeout)
+                    run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
+                                print_prefix=f"({task.index})", timeout=options.timeout)
                     move_stats_file(tmpdir, stats_output)
 
             tasks.append(Task(name=f"jlm_opt {full_name}",
@@ -612,6 +616,8 @@ def main():
 
     parser.add_argument('--jlmExactConfig', dest='jlm_exact_config', action='store', default=None,
                         help='Run jlm-opt with only the specified configuration index. Adds the index to the statistics name.')
+    parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
+                        help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
     parser.add_argument('--offset', metavar='O', dest='offset', action='store', default="0",
                     help='Skip the first O tasks. [0]')
@@ -644,6 +650,7 @@ def main():
                       build_dir=args.build_dir,
                       stats_dir=args.stats_dir,
                       jlm_opt=args.jlm_opt,
+                      jlm_opt_verbosity=int(args.jlm_opt_verbosity),
                       statistics_suffix=statistics_suffix,
                       timeout=intOrNone(args.timeout))
 
