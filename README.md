@@ -44,11 +44,31 @@ Once ready to build both the release and the release-anf targets of `jlm-opt`, r
 just build-jlm-opt
 ```
 
+# Setting up benchmark programs
+
+## Downloading and setting up open source benchmarks
+Go into the folder `sources/` and execute the build job to prepare all source files.
+
+```sh
+cd sources
+just build-all-free
+```
+
 ## Unpacking SPEC2017
-Assuming `cpu2017.tar.xz` is available somewhere, unpack it using the following commands:
+If you have a copy of `cpu2017.tar.xz`, go into `sources/spec2017/` and unpack it using the following command:
 ``` sh
 cd sources/spec2017
 just install-cpu2017 <path/to/cpu2017.tar.xz>
+just run-cpu2017
+```
+
+## Creating sources.json
+The file `sources/sources.json` contains an index of all C files that will be included in the bechmarking.
+Create this file using
+
+``` sh
+cd sources/
+just create-sources-json 
 ```
 
 # Running benchmarks

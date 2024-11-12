@@ -10,7 +10,7 @@ From: ubuntu:24.04
 
     apt update
     apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn \
-                   lmod locales doxygen make ninja-build just g++ gfortran bear \
+                   lmod locales doxygen make ninja-build just g++ gfortran bear autoconf \
                    $WINE_DEPENDENCIES
     locale-gen en_US.UTF-8
     update-locale
