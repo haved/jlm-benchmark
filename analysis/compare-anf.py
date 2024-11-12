@@ -145,19 +145,18 @@ oracle_better.to_csv("results/oracle_better.csv")
 #x = np.linspace(0, 1, len(total_time_cutoff))
 plt.figure(figsize=(7,3))
 
-data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["best_config_sans_pip"]/total_time_ns["oracle_with_ep"])*100})
-data_above = data[data["ratio"] > 100]
-data_below = data[data["ratio"] <= 100]
+data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["best_config_sans_pip"]/total_time_ns["oracle_with_ep"])})
+data_above = data[data["ratio"] > 1]
+data_below = data[data["ratio"] <= 1]
 
 sns.scatterplot(data=data_above, x="x", y="ratio", color="red", marker=".", alpha=0.8, label="EP Oracle is faster", zorder=10)
 sns.scatterplot(data=data_below, x="x", y="ratio", color="blue", marker=".", alpha=0.8, label=BEST_CONFIG_SANS_PIP_PRETTY + " is faster", zorder=10)
 
 plt.ylabel("Runtime ratio \n" + BEST_CONFIG_SANS_PIP_PRETTY + " / EP Oracle")
 plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
-plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
 
 plt.grid(zorder=0)
-plt.gca().axhline(100, linewidth=1, zorder=3, color='black')
+plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.tight_layout(pad=0.2)
 plt.savefig("results/ip_vs_ep_oracle_ratio.pdf")
 
@@ -196,7 +195,7 @@ print_table_row("\\texttt{IP+WL(FIFO)+PIP}", "best_config")
 plt.figure(figsize=(7,3))
 #plt.yscale("log")
 
-plt.scatter(x=range(len(total_time_ns)), y=(total_time_ns["best_config"]/total_time_ns["best_config_sans_pip"])*100, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
+plt.scatter(x=range(len(total_time_ns)), y=(total_time_ns["best_config"]/total_time_ns["best_config_sans_pip"])*1, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
 plt.xlabel("File number")
 
 plt.grid()
@@ -208,9 +207,9 @@ plt.savefig("results/pip_vs_ip_best_ratio.pdf")
 plt.figure(figsize=(7,3))
 #plt.yscale("log")
 
-data = pd.DataFrame({"x": range(len(total_time_ns)), "y": (total_time_ns["best_config"]/total_time_ns["best_config_just_without_pip"])*100})
-data_above = data[data["y"] > 100]
-data_below = data[data["y"] <= 100]
+data = pd.DataFrame({"x": range(len(total_time_ns)), "y": (total_time_ns["best_config"]/total_time_ns["best_config_just_without_pip"])*1})
+data_above = data[data["y"] > 1]
+data_below = data[data["y"] <= 1]
 
 plt.scatter(x=data_above["x"], y=data_above["y"], color="red", marker=".", alpha=0.3, label="IP+WL(FIFO) is faster", zorder=100)
 plt.scatter(x=data_below["x"], y=data_below["y"], color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP is faster", zorder=100)
@@ -218,18 +217,18 @@ plt.xlabel("Files sorted by " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + " solving 
 plt.ylabel("Runtime ratio\n" + BEST_CONFIG_PRETTY + " / " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY)
 
 plt.grid(zorder=0)
-plt.gca().axhline(100, linewidth=1, zorder=3, color='black')
+plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.legend()
-plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
+#plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
 plt.tight_layout(pad=0.2)
 plt.savefig("results/pip_vs_ip_ratio.pdf")
 
 print(" ==== NOW COMPARING PIP AGAINST OracleEP ==== ")
 
 plt.figure(figsize=(7,3))
-ratio = (total_time_ns["best_config"]/total_time_ns["oracle_with_ep"]-1)*100
+ratio = (total_time_ns["best_config"]/total_time_ns["oracle_with_ep"]-1)*1
 plt.scatter(x=range(len(total_time_ns)), y=ratio, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
-print("Slowfile:", ratio[ratio > 150])
+print("Slowfile:", ratio[ratio > 1.5])
 
 #plt.scatter(x=x, y=total_time_cutoff["best_config"]/1000, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
 #plt.scatter(x=x, y=total_time_cutoff["best_config_sans_pip"]/1000, color="green", marker=".", alpha=0.3, label=BEST_CONFIG_SANS_PIP)

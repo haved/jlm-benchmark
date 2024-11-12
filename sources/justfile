@@ -19,7 +19,7 @@ download-emacs:
     )
 
 build-emacs: download-emacs
-    cd emacs && make clean && bear -- make
+    cd emacs && make clean && bear -- make -j12
 
 download-ghostscript:
     [ -d ghostscript-10.04.0 ] || (\
@@ -29,7 +29,7 @@ download-ghostscript:
     )
 
 build-ghostscript: download-ghostscript
-    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make
+    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
 
 download-gdb:
     [ -d gdb-15.2 ] || (\
@@ -39,7 +39,7 @@ download-gdb:
     )
 
 build-gdb: download-gdb
-    cd gdb-15.2 && ./configure && make clean && bear -- make
+    cd gdb-15.2 && ./configure && make clean && bear -- make -j12
 
 download-wine:
     [ -d wine-9.21 ] || (\
@@ -49,7 +49,7 @@ download-wine:
     )
 
 build-wine:
-    cd wine-9.21 && ./configure && make clean && bear -- make server/wineserver
+    cd wine-9.21 && ./configure && make clean && bear -- make -j12 server/wineserver
 
 download-sendmail:
     [ -d sendmail.8.18.1 ] || (\
@@ -61,7 +61,7 @@ download-sendmail:
 build-sendmail: download-sendmail
     cd sendmail-8.18.1 && \
     make clean && \
-    bear -- make
+    bear -- make -j12
 
 
 build-all-free: build-emacs build-ghostscript build-gdb build-wine build-sendmail
