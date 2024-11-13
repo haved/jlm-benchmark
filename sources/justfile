@@ -60,6 +60,7 @@ download-sendmail:
 
 build-sendmail: download-sendmail
     cd sendmail-8.18.1 && \
+    find * -name "obj.*" -exec rm -r {} + -depth && \
     make clean && \
     bear -- make -j12
 

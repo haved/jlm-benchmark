@@ -24,7 +24,7 @@ if [ -f .env ]; then
 fi
 
 ./benchmark.py \
-    --filter=blender \
+    --filter=emacs|ghostscript|gdb|sendmail \
     --offset=$TASK_INDEX --limit=1 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release-anf \
