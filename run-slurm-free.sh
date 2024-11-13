@@ -6,7 +6,7 @@
 #SBATCH --constraint=56c
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --array=0-875
+#SBATCH --array=0-843
 #SBATCH -o slurm-log/output-free.%a.out # STDOUT
 set -euo pipefail
 
@@ -24,7 +24,7 @@ if [ -f .env ]; then
 fi
 
 ./benchmark.py \
-    "--filter=emacs|ghostscript|gdb|wine|sendmail" \
+    "--filter=emacs|ghostscript|gdb|sendmail" \
     --offset=$((SLURM_ARRAY_TASK_ID * 4)) --limit=4 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release \
@@ -35,7 +35,7 @@ fi
     -j 2 || true
 
 ./benchmark.py \
-    "--filter=emacs|ghostscript|gdb|wine|sendmail" \
+    "--filter=emacs|ghostscript|gdb|sendmail" \
     --offset=$((SLURM_ARRAY_TASK_ID * 4)) --limit=4 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release-anf \

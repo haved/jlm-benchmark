@@ -52,7 +52,7 @@ build-wine:
     cd wine-9.21 && ./configure && make clean && bear -- make -j12 server/wineserver
 
 download-sendmail:
-    [ -d sendmail.8.18.1 ] || (\
+    [ -d sendmail-8.18.1 ] || (\
         wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz &&\
         tar xzf sendmail.8.18.1.tar.gz &&\
         rm sendmail.8.18.1.tar.gz \
@@ -64,7 +64,7 @@ build-sendmail: download-sendmail
     bear -- make -j12
 
 
-build-all-free: build-emacs build-ghostscript build-gdb build-wine build-sendmail
+build-all-free: build-emacs build-ghostscript build-gdb build-sendmail
 
 create-sources-json flags="":
     ./create_sources_json.py {{flags}}
