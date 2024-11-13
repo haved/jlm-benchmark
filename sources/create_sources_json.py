@@ -75,7 +75,8 @@ SKIPPED_FILES = [
     "ghostscript-10.04.0/leptonica/src/ptabasic.c",
     "ghostscript-10.04.0/leptonica/src/regutils.c",
     "ghostscript-10.04.0/leptonica/src/sarray1.c",
-    "ghostscript-10.04.0/leptonica/src/writefile.c"
+    "ghostscript-10.04.0/leptonica/src/writefile.c",
+    "ghostscript-10.04.0/obj/gsromfs1.c"
 ]
 
 def make_relative_to(path, base):
