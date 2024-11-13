@@ -152,7 +152,7 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
         # Check that all cfiles have been tested with all configurations
         configs_per_cfile = file_config_data.groupby("cfile")["Configuration"].nunique()
-        missing_configs = configs_per_cfile[configs_per_cfile != 180]
+        missing_configs = configs_per_cfile[configs_per_cfile != 208]
         if len(missing_configs) != 0:
             print(f"WARNING: {len(missing_configs)} cfiles have not been evaluated with all configs!")
         if 0 < len(missing_configs) < 10:

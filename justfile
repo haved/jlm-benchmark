@@ -63,13 +63,13 @@ aggregate:
 # Extract aggregated statistics from an archived run instead of aggregating statistics from the statistics folder
 extract-aggregated:
     rm -rf statistics-out
-    tar -xzf archives/statistics-out-oct04.tar.gz -C .
+    tar -xzf archives/statistics-out-nov13.tar.gz -C .
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    # ./analysis/plot-file-sizes.py --stats statistics-out --out results
+    ./analysis/plot-file-sizes.py --stats statistics-out --out results
     ./analysis/compare-anf.py
 
 # Clean statistics-out and plotted results, but not raw statistics

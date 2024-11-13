@@ -19,14 +19,29 @@ assert all_configs["Configuration"].str.contains("NORM").sum() == 0
 # Use the config that is fastest on average with flags
 BEST_CONFIG = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
 BEST_CONFIG_WITH_OVS = "IP_OVS_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-BEST_CONFIG_SANS_PIP = "IP_Solver=Worklist_Policy=FirstInFirstOut_LazyCD_DP" #"IP_Solver=Worklist_Policy=FirstInFirstOut"
+BEST_CONFIG_SANS_PIP = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP" #"IP_Solver=Worklist_Policy=FirstInFirstOut"
 BEST_CONFIG_JUST_WITHOUT_PIP = "IP_Solver=Worklist_Policy=FirstInFirstOut"
 BEST_CONFIG_WITH_EP = "EP_OVS_Solver=Worklist_Policy=LeastRecentlyFired_OnlineCD"
 
 BEST_CONFIG_PRETTY = "IP+WL(FIFO)+PIP"
-BEST_CONFIG_SANS_PIP_PRETTY = "IP+WL(FIFO)+LCD+DP"
+BEST_CONFIG_SANS_PIP_PRETTY = "IP+WL(LRF)+LCD+DP"
 BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY = "IP+WL(FIFO)"
 BEST_CONFIG_WITH_EP_PRETTY = "EP+OVS+WL(LRF)+OVS"
+
+# Double check that these "best" configurations are actually the best
+total_runtime_per_config = all_configs.groupby("Configuration")["TotalTime[ns]"].sum()
+
+best_config = total_runtime_per_config.idxmin()
+if best_config != BEST_CONFIG:
+    print("ERROR: You have the wrong best config. Should be:", best_config)
+
+best_config_sans_pip = total_runtime_per_config[~total_runtime_per_config.index.str.contains("_PIP")].idxmin()
+if best_config_sans_pip != BEST_CONFIG_SANS_PIP:
+    print("ERROR: You have the wrong best config sans pip. Should be:", best_config_sans_pip)
+
+best_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.contains("EP_")].idxmin()
+if best_with_ep != BEST_CONFIG_WITH_EP:
+    print("ERROR: You have the wrong best config with EP. Should be:", best_with_ep)
 
 # This dataframe contains one column with the total time per interesting choice of configuration
 total_time_ns = file_data.set_index("cfile")
@@ -102,14 +117,18 @@ print_table_header()
 #print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
 #print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
 print_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", "best_config_sans_pip")
-print_table_row("\\texttt{EP} Oracle", "oracle_with_ep")
 print_table_row("\\texttt{EP+OVS+WL(LRF)+OCD}", "best_config_with_ep")
+print_table_row("\\texttt{EP} Oracle", "oracle_with_ep")
 
 x = range(len(total_time_ns))
 
 print("C files:", len(total_time_ns))
 print("Mean speedup:", (total_time_ns["oracle_with_ep"] / total_time_ns["best_config"]).mean())
 print("Total speedup:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config"].sum())
+print("Total oracle vs best_sans_pip:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config_sans_pip"].sum())
+
+slowest_with_ep = total_time_ns[total_time_ns["oracle_with_ep"] > 1e9]
+slowest_with_ep.to_csv("results/slowest_with_ep.csv")
 
 # =========== Drawing in absolute numbers =====================
 
