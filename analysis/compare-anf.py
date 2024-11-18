@@ -60,7 +60,7 @@ best_config_data = add_column_with_config(BEST_CONFIG, "best_config")
 best_config_with_ovs_data = add_column_with_config(BEST_CONFIG_WITH_OVS, "best_config_with_ovs")
 add_column_with_config(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
 add_column_with_config(BEST_CONFIG_JUST_WITHOUT_PIP, "best_config_just_without_pip")
-add_column_with_config("IP_Solver=Worklist_Policy=FirstInFirstOut", "ip_fifo")
+add_column_with_config("IP_Solver=Naive", "ip_naive")
 best_config_with_ep_data = add_column_with_config(BEST_CONFIG_WITH_EP, "best_config_with_ep")
 
 # Among all rows in data, picks the fastest TotalTime per cfile and uses that
@@ -143,12 +143,30 @@ plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
 # plt.margins(x=10)
 
 plt.grid()
+plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
+plt.gca().text(660, 1.5, s=f"$< {lim_1000:.0f}\\mu$s")
+plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
+plt.gca().text(1600, 1.5, s=f"$< {lim_2000:.0f}\\mu$s")
+plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
+plt.gca().text(2550, 1.5, s=f"$< {lim_3000:.0f}\\mu$s")
+
 plt.legend()
 plt.tight_layout(pad=0.2)
 plt.savefig("results/ip_vs_ep_oracle_absolute.pdf")
 
+faster_ep = total_time_ns["oracle_with_ep"] < total_time_ns["best_config_sans_pip"]
+print("Number of files where EP Oracle is faster than best_sans_pip:", sum(faster_ep))
+print("Among first 1000:", sum(faster_ep.iloc[:1000]))
+print("Among first 2000:", sum(faster_ep.iloc[:2000]))
+print("Among first 3000:", sum(faster_ep.iloc[:3000]))
+print("After first 3000:", sum(faster_ep.iloc[3000:]))
+
+
 # =========== Make csv showing best oracle choice =================
-oracle_better = pd.DataFrame({"BestSansPip": total_time_ns["best_config_sans_pip"], "OracleEP": total_time_ns["oracle_with_ep"]})
+oracle_better = pd.DataFrame({"BestSansPip": total_time_ns["best_config_sans_pip"], "OracleEP": total_time_ns["oracle_with_ep"], "TimeWithIPNaive": total_time_ns["ip_naive"]})
 oracle_better["Diff"] = oracle_better["BestSansPip"] - oracle_better["OracleEP"]
 oracle_better["EPConfiguration"] = oracle_ep_data["Configuration"]
 
@@ -168,13 +186,23 @@ data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["be
 data_above = data[data["ratio"] > 1]
 data_below = data[data["ratio"] <= 1]
 
-sns.scatterplot(data=data_above, x="x", y="ratio", color="red", marker=".", alpha=0.8, label="EP Oracle is faster", zorder=10)
-sns.scatterplot(data=data_below, x="x", y="ratio", color="blue", marker=".", alpha=0.8, label=BEST_CONFIG_SANS_PIP_PRETTY + " is faster", zorder=10)
+sns.scatterplot(data=data_above, x="x", y="ratio", color="red", marker=".", edgecolor=None, alpha=0.3, label="EP Oracle is faster", zorder=10)
+sns.scatterplot(data=data_below, x="x", y="ratio", color="blue", marker=".", edgecolor=None, alpha=0.3, label=BEST_CONFIG_SANS_PIP_PRETTY + " is faster", zorder=10)
 
 plt.ylabel("Runtime ratio \n" + BEST_CONFIG_SANS_PIP_PRETTY + " / EP Oracle")
 plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
 
 plt.grid(zorder=0)
+plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
+plt.gca().text(660, 6.2, s=f"$< {lim_1000:.0f}\\mu$s")
+plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
+plt.gca().text(1600, 6.2, s=f"$< {lim_2000:.0f}\\mu$s")
+plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
+plt.gca().text(2550, 6.2, s=f"$< {lim_3000:.0f}\\mu$s")
+
 plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.tight_layout(pad=0.2)
 plt.savefig("results/ip_vs_ep_oracle_ratio.pdf")
@@ -206,21 +234,13 @@ print_table_header()
 #print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
 #print_table_row("\\texttt{ImP+WL=FIFO}", "best_config_sans_pip")
 #print_table_row("Oracle without \\texttt{PIP}", "oracle_sans_pip_or_naive")
-print_table_row(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
-print_table_row("\\texttt{IP+WL(FIFO)}", "ip_fifo")
-print_table_row("\\texttt{IP+WL(FIFO)+PIP}", "best_config")
+#print_table_row(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
+print_table_row(f"\\texttt{{{BEST_CONFIG_SANS_PIP_PRETTY}}}", "best_config_sans_pip")
+print_table_row(f"\\texttt{{{BEST_CONFIG_PRETTY}}}", "best_config")
+print_table_row(f"\\texttt{{{BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY}}}", "best_config_just_without_pip")
 
-# =================== Default best (with PIP) ratio against default best without pip =============
-plt.figure(figsize=(7,3))
-#plt.yscale("log")
-
-plt.scatter(x=range(len(total_time_ns)), y=(total_time_ns["best_config"]/total_time_ns["best_config_sans_pip"])*1, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
-plt.xlabel("File number")
-
-plt.grid()
-plt.legend()
-plt.tight_layout(pad=0.2)
-plt.savefig("results/pip_vs_ip_best_ratio.pdf")
+slow_best_config_just_without_pip = total_time_ns[total_time_ns["best_config_just_without_pip"] > 1e9]
+slow_best_config_just_without_pip.to_csv("results/slow_best_config_just_without_pip.csv")
 
 # =================== Default best (with PIP) ratio against default best without pip =============
 plt.figure(figsize=(7,3))
@@ -236,11 +256,46 @@ plt.xlabel("Files sorted by " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + " solving 
 plt.ylabel("Runtime ratio\n" + BEST_CONFIG_PRETTY + " / " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY)
 
 plt.grid(zorder=0)
+plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+lim_1000 = total_time_ns["best_config_just_without_pip"].iloc[1000]/1000
+plt.gca().text(660, 0.05, s=f"$< {lim_1000:.0f}\\mu$s")
+plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+lim_2000 = total_time_ns["best_config_just_without_pip"].iloc[2000]/1000
+plt.gca().text(1600, 0.05, s=f"$< {lim_2000:.0f}\\mu$s")
+plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+lim_3000 = total_time_ns["best_config_just_without_pip"].iloc[3000]/1000
+plt.gca().text(2550, 0.05, s=f"$< {lim_3000:.0f}\\mu$s")
+
 plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.legend()
 #plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
 plt.tight_layout(pad=0.2)
 plt.savefig("results/pip_vs_ip_ratio.pdf")
+
+print(" ==== Printing statistics about BEST_CONFIG (PIP) vs BEST_CONFIG_JUST_WITHOUT_PIP ======")
+
+slower_with_pip = total_time_ns["best_config"] > total_time_ns["best_config_just_without_pip"]
+slowdown = total_time_ns["best_config"] / total_time_ns["best_config_just_without_pip"] - 1
+speedup = total_time_ns["best_config_just_without_pip"] / total_time_ns["best_config"]
+print("Number of files slower with PIP:", sum(slower_with_pip))
+print("Average slowdown:", slowdown[slower_with_pip].mean())
+print("Largest slowdown after 1000:", slowdown.iloc[1000:].max())
+
+print("Percentage of runtime after first 3000: ", total_time_ns["best_config"].iloc[3000:].sum() / total_time_ns["best_config"].sum())
+
+slowdown_after_3000 = slowdown.iloc[3000:]
+print("Num slowdowns after 3000:", (slowdown_after_3000 > 0).sum())
+print("Average slowdown after 3000:", slowdown_after_3000[slowdown_after_3000 > 0].mean())
+print("Largest slowdown after 3000:", slowdown_after_3000.max())
+
+speedup_after_3000 = speedup.iloc[3000:]
+print("Num speedups after 3000:", (speedup_after_3000 > 1).sum())
+print("Average speedup after 3000:", speedup_after_3000[speedup_after_3000 > 1].mean())
+
+patalogical = total_time_ns["best_config_just_without_pip"].idxmax()
+print("Slowest file just_without_pip", patalogical)
+print("Pathalogical best_config", total_time_ns.loc[patalogical, "best_config"])
+print("Pathalogical best_config_sans_pip", total_time_ns.loc[patalogical, "best_config_sans_pip"])
 
 print(" ==== NOW COMPARING PIP AGAINST OracleEP ==== ")
 
@@ -350,8 +405,11 @@ def print_explicit_pointees_table_row(name, config_name):
 
 print_explicit_pointees_table_header()
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_WITH_EP_PRETTY + "}", BEST_CONFIG_WITH_EP)
+print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + "}", BEST_CONFIG_JUST_WITHOUT_PIP)
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", BEST_CONFIG_SANS_PIP)
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_PRETTY + "}", BEST_CONFIG)
+
+print("Most explicit pointers using", BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY, ":", all_configs.loc[all_configs.loc[all_configs["Configuration"]==BEST_CONFIG_JUST_WITHOUT_PIP, "#ExplicitPointees"].idxmax(), "cfile"])
 
 # ===== Percentage escaped =============
 
@@ -370,7 +428,7 @@ print("Escaped <= 50%:", sum(escaped_ratio <= .5) / len(escaped_ratio))
 print("PtE <= 50%:", sum(points_to_external_ratio <= .5) / len(points_to_external_ratio))
 
 print("Escaped <= 70%:", sum(escaped_ratio <= .7) / len(escaped_ratio))
-print("PtE <= 70%:", sum(points_to_external_ratio <= .7) / len(points_to_external_ratio))
+print("PtE > 70%:", sum(points_to_external_ratio > .7) / len(points_to_external_ratio))
 
 data=pd.crosstab(points_to_external_categories, escaped_categories, dropna=False)
 ax = sns.heatmap(data=data, annot=True, fmt='.6g')
