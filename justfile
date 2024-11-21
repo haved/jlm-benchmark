@@ -20,7 +20,7 @@ checkout-jlm-revision:
     git fetch origin
     git -C {{JLM_PATH}} checkout {{jlm-commit}}
 
-# Build the release and release-anf targets of jlm-opt
+# Build the release and target of jlm-opt
 build-jlm-opt:
     #!/usr/bin/bash -eu
     cd {{JLM_PATH}}
@@ -39,17 +39,6 @@ benchmark-release flags="":
                    --builddir build/release \
                    --statsdir statistics/release \
                    {{flags}}
-
-# Benchmark all C files with the release-anf target of jlm-opt
-benchmark-release-anf flags="":
-    mkdir -p build statistics
-    ./benchmark.py {{common-flags}} --jlm-opt "{{JLM_PATH}}/build-release-anf/jlm-opt" \
-                   --builddir build/release-anf \
-                   --statsdir statistics/release-anf \
-                   {{flags}}
-
-# Benchmark all C files with both the release and release-anf targets
-benchmark-both flags="": (benchmark-release flags) (benchmark-release-anf flags)
 
 # Aggregate statistics from runs of both release and release-anf
 aggregate:
