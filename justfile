@@ -3,7 +3,7 @@ set dotenv-load
 # Get the JLM_PATH environment variable, or set it to the default
 export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
-jlm-commit := "1c6b11b698b82dbbda7c1435d089d56a1044d98b"
+jlm-commit := "40d718bae9477b2812a40506e15da96a6fe7f813"
 
 default:
     @just --list
@@ -13,12 +13,12 @@ checkout-jlm-revision:
     #!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
       echo "{{JLM_PATH}} not found, cloning from git!"
-      mkdir {{JLM_PATH}}
-      git clone https://github.com/haved/jlm.git {{JLM_PATH}}
+      git clone https://github.com/phate/jlm.git {{JLM_PATH}}
     fi
 
     echo "Checking out revision of jlm: {{jlm-commit}}"
-    git -C {{JLM_PATH}} reset --hard {{jlm-commit}}
+    git fetch origin
+    git -C {{JLM_PATH}} checkout {{jlm-commit}}
 
 # Build the release and release-anf targets of jlm-opt
 build-jlm-opt:
@@ -27,10 +27,6 @@ build-jlm-opt:
 
     echo "Building release target"
     ./configure.sh --target release
-    make jlm-opt -j`nproc`
-
-    echo "Building release-anf target"
-    ./configure.sh --target release-anf
     make jlm-opt -j`nproc`
 
 # Flags passed to both benchmarking invocations
