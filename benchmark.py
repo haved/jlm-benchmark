@@ -19,6 +19,9 @@ import json
 class TaskTimeoutError(Exception):
     pass
 
+class TaskSubprocessError(Exception):
+    pass
+
 class Options:
     DEFAULT_LLVM_BINDIR = "/usr/local/lib/llvm18/bin/"
     DEFAULT_SOURCES = "sources/sources.json"
@@ -128,7 +131,7 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
             print(f"Stdout:", stdout)
         if stderr is not None:
             print(f"Stderr:", stderr)
-        raise RuntimeError("subprocess failed")
+        raise TaskSubprocessError()
 
 
 def move_stats_file(temp_dir, stats_output):
@@ -210,7 +213,12 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
                 tasks_timed_out.append(task)
                 skippable_out_files.update(task.output_files)
                 return
-            except:
+            except TaskSubprocessError:
+                tasks_failed.append(task)
+                skippable_out_files.update(task.output_files)
+                return
+            except Exception as e:
+                print(e)
                 tasks_failed.append(task)
                 skippable_out_files.update(task.output_files)
                 return

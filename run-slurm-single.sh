@@ -6,7 +6,7 @@
 #SBATCH --constraint=56c
 #SBATCH --mem=32G
 #SBATCH --time=8-0
-#SBATCH -o slurm-log/single-%j.out # STDOUT
+#SBATCH -o slurm-log/single.%a.out # STDOUT
 set -euo pipefail
 
 SELF=./run-slurm-single.sh
@@ -23,17 +23,8 @@ if [ -f .env ]; then
 fi
 
 ./benchmark.py \
-    --offset "${JLM_OFFSET}" \
-    --limit 1 \
-    --llvmbin "$(llvm-config-18 --bindir)" \
-    --builddir build/release-anf/ \
-    --statsdir statistics/release-anf \
-    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-    --benchmarkIterations 1
-
-./benchmark.py \
-    --offset "${JLM_OFFSET}" \
-    --limit 1 \
+    --offset "${SLURM_ARRAY_TASK_ID}" \
+    --limit 2 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release \
     --statsdir statistics/release \
