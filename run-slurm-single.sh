@@ -29,4 +29,4 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 50
+    --benchmarkIterations 5
