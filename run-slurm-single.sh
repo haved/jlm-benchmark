@@ -4,7 +4,7 @@
 #SBATCH --job-name=jlm-andersen-single
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=56c
-#SBATCH --mem=256G
+#SBATCH --mem=128G
 #SBATCH --time=8-0
 #SBATCH -o slurm-log/single.%a.out # STDOUT
 set -euo pipefail
