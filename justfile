@@ -48,7 +48,7 @@ aggregate:
 # Extract aggregated statistics from an archived run instead of aggregating statistics from the statistics folder
 extract-aggregated:
     rm -rf statistics-out
-    tar -xzf archives/statistics-out-nov13.tar.gz -C .
+    tar -xzf archives/statistics-out-nov28.tar.gz -C .
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:

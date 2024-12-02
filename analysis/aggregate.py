@@ -30,6 +30,11 @@ PER_FILE_STATS = [
     "#BaseConstraints", "#SupersetConstraints", "#StoreConstraints",
     "#LoadConstraints", "#FunctionCallConstraints", "#ScalarFlagConstraints", "#OtherFlagConstraints"
 ]
+PER_FILE_STATS_OPTIONAL = [
+    "#PointsToGraphNodes", "#PointsToGraphAllocaNodes", "#PointsToGraphDeltaNodes", "#PointsToGraphImportNodes",
+    "#PointsToGraphLambdaNodes", "#PointsToGraphMallocNodes", "#PointsToGraphMemoryNodes" "#PointsToGraphRegisterNodes",
+    "#PointsToGraphEscapedNodes", "#PointsToGraphExternalMemorySources", "#PointsToGraphEdges", "#PointsToGraphPointsToRelations"
+]
 def keep_file_stats(program, cfile, line_stats):
     """
     Takes the first line of statistics and only keeps statistics that are based on the file itself
@@ -42,7 +47,12 @@ def keep_file_stats(program, cfile, line_stats):
         if stat in line_stats:
             stats[stat] = line_stats[stat]
         else:
-            pass # TODO: Print warning
+            raise ValueError(f"Statistics file is missing mandatory stat: {stat}")
+
+    for stat in PER_FILE_STATS_OPTIONAL:
+        if stat in line_stats:
+            stats[stat] = line_stats[stat]
+
     return stats
 
 def extract_statistics(stats_folder):

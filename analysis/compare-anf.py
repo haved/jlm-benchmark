@@ -14,7 +14,10 @@ file_data = file_data[file_data["#RvsdgNodes"] > 0]
 all_configs = all_configs[all_configs["#RvsdgNodes"] > 0]
 
 # Assert we have no NORM
-assert all_configs["Configuration"].str.contains("NORM").sum() == 0
+# assert all_configs["Configuration"].str.contains("NORM").sum() == 0
+all_configs = all_configs[~all_configs["Configuration"].str.contains("NORM")]
+
+has_ep = False
 
 # Use the config that is fastest on average with flags
 BEST_CONFIG = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
@@ -39,9 +42,10 @@ best_config_sans_pip = total_runtime_per_config[~total_runtime_per_config.index.
 if best_config_sans_pip != BEST_CONFIG_SANS_PIP:
     print("ERROR: You have the wrong best config sans pip. Should be:", best_config_sans_pip)
 
-best_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.contains("EP_")].idxmin()
-if best_with_ep != BEST_CONFIG_WITH_EP:
-    print("ERROR: You have the wrong best config with EP. Should be:", best_with_ep)
+if has_ep:
+    best_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.contains("EP_")].idxmin()
+    if best_with_ep != BEST_CONFIG_WITH_EP:
+        print("ERROR: You have the wrong best config with EP. Should be:", best_with_ep)
 
 # This dataframe contains one column with the total time per interesting choice of configuration
 total_time_ns = file_data.set_index("cfile")
@@ -61,7 +65,8 @@ best_config_with_ovs_data = add_column_with_config(BEST_CONFIG_WITH_OVS, "best_c
 add_column_with_config(BEST_CONFIG_SANS_PIP, "best_config_sans_pip")
 add_column_with_config(BEST_CONFIG_JUST_WITHOUT_PIP, "best_config_just_without_pip")
 add_column_with_config("IP_Solver=Naive", "ip_naive")
-best_config_with_ep_data = add_column_with_config(BEST_CONFIG_WITH_EP, "best_config_with_ep")
+if has_ep:
+    best_config_with_ep_data = add_column_with_config(BEST_CONFIG_WITH_EP, "best_config_with_ep")
 
 # Among all rows in data, picks the fastest TotalTime per cfile and uses that
 def add_oracle_config_per_cfile(data, column_name):
@@ -73,14 +78,16 @@ def add_oracle_config_per_cfile(data, column_name):
 all_configs_sans_pip = all_configs[~all_configs["Configuration"].str.contains("PIP")]
 all_configs_sans_naive = all_configs[~all_configs["Configuration"].str.contains("Naive")]
 all_configs_sans_pip_or_naive = all_configs_sans_naive[~all_configs_sans_naive["Configuration"].str.contains("PIP")]
-all_configs_with_ep = all_configs[all_configs["Configuration"].str.contains("EP_")]
+if has_ep:
+    all_configs_with_ep = all_configs[all_configs["Configuration"].str.contains("EP_")]
 all_configs_only_naive = all_configs[all_configs["Configuration"].str.contains("Naive")]
 
 add_oracle_config_per_cfile(all_configs, "oracle")
 add_oracle_config_per_cfile(all_configs_sans_pip, "oracle_sans_pip")
 add_oracle_config_per_cfile(all_configs_sans_naive, "oracle_sans_naive")
 add_oracle_config_per_cfile(all_configs_sans_pip_or_naive, "oracle_sans_pip_or_naive")
-oracle_ep_data = add_oracle_config_per_cfile(all_configs_with_ep, "oracle_with_ep")
+if has_ep:
+    oracle_ep_data = add_oracle_config_per_cfile(all_configs_with_ep, "oracle_with_ep")
 add_oracle_config_per_cfile(all_configs_only_naive, "oracle_only_naive")
 
 total_time_ns.sort_values("best_config_sans_pip", ascending=True, inplace=True)
@@ -117,18 +124,20 @@ print_table_header()
 #print_table_row("Oracle with \\texttt{Naive}", "oracle_only_naive")
 #print_table_row("Oracle without \\texttt{PIP} or \\texttt{Naive}", "oracle_sans_pip_or_naive")
 print_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", "best_config_sans_pip")
-print_table_row("\\texttt{EP+OVS+WL(LRF)+OCD}", "best_config_with_ep")
-print_table_row("\\texttt{EP} Oracle", "oracle_with_ep")
+if has_ep:
+    print_table_row("\\texttt{EP+OVS+WL(LRF)+OCD}", "best_config_with_ep")
+    print_table_row("\\texttt{EP} Oracle", "oracle_with_ep")
 
 x = range(len(total_time_ns))
 
 print("C files:", len(total_time_ns))
-print("Mean speedup:", (total_time_ns["oracle_with_ep"] / total_time_ns["best_config"]).mean())
-print("Total speedup:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config"].sum())
-print("Total oracle vs best_sans_pip:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config_sans_pip"].sum())
+if has_ep:
+    print("Mean speedup:", (total_time_ns["oracle_with_ep"] / total_time_ns["best_config"]).mean())
+    print("Total speedup:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config"].sum())
+    print("Total oracle vs best_sans_pip:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config_sans_pip"].sum())
 
-slowest_with_ep = total_time_ns[total_time_ns["oracle_with_ep"] > 1e9]
-slowest_with_ep.to_csv("results/slowest_with_ep.csv")
+    slowest_with_ep = total_time_ns[total_time_ns["oracle_with_ep"] > 1e9]
+    slowest_with_ep.to_csv("results/slowest_with_ep.csv")
 
 # =========== Drawing in absolute numbers =====================
 
@@ -136,7 +145,8 @@ plt.figure(figsize=(7,3))
 plt.yscale("log")
 
 sns.scatterplot(x=range(len(total_time_ns)), y=total_time_ns["best_config_sans_pip"]/1000, color="blue", marker=".", edgecolor=None, alpha=0.3, label=BEST_CONFIG_SANS_PIP_PRETTY, zorder=10) #IP+WL(FIFO)")
-sns.scatterplot(x=range(len(total_time_ns)), y=total_time_ns["oracle_with_ep"]/1000, color="red", marker=".", edgecolor=None, alpha=0.3, label="EP Oracle", zorder=10)
+if has_ep:
+    sns.scatterplot(x=range(len(total_time_ns)), y=total_time_ns["oracle_with_ep"]/1000, color="red", marker=".", edgecolor=None, alpha=0.3, label="EP Oracle", zorder=10)
 
 plt.ylabel("Solving time [$\\mu$s]")
 plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
@@ -157,55 +167,58 @@ plt.legend()
 plt.tight_layout(pad=0.2)
 plt.savefig("results/ip_vs_ep_oracle_absolute.pdf")
 
-faster_ep = total_time_ns["oracle_with_ep"] < total_time_ns["best_config_sans_pip"]
-print("Number of files where EP Oracle is faster than best_sans_pip:", sum(faster_ep))
-print("Among first 1000:", sum(faster_ep.iloc[:1000]))
-print("Among first 2000:", sum(faster_ep.iloc[:2000]))
-print("Among first 3000:", sum(faster_ep.iloc[:3000]))
-print("After first 3000:", sum(faster_ep.iloc[3000:]))
+if has_ep:
+    faster_ep = total_time_ns["oracle_with_ep"] < total_time_ns["best_config_sans_pip"]
+    print("Number of files where EP Oracle is faster than best_sans_pip:", sum(faster_ep))
+    print("Among first 1000:", sum(faster_ep.iloc[:1000]))
+    print("Among first 2000:", sum(faster_ep.iloc[:2000]))
+    print("Among first 3000:", sum(faster_ep.iloc[:3000]))
+    print("After first 3000:", sum(faster_ep.iloc[3000:]))
 
 
 # =========== Make csv showing best oracle choice =================
-oracle_better = pd.DataFrame({"BestSansPip": total_time_ns["best_config_sans_pip"], "OracleEP": total_time_ns["oracle_with_ep"], "TimeWithIPNaive": total_time_ns["ip_naive"]})
-oracle_better["Diff"] = oracle_better["BestSansPip"] - oracle_better["OracleEP"]
-oracle_better["EPConfiguration"] = oracle_ep_data["Configuration"]
+if has_ep:
+    oracle_better = pd.DataFrame({"BestSansPip": total_time_ns["best_config_sans_pip"], "OracleEP": total_time_ns["oracle_with_ep"], "TimeWithIPNaive": total_time_ns["ip_naive"]})
+    oracle_better["Diff"] = oracle_better["BestSansPip"] - oracle_better["OracleEP"]
+    oracle_better["EPConfiguration"] = oracle_ep_data["Configuration"]
 
-print(oracle_better)
-for cfile in oracle_better.index:
-    if cfile in total_time_ns.index:
-        oracle_better.loc[cfile, "Index"] = total_time_ns.index.get_loc(cfile)
+    print(oracle_better)
+    for cfile in oracle_better.index:
+        if cfile in total_time_ns.index:
+            oracle_better.loc[cfile, "Index"] = total_time_ns.index.get_loc(cfile)
 
-oracle_better = oracle_better[oracle_better["Diff"] >= 0]
-oracle_better.to_csv("results/oracle_better.csv")
+    oracle_better = oracle_better[oracle_better["Diff"] >= 0]
+    oracle_better.to_csv("results/oracle_better.csv")
 
 # ============== Drawing best config without PIP ratio Oracle with EP ====================
 #x = np.linspace(0, 1, len(total_time_cutoff))
-plt.figure(figsize=(7,3))
+if has_ep:
+    plt.figure(figsize=(7,3))
 
-data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["best_config_sans_pip"]/total_time_ns["oracle_with_ep"])})
-data_above = data[data["ratio"] > 1]
-data_below = data[data["ratio"] <= 1]
+    data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["best_config_sans_pip"]/total_time_ns["oracle_with_ep"])})
+    data_above = data[data["ratio"] > 1]
+    data_below = data[data["ratio"] <= 1]
 
-sns.scatterplot(data=data_above, x="x", y="ratio", color="red", marker=".", edgecolor=None, alpha=0.3, label="EP Oracle is faster", zorder=10)
-sns.scatterplot(data=data_below, x="x", y="ratio", color="blue", marker=".", edgecolor=None, alpha=0.3, label=BEST_CONFIG_SANS_PIP_PRETTY + " is faster", zorder=10)
+    sns.scatterplot(data=data_above, x="x", y="ratio", color="red", marker=".", edgecolor=None, alpha=0.3, label="EP Oracle is faster", zorder=10)
+    sns.scatterplot(data=data_below, x="x", y="ratio", color="blue", marker=".", edgecolor=None, alpha=0.3, label=BEST_CONFIG_SANS_PIP_PRETTY + " is faster", zorder=10)
 
-plt.ylabel("Runtime ratio \n" + BEST_CONFIG_SANS_PIP_PRETTY + " / EP Oracle")
-plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
+    plt.ylabel("Runtime ratio \n" + BEST_CONFIG_SANS_PIP_PRETTY + " / EP Oracle")
+    plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
 
-plt.grid(zorder=0)
-plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
-lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
-plt.gca().text(660, 6.2, s=f"$< {lim_1000:.0f}\\mu$s")
-plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
-lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
-plt.gca().text(1600, 6.2, s=f"$< {lim_2000:.0f}\\mu$s")
-plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
-lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
-plt.gca().text(2550, 6.2, s=f"$< {lim_3000:.0f}\\mu$s")
+    plt.grid(zorder=0)
+    plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+    lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
+    plt.gca().text(660, 6.2, s=f"$< {lim_1000:.0f}\\mu$s")
+    plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+    lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
+    plt.gca().text(1600, 6.2, s=f"$< {lim_2000:.0f}\\mu$s")
+    plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+    lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
+    plt.gca().text(2550, 6.2, s=f"$< {lim_3000:.0f}\\mu$s")
 
-plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
-plt.tight_layout(pad=0.2)
-plt.savefig("results/ip_vs_ep_oracle_ratio.pdf")
+    plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
+    plt.tight_layout(pad=0.2)
+    plt.savefig("results/ip_vs_ep_oracle_ratio.pdf")
 
 # =========== Raito plot with OVS ===================
 plt.figure(figsize=(7,3))
@@ -297,25 +310,26 @@ print("Slowest file just_without_pip", patalogical)
 print("Pathalogical best_config", total_time_ns.loc[patalogical, "best_config"])
 print("Pathalogical best_config_sans_pip", total_time_ns.loc[patalogical, "best_config_sans_pip"])
 
-print(" ==== NOW COMPARING PIP AGAINST OracleEP ==== ")
+if has_ep:
+    print(" ==== NOW COMPARING PIP AGAINST OracleEP ==== ")
 
-plt.figure(figsize=(7,3))
-ratio = (total_time_ns["best_config"]/total_time_ns["oracle_with_ep"]-1)*1
-plt.scatter(x=range(len(total_time_ns)), y=ratio, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
-print("Slowfile:", ratio[ratio > 1.5])
+    plt.figure(figsize=(7,3))
+    ratio = (total_time_ns["best_config"]/total_time_ns["oracle_with_ep"]-1)*1
+    plt.scatter(x=range(len(total_time_ns)), y=ratio, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
+    print("Slowfile:", ratio[ratio > 1.5])
 
-#plt.scatter(x=x, y=total_time_cutoff["best_config"]/1000, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
-#plt.scatter(x=x, y=total_time_cutoff["best_config_sans_pip"]/1000, color="green", marker=".", alpha=0.3, label=BEST_CONFIG_SANS_PIP)
-# plt.scatter(x=x, y=total_time_cutoff["ip_fifo"]/1000, color="red", marker=".", alpha=0.3, label="IP+WL(FIFO)")
+    #plt.scatter(x=x, y=total_time_cutoff["best_config"]/1000, color="blue", marker=".", alpha=0.3, label="IP+WL(FIFO)+PIP")
+    #plt.scatter(x=x, y=total_time_cutoff["best_config_sans_pip"]/1000, color="green", marker=".", alpha=0.3, label=BEST_CONFIG_SANS_PIP)
+    # plt.scatter(x=x, y=total_time_cutoff["ip_fifo"]/1000, color="red", marker=".", alpha=0.3, label="IP+WL(FIFO)")
 
-#plt.ylabel("Solving time [$\\mu$s]")
-plt.xlabel("File number")
-# plt.margins(x=10)
+    #plt.ylabel("Solving time [$\\mu$s]")
+    plt.xlabel("File number")
+    # plt.margins(x=10)
 
-plt.grid()
-plt.legend()
-plt.tight_layout(pad=0.2)
-plt.savefig("results/default_best_ratio_oracle_with_ep.pdf")
+    plt.grid()
+    plt.legend()
+    plt.tight_layout(pad=0.2)
+    plt.savefig("results/default_best_ratio_oracle_with_ep.pdf")
 
 
 # ========== Make boxplot of runtimes with and without PIP ==============================
@@ -404,7 +418,8 @@ def print_explicit_pointees_table_row(name, config_name):
     print("\\\\")
 
 print_explicit_pointees_table_header()
-print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_WITH_EP_PRETTY + "}", BEST_CONFIG_WITH_EP)
+if has_ep:
+    print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_WITH_EP_PRETTY + "}", BEST_CONFIG_WITH_EP)
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + "}", BEST_CONFIG_JUST_WITHOUT_PIP)
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_SANS_PIP_PRETTY + "}", BEST_CONFIG_SANS_PIP)
 print_explicit_pointees_table_row("\\texttt{" + BEST_CONFIG_PRETTY + "}", BEST_CONFIG)
