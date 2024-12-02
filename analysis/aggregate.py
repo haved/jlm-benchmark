@@ -26,14 +26,19 @@ def line_to_dict(stats_line):
 PER_FILE_STATS = [
     "#RvsdgNodes", "#PointerObjects", "#MemoryPointerObjects", "#MemoryPointerObjectsCanPoint",
     "#RegisterPointerObjects", "#RegistersMappedToPointerObject",
-    "#AllocaPointerObjects", "#MallocPointerObjects", "#GlobalPointerObjects", "#FunctionPointerObjects", "#ImportPointerObjects",
+    "#AllocaPointerObjects", "#MallocPointerObjects", "#GlobalPointerObjects",
+    "#FunctionPointerObjects", "#ImportPointerObjects",
     "#BaseConstraints", "#SupersetConstraints", "#StoreConstraints",
-    "#LoadConstraints", "#FunctionCallConstraints", "#ScalarFlagConstraints", "#OtherFlagConstraints"
+    "#LoadConstraints", "#FunctionCallConstraints", "#ScalarFlagConstraints",
+    "#OtherFlagConstraints"
 ]
 PER_FILE_STATS_OPTIONAL = [
-    "#PointsToGraphNodes", "#PointsToGraphAllocaNodes", "#PointsToGraphDeltaNodes", "#PointsToGraphImportNodes",
-    "#PointsToGraphLambdaNodes", "#PointsToGraphMallocNodes", "#PointsToGraphMemoryNodes" "#PointsToGraphRegisterNodes",
-    "#PointsToGraphEscapedNodes", "#PointsToGraphExternalMemorySources", "#PointsToGraphEdges", "#PointsToGraphPointsToRelations"
+    "#PointsToGraphNodes", "#PointsToGraphAllocaNodes", "#PointsToGraphDeltaNodes",
+    "#PointsToGraphImportNodes", "#PointsToGraphLambdaNodes", "#PointsToGraphMallocNodes",
+    "#PointsToGraphMemoryNodes" "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes",
+    "#PointsToGraphExternalMemorySources", "#PointsToGraphEdges", "#PointsToGraphPointsToRelations",
+    "SetAndConstraintBuildingTimer[ns]", "PointsToGraphConstructionTimer[ns]",
+    "PointsToGraphConstructionExternalToEscapedTimer[ns]"
 ]
 def keep_file_stats(program, cfile, line_stats):
     """
