@@ -29,6 +29,10 @@ build-jlm-opt:
     ./configure.sh --target release
     make jlm-opt -j`nproc`
 
+    echo "Building release-anf target"
+    ./configure.sh --target release-anf
+    make jlm-opt -j`nproc`
+
 # Flags passed to both benchmarking invocations
 common-flags := "--benchmarkIterations=1 --llvmbin " + `llvm-config-18 --bindir`
 
@@ -39,6 +43,17 @@ benchmark-release flags="":
                    --builddir build/release \
                    --statsdir statistics/release \
                    {{flags}}
+
+# Benchmark all C files with the release-anf target of jlm-opt
+benchmark-release-anf flags="":
+    mkdir -p build statistics
+    ./benchmark.py {{common-flags}} --jlm-opt "{{JLM_PATH}}/build-release-anf/jlm-opt" \
+                   --builddir build/release-anf \
+                   --statsdir statistics/release-anf \
+                   {{flags}}
+
+# Benchmark all C files with both the release and release-anf targets
+benchmark-both flags="": (benchmark-release flags) (benchmark-release-anf flags)
 
 # Aggregate statistics from runs of both release and release-anf
 aggregate:
