@@ -117,6 +117,9 @@ def extract_statistics(stats_folder):
         file_config_data["cfile"] = cfile
         file_config_datas.append(file_config_data)
 
+    if len(file_datas) == 0:
+        return pd.DataFrame(), pd.DataFrame()
+
     file_datas = pd.DataFrame(file_datas.values()).set_index("cfile")
     file_config_datas = pd.concat(file_config_datas)
 
@@ -169,9 +172,12 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
         # Check that all cfiles have been tested with all configurations
         configs_per_cfile = file_config_data.groupby("cfile")["Configuration"].nunique()
-        missing_configs = configs_per_cfile[configs_per_cfile != 208]
+        max_number_of_configs = configs_per_cfile.max()
+        print(f"C files have been solved with {max_number_of_configs} different configurations")
+
+        missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
         if len(missing_configs) != 0:
-            print(f"WARNING: {len(missing_configs)} cfiles have not been evaluated with all configs!")
+            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
         if 0 < len(missing_configs) < 10:
             print(missing_configs)
 
