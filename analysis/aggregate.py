@@ -141,6 +141,8 @@ def extract_statistics(stats_folder):
         total_time += with_nan0["ConstraintSolvingWorklistTimer[ns]"]
     if "ConstraintSolvingNaiveTimer[ns]" in with_nan0:
         total_time += with_nan0["ConstraintSolvingNaiveTimer[ns]"]
+    if "ConstraintSolvingWavePropagationTimer[ns]" in with_nan0:
+        total_time += with_nan0["ConstraintSolvingWavePropagationTimer[ns]"]
     file_config_datas["TotalTime[ns]"] = total_time
 
     return file_datas, file_config_datas
