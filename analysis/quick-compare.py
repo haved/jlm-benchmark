@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import seaborn as sns
 import numpy as np
+import sys
 
 CONFIG_A = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-CONFIG_B = "IP_Solver=WavePropagation"
+CONFIG_B = "IP_Solver=Wave"
 
 file_data = pd.read_csv("statistics-out/file_data.csv")
 all_configs = pd.read_csv("statistics-out/file_config_data.csv")
@@ -24,7 +25,7 @@ if len(config_a) == 0:
     sys.exit(1)
 
 if len(config_b) == 0:
-    print(f"No file is solved with CONFIG_B: {CONFIG_A}")
+    print(f"No file is solved with CONFIG_B: {CONFIG_B}")
     sys.exit(1)
 
 # Check that the set of files solved by each configuration is identical
@@ -71,18 +72,18 @@ b_faster = delta[delta > 0]
 print(f"Config A is faster than Config B on {len(a_faster)} files")
 if len(a_faster) != 0:
     print(f"On average, it is {a_faster.mean()/1000:_.0f} us faster")
-    a_faster_cfile = a_faster.argmax()
-    a_faster_a_time = both[a_faster_cfile, 'A_Time[ns]']
-    a_faster_b_time = both[a_faster_cfile, 'B_Time[ns]']
+    a_faster_cfile = a_faster.idxmax()
+    a_faster_a_time = both.loc[a_faster_cfile, 'A_Time[ns]']
+    a_faster_b_time = both.loc[a_faster_cfile, 'B_Time[ns]']
     print(f"The biggest difference is seen on file {a_faster_cfile}:",
           f"{a_faster_a_time/1000:_.0f} us vs {a_faster_b_time/1000:_.0f} us")
 
 print(f"Config B is faster than Config B on {len(b_faster)} files")
 if len(b_faster) != 0:
     print(f"On average, it is {b_faster.mean()/1000:_.0f} us faster")
-    b_faster_cfile = a_faster.argmax()
-    b_faster_a_time = both[b_faster_cfile, 'A_Time[ns]']
-    b_faster_b_time = both[b_faster_cfile, 'B_Time[ns]']
+    b_faster_cfile = b_faster.idxmax()
+    b_faster_a_time = both.loc[b_faster_cfile, 'A_Time[ns]']
+    b_faster_b_time = both.loc[b_faster_cfile, 'B_Time[ns]']
     print(f"The biggest difference is seen on file {b_faster_cfile}:",
           f"{b_faster_a_time/1000:_.0f} us vs {b_faster_b_time/1000:_.0f} us")
 
@@ -96,4 +97,5 @@ plt.ylabel("Solving time [$\\mu$s]")
 plt.xlabel(f"Files sorted by {CONFIG_A} solving time")
 
 plt.grid()
+plt.savefig("quick-compare.pdf")
 plt.show()
