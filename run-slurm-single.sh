@@ -22,11 +22,24 @@ if [ -f .env ]; then
     source .env
 fi
 
+if [ -z ${BENCHMARK_ANF+x} ]; then
 ./benchmark.py \
     --offset "${SLURM_ARRAY_TASK_ID}" \
-    --limit 2 \
+    --limit 1 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 5
+    --benchmarkIterations 10 \
+    --timeout 86000
+else
+    ./benchmark.py \
+    --offset "${SLURM_ARRAY_TASK_ID}" \
+    --limit 1 \
+    --llvmbin "$(llvm-config-18 --bindir)" \
+    --builddir build/release-anf \
+    --statsdir statistics/release-anf \
+    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
+    --benchmarkIterations 2 \
+    --timeout 86000
+fi

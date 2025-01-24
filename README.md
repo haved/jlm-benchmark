@@ -110,7 +110,26 @@ rm -rf slurm-log
 APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm.sh
 ```
 
-<!-- The APPTAINER_CONTAINER may not cotain a ~ for the home folder, so use /cluster/home/<username> -->
+### Restarting files that timed out
+You can check if any of the jobs timed out by doing a `--dry-run` as described above, which may look something like:
+```
+$ just benchmark-release --dry-run
+Skipping 7359 tasks due to laziness, leaving 1
+[1/1] (6099) jlm-opt ghostscript-10.04.0+base_gdevp14.c (dry-run)
+
+$ just benchmark-release-anf --dry-run
+Skipping 7357 tasks due to laziness, leaving 3
+[1/3] (4681) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_nodetree_gen.c (dry-run)
+[2/3] (4701) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_scene_gen.c (dry-run)
+[3/3] (4731) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_userdef_gen.c (dry-run)
+```
+
+You can start the missing jobs again with a lower number of benchmark iterations using
+
+``` sh
+APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch --array=6099 run-slurm-single.sh
+APPTAINER_CONTAINER="jlm-benchmark.sif" BENCHMARK_ANF=1 sbatch --array=4681,4701,4731 run-slurm-single.sh
+```
 
 # Analysis
 ## Aggregating statistics
