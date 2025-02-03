@@ -146,6 +146,8 @@ def extract_statistics(stats_folder):
         total_time += with_nan0["ConstraintSolvingNaiveTimer[ns]"]
     if "ConstraintSolvingWavePropagationTimer[ns]" in with_nan0:
         total_time += with_nan0["ConstraintSolvingWavePropagationTimer[ns]"]
+    if "ConstraintSolvingDeepPropagationTimer[ns]" in with_nan0:
+        total_time += with_nan0["ConstraintSolvingDeepPropagationTimer[ns]"]
     file_config_datas["TotalTime[ns]"] = total_time
 
     return file_datas, file_config_datas
@@ -177,7 +179,8 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
         missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
         if len(missing_configs) != 0:
-            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
+            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs! Skipping them")
+            file_config_data = file_config_data[~(file_config_data["cfile"].isin(missing_configs))]
         if 0 < len(missing_configs) < 10:
             print(missing_configs)
 

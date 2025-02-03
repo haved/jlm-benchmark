@@ -124,8 +124,7 @@ Skipping 7357 tasks due to laziness, leaving 3
 [3/3] (4731) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_userdef_gen.c (dry-run)
 ```
 
-You can start the missing jobs again with a lower number of benchmark iterations using
-
+You can start these particular missing jobs again with a lower number of benchmark iterations using
 ``` sh
 APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch --array=6099 run-slurm-single.sh
 APPTAINER_CONTAINER="jlm-benchmark.sif" BENCHMARK_ANF=1 sbatch --array=4681,4701,4731 run-slurm-single.sh

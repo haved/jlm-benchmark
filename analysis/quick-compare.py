@@ -7,8 +7,10 @@ import seaborn as sns
 import numpy as np
 import sys
 
-CONFIG_A = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-CONFIG_B = "IP_Solver=Wave"
+CONFIG_B = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
+CONFIG_A = "IP_Solver=Worklist_Policy=LastInFirstOut_LazyCD_DP"
+# CONFIG_B = "IP_Solver=Wave"
+# CONFIG_B = "IP_Solver=Deep"
 
 file_data = pd.read_csv("statistics-out/file_data.csv")
 all_configs = pd.read_csv("statistics-out/file_config_data.csv")
@@ -95,6 +97,8 @@ sns.scatterplot(x=range(len(both)), y=both["B_Time[ns]"]/1000, color="red", mark
 
 plt.ylabel("Solving time [$\\mu$s]")
 plt.xlabel(f"Files sorted by {CONFIG_A} solving time")
+
+plt.tight_layout()
 
 plt.grid()
 plt.savefig("quick-compare.pdf")
