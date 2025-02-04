@@ -179,8 +179,8 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
         missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
         if len(missing_configs) != 0:
-            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs! Skipping them")
-            file_config_data = file_config_data[~(file_config_data["cfile"].isin(missing_configs))]
+            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
+            # file_config_data = file_config_data[~(file_config_data["cfile"].isin(missing_configs))]
         if 0 < len(missing_configs) < 10:
             print(missing_configs)
 

@@ -7,10 +7,10 @@ import seaborn as sns
 import numpy as np
 import sys
 
-CONFIG_B = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-CONFIG_A = "IP_Solver=Worklist_Policy=LastInFirstOut_LazyCD_DP"
-# CONFIG_B = "IP_Solver=Wave"
-# CONFIG_B = "IP_Solver=Deep"
+CONFIG_A = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
+#CONFIG_A = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP"
+#CONFIG_B = "IP_Solver=Deep"
+CONFIG_B = "IP_Solver=Wave"
 
 file_data = pd.read_csv("statistics-out/file_data.csv")
 all_configs = pd.read_csv("statistics-out/file_config_data.csv")
@@ -80,7 +80,7 @@ if len(a_faster) != 0:
     print(f"The biggest difference is seen on file {a_faster_cfile}:",
           f"{a_faster_a_time/1000:_.0f} us vs {a_faster_b_time/1000:_.0f} us")
 
-print(f"Config B is faster than Config B on {len(b_faster)} files")
+print(f"Config B is faster than Config A on {len(b_faster)} files")
 if len(b_faster) != 0:
     print(f"On average, it is {b_faster.mean()/1000:_.0f} us faster")
     b_faster_cfile = b_faster.idxmax()
