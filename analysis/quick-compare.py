@@ -8,9 +8,10 @@ import numpy as np
 import sys
 
 CONFIG_A = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-#CONFIG_A = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP"
-#CONFIG_B = "IP_Solver=Deep"
-CONFIG_B = "IP_Solver=Wave"
+# CONFIG_A = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP"
+CONFIG_B = "IP_Solver=Deep"
+#CONFIG_B = "IP_Solver=Wave"
+B_OVER_A_LABEL = "Solving Time Deep / WL(FIFO)+PIP"
 
 file_data = pd.read_csv("statistics-out/file_data.csv")
 all_configs = pd.read_csv("statistics-out/file_config_data.csv")
@@ -90,12 +91,17 @@ if len(b_faster) != 0:
           f"{b_faster_a_time/1000:_.0f} us vs {b_faster_b_time/1000:_.0f} us")
 
 # Make a logarithmic solver runtime plot sorted by config a
-plt.figure(figsize=(7,3))
-plt.yscale("log")
-sns.scatterplot(x=range(len(both)), y=both["A_Time[ns]"]/1000, color="blue", marker=".", edgecolor=None, alpha=0.3, label=CONFIG_A, zorder=10)
-sns.scatterplot(x=range(len(both)), y=both["B_Time[ns]"]/1000, color="red", marker=".", edgecolor=None, alpha=0.3, label=CONFIG_B, zorder=10)
+#plt.figure(figsize=(7,3))
+#plt.yscale("log")
+#sns.scatterplot(x=range(len(both)), y=both["A_Time[ns]"]/1000, color="blue", marker=".", edgecolor=None, alpha=0.3, label=CONFIG_A, zorder=10)
+#sns.scatterplot(x=range(len(both)), y=both["B_Time[ns]"]/1000, color="red", marker=".", edgecolor=None, alpha=0.3, label=CONFIG_B, zorder=10)
+#plt.ylabel("Solving time [$\\mu$s]")
 
-plt.ylabel("Solving time [$\\mu$s]")
+plt.figure(figsize=(7,3))
+
+sns.scatterplot(x=range(len(both)), y=both["B_Time[ns]"]/both["A_Time[ns]"], color="blue", marker=".", edgecolor=None, alpha=0.3, zorder=10)
+
+plt.ylabel(B_OVER_A_LABEL)
 plt.xlabel(f"Files sorted by {CONFIG_A} solving time")
 
 plt.tight_layout()
