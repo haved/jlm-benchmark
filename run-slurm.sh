@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --constraint=56c
 #SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --array=0-919
 #SBATCH -o slurm-log/output.%a.out # STDOUT
 set -euo pipefail
@@ -30,7 +30,7 @@ fi
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
     --benchmarkIterations 50 \
-    --timeout 43000 \
+    --timeout 86000 \
     -j 4 || true
 
 ./benchmark.py \
