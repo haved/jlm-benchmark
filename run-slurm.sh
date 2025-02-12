@@ -29,16 +29,16 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 50 \
+    --benchmarkIterations 5 \
     --timeout 86000 \
     -j 4 || true
 
-./benchmark.py \
-    --offset=$((SLURM_ARRAY_TASK_ID * 8)) --limit=8 \
-    --llvmbin "$(llvm-config-18 --bindir)" \
-    --builddir build/release-anf \
-    --statsdir statistics/release-anf \
-    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-    --benchmarkIterations 2 \
-    --timeout 86000 \
-    -j 4
+#./benchmark.py \
+#    --offset=$((SLURM_ARRAY_TASK_ID * 8)) --limit=8 \
+#    --llvmbin "$(llvm-config-18 --bindir)" \
+#    --builddir build/release-anf \
+#    --statsdir statistics/release-anf \
+#    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
+#    --benchmarkIterations 2 \
+#    --timeout 86000 \
+#    -j 4
