@@ -29,7 +29,7 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 5 \
+    --benchmarkIterations 50 \
     --timeout 86000 \
     -j 4 || true
 
