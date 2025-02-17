@@ -8,9 +8,9 @@ import numpy as np
 import sys
 
 CONFIG_A = "IP_Solver=Worklist_Policy=FirstInFirstOut_PIP"
-# CONFIG_A = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP"
-CONFIG_B = "IP_Solver=Deep"
-#CONFIG_B = "IP_Solver=Wave"
+CONFIG_B = "IP_Solver=Worklist_Policy=LeastRecentlyFired_LazyCD_DP"
+# CONFIG_B = "IP_Solver=Deep"
+# CONFIG_B = "IP_Solver=Wave"
 B_OVER_A_LABEL = "Solving Time Deep / WL(FIFO)+PIP"
 
 file_data = pd.read_csv("statistics-out/file_data.csv")
