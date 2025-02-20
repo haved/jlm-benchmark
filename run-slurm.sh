@@ -7,7 +7,7 @@
 #SBATCH --constraint=56c
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
-#SBATCH --array=0-919
+#SBATCH --array=0-923
 #SBATCH -o slurm-log/output.%a.out # STDOUT
 set -euo pipefail
 
