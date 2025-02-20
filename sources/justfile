@@ -41,6 +41,7 @@ download-gdb:
 build-gdb: download-gdb
     cd gdb-15.2 && ./configure && make clean && bear -- make -j12
 
+# We skip Wine due to containing a lot of code, where some of it needs to be 32 bit and other weirdness
 download-wine:
     [ -d wine-9.21 ] || (\
         wget https://dl.winehq.org/wine/source/9.x/wine-9.21.tar.xz &&\

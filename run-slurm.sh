@@ -3,6 +3,7 @@
 #SBATCH --account=share-ie-idi
 #SBATCH --job-name=jlm-andersen-spec
 #SBATCH --cpus-per-task=4
+#SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
@@ -29,16 +30,16 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 5 \
+    --benchmarkIterations 10 \
     --timeout 86000 \
     -j 4 || true
 
-#./benchmark.py \
-#    --offset=$((SLURM_ARRAY_TASK_ID * 8)) --limit=8 \
-#    --llvmbin "$(llvm-config-18 --bindir)" \
-#    --builddir build/release-anf \
-#    --statsdir statistics/release-anf \
-#    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-#    --benchmarkIterations 2 \
-#    --timeout 86000 \
-#    -j 4
+./benchmark.py \
+    --offset=$((SLURM_ARRAY_TASK_ID * 8)) --limit=8 \
+    --llvmbin "$(llvm-config-18 --bindir)" \
+    --builddir build/release-anf \
+    --statsdir statistics/release-anf \
+    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
+    --benchmarkIterations 5 \
+    --timeout 86000 \
+    -j 4
