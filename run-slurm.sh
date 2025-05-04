@@ -2,7 +2,9 @@
 #SBATCH --partition=CPUQ
 #SBATCH --account=share-ie-idi
 #SBATCH --job-name=jlm-andersen-spec
-#SBATCH --cpus-per-task=4
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=1
+#SBATCH --exclusive
 #SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
 #SBATCH --mem=64G

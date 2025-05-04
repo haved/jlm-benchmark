@@ -8,8 +8,13 @@ import argparse
 import re
 
 def line_to_dict(stats_line):
+    """
+    Splits the given line into a tuple (statistic, {key:value})
+    """
+    # TODO: Space fix
+    stats_line = stats_line.replace("ChainedAA(PointsToGraphAA, BasicAA)", "ChainedAA(PointsToGraphAA,BasicAA)")
+
     statistic, _, *stats = stats_line.split(" ")
-    assert statistic == "AndersenAnalysis"
 
     stats_dict = {}
 
@@ -21,8 +26,9 @@ def line_to_dict(stats_line):
             pass
 
         stats_dict[stat_name] = stat_value
-    return stats_dict
+    return statistic, stats_dict
 
+# Values from the AndersenAnalysis that should be the same for all configuration
 PER_FILE_STATS = [
     "#RvsdgNodes", "#PointerObjects", "#MemoryPointerObjects", "#MemoryPointerObjectsCanPoint",
     "#RegisterPointerObjects", "#RegistersMappedToPointerObject",
@@ -40,6 +46,10 @@ PER_FILE_STATS_OPTIONAL = [
     "SetAndConstraintBuildingTimer[ns]", "PointsToGraphConstructionTimer[ns]",
     "PointsToGraphConstructionExternalToEscapedTimer[ns]"
 ]
+PRECISION_EVALUATION_MODE = "ClobberingStores"
+# PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
+PRECISION_EVALUATION_KEEP_PER_AA = ["ModuleAverageMayAliasRate", "#NoAlias", "#MayAlias", "#MustAlias"]
+
 def keep_file_stats(program, cfile, line_stats):
     """
     Takes the first line of statistics and only keeps statistics that are based on the file itself
@@ -83,32 +93,46 @@ def extract_statistics(stats_folder):
         single_config_file = False
         match_config_suffix = re.search("_config[0-9]+$", cfile)
         if match_config_suffix is not None:
-            single_config_file = True
             cfile = cfile[:match_config_suffix.start()]
 
         program = filename.split("+")[0]
 
+        file_precision_stats = {}
+        file_andersen_stats = None
         file_config_rows = []
 
         with open(os.path.join(stats_folder, filename), encoding='utf-8') as stats_file:
-            line_iter = iter(stats_file)
+            for line in stats_file:
+                statistic, line_stats = line_to_dict(line)
 
-            first_line = next(line_iter)
-            line_stats = line_to_dict(first_line)
+                if statistic == "AndersenAnalysis":
+                    # If we have not captured file statistics for this file yet
+                    if file_andersen_stats is None:
+                        file_andersen_stats = keep_file_stats(program, cfile, line_stats)
 
-            # Do we want to include the very first line of statistics?
-            if single_config_file:
-                file_config_rows.append(line_stats)
+                    file_config_stats = file_andersen_stats.copy()
+                    file_config_stats.update(line_stats)
+                    file_config_rows.append(file_config_stats)
+                elif statistic == "AliasAnalysisPrecisionEvaluation":
+                    if line_stats["PrecisionEvaluationMode"] == PRECISION_EVALUATION_MODE:
+                        aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
+                        for col in PRECISION_EVALUATION_KEEP_PER_AA:
+                            line_stats[aaType + col] = line_stats[col]
+                        file_precision_stats.update(line_stats)
 
-            file_stats = keep_file_stats(program, cfile, line_stats)
-            if cfile not in file_datas:
-                file_datas[cfile] = file_stats
+                else:
+                    print("Ignoring unknown statistic:", statistic)
 
-            # All other lines are statistics from just solving using different configurations
-            for line in line_iter:
-                line_stats = file_stats.copy()
-                line_stats.update(line_to_dict(line))
-                file_config_rows.append(line_stats)
+        # If the file has multiple Andersen statistics lines, the first one is skipped
+        if len(file_config_rows) > 1:
+            file_config_rows = file_config_rows[1:]
+
+        if cfile not in file_datas:
+            file_datas[cfile] = {}
+        if file_andersen_stats is not None:
+            file_datas[cfile].update(file_andersen_stats)
+        if file_precision_stats is not None:
+            file_datas[cfile].update(file_precision_stats)
 
         file_config_data = pd.DataFrame(file_config_rows)
         file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)

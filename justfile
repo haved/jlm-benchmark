@@ -21,7 +21,7 @@ checkout-jlm-revision:
     git -C {{JLM_PATH}} checkout {{jlm-commit}}
 
 # Build the release and target of jlm-opt
-build-jlm-opt:
+build-release:
     #!/usr/bin/bash -eu
     cd {{JLM_PATH}}
 
@@ -29,12 +29,13 @@ build-jlm-opt:
     ./configure.sh --target release
     make jlm-opt -j`nproc`
 
+build-release-anf:
     echo "Building release-anf target"
     ./configure.sh --target release-anf
     make jlm-opt -j`nproc`
 
 # Flags passed to both benchmarking invocations
-common-flags := "--benchmarkIterations=1 --llvmbin " + `llvm-config-18 --bindir`
+common-flags := "--llvmbin " + `llvm-config-18 --bindir`
 
 # Benchmark all C files with the release target of jlm-opt
 benchmark-release flags="":
@@ -69,8 +70,9 @@ extract-aggregated:
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    ./analysis/plot-file-sizes.py --stats statistics-out --out results
-    ./analysis/compare-anf.py
+    #./analysis/plot-file-sizes.py --stats statistics-out --out results
+    #./analysis/compare-anf.py
+    ./analysis/calculate-precision.py
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean:

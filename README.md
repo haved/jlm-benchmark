@@ -41,7 +41,7 @@ just checkout-jlm-revision
 
 Once ready to build both the release and the release-anf targets of `jlm-opt`, run
 ``` sh
-just build-jlm-opt
+just build-both
 ```
 
 # Setting up benchmark programs
@@ -83,8 +83,8 @@ Benchmarking all C files with both the release and release-anf targets of `jlm-o
 # Optional: clean up any existing benchmark results first
 just purge
 
-just benchmark-release "-j8 --timeout=1000"
-just benchmark-release-anf "-j8 --timeout=1000"
+just benchmark-release "--benchmarkIterations 1 -j8 --timeout=1000"
+just benchmark-release-anf "--benchmarkIterations 1 -j8 --timeout=1000"
 ```
 This will only test each configuration once per file, yet still take a long time.
 The `-j8` can be changed to use more worker threads.

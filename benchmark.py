@@ -136,10 +136,22 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
 
 def move_stats_file(temp_dir, stats_output):
     # Move statisitcs to actual stats_dir, and change filename
-    stats_files = os.listdir(temp_dir)
-    stats_file, = stats_files # There should be exactly one file
+    stats_files = []
+    other_files = []
+
+    for fil in os.listdir(temp_dir):
+        if fil.endswith("-statistics.log"):
+            stats_files.append(fil)
+        else:
+            other_files.append(fil)
+
+     # There should be exactly one such file. Move it to the final statistics output
+    stats_file, = stats_files
     shutil.move(os.path.join(temp_dir, stats_file), stats_output)
 
+    # Remove all other files in the tmp folder, to prevent buildup
+    for fil in other_files:
+        os.remove(os.path.join(temp_dir, fil))
 
 def ensure_folder_exists(path):
     if os.path.exists(path):
@@ -624,6 +636,8 @@ def main():
 
     parser.add_argument('--jlmExactConfig', dest='jlm_exact_config', action='store', default=None,
                         help='Run jlm-opt with only the specified configuration index. Adds the index to the statistics name.')
+    parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
+                    help='The number of times each possible Andersen solver config should be tested. [0]')
     parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
                         help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
@@ -642,9 +656,6 @@ def main():
 
     parser.add_argument('-j', metavar='N', dest='workers', action='store', default='1',
                     help='Run up to N tasks in parallel when possible')
-
-    parser.add_argument('--benchmarkIterations', metavar='N', dest='benchmarkIterations', action='store', default="1",
-                    help='The number of times each Andersen solver config should be tested. [1]')
 
     parser.add_argument('--clean', dest='clean', action='store_true',
                     help='Remove the build and stats folders before running')
@@ -697,15 +708,19 @@ def main():
         env_vars = {
             "JLM_ANDERSEN_USE_EXACT_CONFIG": str(jlm_exact_config)
         }
-    else:
+    elif args.configSweepIterations != 0:
+        # The files should be analyzed using all possible Andersen configurations
         env_vars = {
-            "JLM_ANDERSEN_TEST_ALL_CONFIGS": args.benchmarkIterations,
+            "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
             "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
         }
+    else:
+        env_vars = {}
 
     for bench in benchmarks:
         # bench.opt_flags = ["--passes=mem2reg"]
-        bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
+        # bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
+        bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis", "--print-aa-precision-evaluation"]
         # bench.llvm_link_flags = [] #["-internalize"]
         # bench.linked_jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
         # Disable linking with clang
