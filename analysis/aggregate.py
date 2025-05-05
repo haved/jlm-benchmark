@@ -11,9 +11,6 @@ def line_to_dict(stats_line):
     """
     Splits the given line into a tuple (statistic, {key:value})
     """
-    # TODO: Space fix
-    stats_line = stats_line.replace("ChainedAA(PointsToGraphAA, BasicAA)", "ChainedAA(PointsToGraphAA,BasicAA)")
-
     statistic, _, *stats = stats_line.split(" ")
 
     stats_dict = {}
@@ -48,7 +45,7 @@ PER_FILE_STATS_OPTIONAL = [
 ]
 PRECISION_EVALUATION_MODE = "ClobberingStores"
 # PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
-PRECISION_EVALUATION_KEEP_PER_AA = ["ModuleAverageMayAliasRate", "#NoAlias", "#MayAlias", "#MustAlias"]
+PRECISION_EVALUATION_KEEP_PER_AA = ["ModuleAverageMayAliasRate", "#NoAlias", "#MayAlias", "#MustAlias", "PrecisionEvaluationTimer[ns]"]
 
 def keep_file_stats(program, cfile, line_stats):
     """

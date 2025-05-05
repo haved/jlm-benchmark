@@ -41,6 +41,8 @@ def print_aa(aa):
     print("Total no / may / must alias query responses:")
     totals = calculate_total_query_responses_for_aa(aa)
     print(totals)
+    print("Time spent on alias queries:",
+          file_data[aa + "-PrecisionEvaluationTimer[ns]"].sum() / 1.e9, "seconds")
 
 print_aa("BasicAA")
 print_aa("PointsToGraphAA")
