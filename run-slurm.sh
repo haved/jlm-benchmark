@@ -5,7 +5,6 @@
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=16
 #SBATCH --cpus-per-task=1
-#SBATCH --exclusive
 #SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
 #SBATCH --mem=40G
