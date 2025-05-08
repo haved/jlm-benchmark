@@ -32,7 +32,7 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --benchmarkIterations 50 \
+    --configSweepIterations 50 \
     --timeout 86000 \
     -j 8 || true
 
@@ -42,6 +42,6 @@ fi
     --builddir build/release-anf \
     --statsdir statistics/release-anf \
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-    --benchmarkIterations 50 \
+    --configSweepIterations 50 \
     --timeout 86000 \
     -j 8

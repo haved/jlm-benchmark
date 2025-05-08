@@ -111,8 +111,8 @@ Benchmarking all C files with both the release and release-anf targets of `jlm-o
 # Optional: clean up any existing benchmark results first
 just purge
 
-just benchmark-release "--benchmarkIterations 1 -j8 --timeout=1000"
-just benchmark-release-anf "--benchmarkIterations 1 -j8 --timeout=1000"
+just benchmark-release "--configSweepIterations 1 -j8 --timeout=1000"
+just benchmark-release-anf "--configSweepIterations 1 -j8 --timeout=1000"
 ```
 This will only test each configuration once per file, yet still take a long time.
 The `-j8` can be changed to use more worker threads.
