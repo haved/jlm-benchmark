@@ -30,9 +30,14 @@ build-release:
     make jlm-opt -j`nproc`
 
 build-release-anf:
+    #!/usr/bin/bash -eu
+    cd {{JLM_PATH}}
+
     echo "Building release-anf target"
     ./configure.sh --target release-anf
     make jlm-opt -j`nproc`
+
+build-both: build-release build-release-anf
 
 # Flags passed to both benchmarking invocations
 common-flags := "--llvmbin " + `llvm-config-18 --bindir`
