@@ -3,14 +3,14 @@
 #SBATCH --account=share-ie-idi
 #SBATCH --job-name=jlm-andersen-spec
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=50
+#SBATCH --tasks-per-node=16
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
 #SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
-#SBATCH --mem=240G
+#SBATCH --mem=40G
 #SBATCH --time=48:00:00
-#SBATCH --array=0-149
+#SBATCH --array=0-468
 #SBATCH -o slurm-log/output.%a.out # STDOUT
 set -euo pipefail
 
@@ -28,21 +28,21 @@ if [ -f .env ]; then
 fi
 
 ./benchmark.py \
-    --offset=$((SLURM_ARRAY_TASK_ID * 50)) --limit=50 \
+    --offset=$((SLURM_ARRAY_TASK_ID * 16)) --limit=16 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
     --benchmarkIterations 50 \
     --timeout 86000 \
-    -j 25 || true
+    -j 8 || true
 
 ./benchmark.py \
-    --offset=$((SLURM_ARRAY_TASK_ID * 50)) --limit=50 \
+    --offset=$((SLURM_ARRAY_TASK_ID * 16)) --limit=16 \
     --llvmbin "$(llvm-config-18 --bindir)" \
     --builddir build/release-anf \
     --statsdir statistics/release-anf \
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
     --benchmarkIterations 50 \
     --timeout 86000 \
-    -j 25
+    -j 8
