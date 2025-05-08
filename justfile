@@ -37,6 +37,14 @@ build-release-anf:
 # Flags passed to both benchmarking invocations
 common-flags := "--llvmbin " + `llvm-config-18 --bindir`
 
+# Benchmark all C files with the debug target of jlm-opt
+benchmark-debug flags="":
+    mkdir -p build statistics
+    ./benchmark.py {{common-flags}} --jlm-opt "{{JLM_PATH}}/build-debug/jlm-opt" \
+                   --builddir build/debug \
+                   --statsdir statistics/debug \
+                   {{flags}}
+
 # Benchmark all C files with the release target of jlm-opt
 benchmark-release flags="":
     mkdir -p build statistics

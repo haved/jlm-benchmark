@@ -43,9 +43,12 @@ PER_FILE_STATS_OPTIONAL = [
     "SetAndConstraintBuildingTimer[ns]", "PointsToGraphConstructionTimer[ns]",
     "PointsToGraphConstructionExternalToEscapedTimer[ns]"
 ]
-PRECISION_EVALUATION_MODE = "ClobberingStores"
-# PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
-PRECISION_EVALUATION_KEEP_PER_AA = ["ModuleAverageMayAliasRate", "#NoAlias", "#MayAlias", "#MustAlias", "PrecisionEvaluationTimer[ns]"]
+# PRECISION_EVALUATION_MODE = "ClobberingStores"
+PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
+PRECISION_EVALUATION_KEEP_PER_AA = ["IsRemovingDuplicatePointers", "ModuleNumClobbers",
+                                    "ClobberAverageNoAlias", "ClobberAverageMayAlias", "ClobberAverageMustAlias",
+                                    "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
+                                    "PrecisionEvaluationTimer[ns]"]
 
 def keep_file_stats(program, cfile, line_stats):
     """
