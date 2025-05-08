@@ -32,11 +32,12 @@ build-ghostscript: download-ghostscript
     cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
 
 download-gdb:
-    [ -d gdb-15.2 ] || (\
-        wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz &&\
-        tar xzf gdb-15.2.tar.gz &&\
-        rm gdb-15.2.tar.gz \
-    )
+    # make clean does not work for gdb, so get a clean copy instead
+    rm -rf gdb-15.2
+
+    wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
+    tar xzf gdb-15.2.tar.gz
+    rm gdb-15.2.tar.gz
 
 build-gdb: download-gdb
     cd gdb-15.2 && ./configure && make clean && bear -- make -j12

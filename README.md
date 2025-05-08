@@ -71,13 +71,41 @@ cd sources/
 just create-sources-json 
 ```
 
+## Verifying you have the programs
+From the root of this repository, run
+``` sh
+just benchmark-release --list
+```
+
+If everything went well, it should print out
+
+``` sh
+13 benchmarks:
+  505.mcf                12 C files
+  544.nab                20 C files
+  525.x264               36 C files
+  500.perlbench          69 C files
+  557.xz                 90 C files
+  538.imagick            97 C files
+  sendmail-8.18.1       137 C files
+  emacs-29.4            148 C files
+  gdb-15.2              262 C files
+  507.cactuBSSN         347 C files
+  502.gcc               387 C files
+  526.blender          1005 C files
+  ghostscript-10.04.0  1139 C files
+```
+
 # Running benchmarks
+For running, you have the option of distributing the work across a SLURM cluster.
+This is almost necessary when doing multiple iterations, but if one iteration is fine you can do it locally.
+
+## Running without SLURM
 Before bechmarking, you should try to make the CPU clock as stable as possible, e.g. using
 ``` sh
 sudo cpupower frequency-set --min 3GHz --max 3GHz --governor performance
 ```
 
-## Running without SLURM
 Benchmarking all C files with both the release and release-anf targets of `jlm-opt` can be done using
 ``` sh
 # Optional: clean up any existing benchmark results first
