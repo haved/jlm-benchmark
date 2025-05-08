@@ -3,7 +3,8 @@
 #SBATCH --account=share-ie-idi
 #SBATCH --job-name=jlm-andersen-spec
 #SBATCH --nodes=1
-#SBATCH --cpus-per-node=50
+#SBATCH --tasks-per-node=50
+#SBATCH --cpus-per-task=1
 #SBATCH --exclusive
 #SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
