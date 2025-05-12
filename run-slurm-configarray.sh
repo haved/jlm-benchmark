@@ -3,8 +3,9 @@
 #SBATCH --account=share-ie-idi
 #SBATCH --job-name=jlm-andersen-spec
 #SBATCH --cpus-per-task=4
+#SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
-#SBATCH --mem=64G
+#SBATCH --mem=40G
 #SBATCH --time=24:00:00
 #SBATCH --array=0-69
 #SBATCH -o slurm-log/output-%j-config-%a.out # STDOUT
