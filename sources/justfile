@@ -16,8 +16,9 @@ download-emacs:
         wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
 
 extract-emacs: download-emacs
-    [ -d emacs-29.4 ] || \
-        tar xzf emacs-29.4.tar.gz
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf emacs-29.4
+    tar xzf emacs-29.4.tar.gz
 
 build-emacs: extract-emacs
     cd emacs-29.4 && make clean && bear -- make -j12
@@ -27,8 +28,9 @@ download-ghostscript:
         wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz
 
 extract-ghostscript: download-ghostscript
-    [ -d ghostscript-10.04.0 ] || \
-        tar xzf ghostscript-10.04.0.tar.gz
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf ghostscript-10.04.0
+    tar xzf ghostscript-10.04.0.tar.gz
 
 build-ghostscript: extract-ghostscript
     cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
@@ -37,8 +39,8 @@ download-gdb:
     [ -f gdb-15.2.tar.gz ] || \
         wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
 
-# Extracts gdb, which always replaces the current gdb dir, due to make clean not working
 extract-gdb: download-gdb
+    # Make clean does not clean everything, so re-extract the source instead
     rm -rf gdb-15.2
     tar xzf gdb-15.2.tar.gz
 
@@ -50,8 +52,9 @@ download-sendmail:
         wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz
 
 extract-sendmail: download-sendmail
-    [ -d sendmail.8.18.1 ] || \
-        tar xzf sendmail.8.18.1.tar.gz
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf sendmail.8.18.1
+    tar xzf sendmail.8.18.1.tar.gz
 
 build-sendmail: extract-sendmail
     cd sendmail-8.18.1 && \

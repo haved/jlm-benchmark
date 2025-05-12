@@ -54,10 +54,8 @@ OTHER_PROGRAMS = ["emacs-29.4", "ghostscript-10.04.0", "gdb-15.2", "sendmail-8.1
 # Files whose absolute path end in the following are excluded.
 # This can be due to use of inline assembly, computed goto or special intrinsics
 SKIPPED_FILES = [
-    "wine-9.21/server/queue.c",
-    "wine-9.21/server/mapping.c",
-    "wine-9.21/server/winstation.c",
     "emacs-29.4/src/bytecode.c",
+    "emacs-29.4/src/json.c",
     "gdb-15.2/libiberty/sha1.c",
     "gdb-15.2/libbacktrace/mmap.c",
     "gdb-15.2/libbacktrace/dwarf.c",

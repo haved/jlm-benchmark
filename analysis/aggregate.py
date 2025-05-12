@@ -41,10 +41,14 @@ PER_FILE_STATS_OPTIONAL = [
     "#PointsToGraphMemoryNodes" "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes",
     "#PointsToGraphExternalMemorySources", "#PointsToGraphEdges", "#PointsToGraphPointsToRelations",
     "SetAndConstraintBuildingTimer[ns]", "PointsToGraphConstructionTimer[ns]",
-    "PointsToGraphConstructionExternalToEscapedTimer[ns]"
+    "PointsToGraphConstructionExternalToEscapedTimer[ns]",
+
+    # Included to enable calculation of average amount of pointer objects pointing to external
+    # Without merging unified pointer objects
+    "#PointsToExternalRelations"
 ]
-# PRECISION_EVALUATION_MODE = "ClobberingStores"
-PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
+PRECISION_EVALUATION_MODE = "ClobberingStores"
+# PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
 PRECISION_EVALUATION_KEEP_PER_AA = ["IsRemovingDuplicatePointers", "ModuleNumClobbers",
                                     "ClobberAverageNoAlias", "ClobberAverageMayAlias", "ClobberAverageMustAlias",
                                     "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
