@@ -48,7 +48,7 @@ build-gdb: extract-gdb
     cd gdb-15.2 && ./configure && bear -- make -j12
 
 download-sendmail:
-    [ -f sendmail-8.18.1.tar.gz ] || \
+    [ -f sendmail.8.18.1.tar.gz ] || \
         wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz
 
 extract-sendmail: download-sendmail
