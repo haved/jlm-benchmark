@@ -12,62 +12,59 @@ default:
 
 
 download-emacs:
-    [ -d emacs-29.4 ] || (\
-        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz &&\
-        tar xzf emacs-29.4.tar.gz &&\
-        rm emacs-29.4.tar.gz \
-    )
+    [ -f emacs-29.4.tar.gz ] || \
+        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
 
-build-emacs: download-emacs
+extract-emacs: download-emacs
+    [ -d emacs-29.4 ] || \
+        tar xzf emacs-29.4.tar.gz
+
+build-emacs: extract-emacs
     cd emacs-29.4 && make clean && bear -- make -j12
 
 download-ghostscript:
-    [ -d ghostscript-10.04.0 ] || (\
-        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz &&\
-        tar xzf ghostscript-10.04.0.tar.gz &&\
-        rm ghostscript-10.04.0.tar.gz \
-    )
+    [ -f ghostscript-10.04.0.tar.gz ] || \
+        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz
 
-build-ghostscript: download-ghostscript
+extract-ghostscript: download-ghostscript
+    [ -d ghostscript-10.04.0 ] || \
+        tar xzf ghostscript-10.04.0.tar.gz
+
+build-ghostscript: extract-ghostscript
     cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
 
 download-gdb:
-    # make clean does not work for gdb, so get a clean copy instead
+    [ -f gdb-15.2.tar.gz ] || \
+        wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
+
+# Extracts gdb, which always replaces the current gdb dir, due to make clean not working
+extract-gdb: download-gdb
     rm -rf gdb-15.2
-
-    wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
     tar xzf gdb-15.2.tar.gz
-    rm gdb-15.2.tar.gz
 
-build-gdb: download-gdb
-    cd gdb-15.2 && ./configure && make clean && bear -- make -j12
-
-# We skip Wine due to containing a lot of code, where some of it needs to be 32 bit and other weirdness
-download-wine:
-    [ -d wine-9.21 ] || (\
-        wget https://dl.winehq.org/wine/source/9.x/wine-9.21.tar.xz &&\
-        tar xJf wine-9.21.tar.xz &&\
-        rm wine-9.21.tar.xz \
-    )
-
-build-wine:
-    cd wine-9.21 && ./configure && make clean && bear -- make -j12 server/wineserver
+build-gdb: extract-gdb
+    cd gdb-15.2 && ./configure && bear -- make -j12
 
 download-sendmail:
-    [ -d sendmail-8.18.1 ] || (\
-        wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz &&\
-        tar xzf sendmail.8.18.1.tar.gz &&\
-        rm sendmail.8.18.1.tar.gz \
-    )
+    [ -f sendmail-8.18.1.tar.gz ] || \
+        wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz
 
-build-sendmail: download-sendmail
+extract-sendmail: download-sendmail
+    [ -d sendmail.8.18.1 ] || \
+        tar xzf sendmail.8.18.1.tar.gz
+
+build-sendmail: extract-sendmail
     cd sendmail-8.18.1 && \
     find * -name "obj.*" -exec rm -r {} + -depth && \
     make clean && \
     bear -- make -j12
 
-
+# Builds all the free C benchmarks. Downloads them first if missing
 build-all-free: build-emacs build-ghostscript build-gdb build-sendmail
 
 create-sources-json flags="":
     ./create_sources_json.py {{flags}}
+
+# Removes all unpacked free C benchmarks, but does not delete downloads
+clean:
+    rm -rf emacs-29.4 ghostscript-10.04.0 gdb-15.2 sendmail-8.18.1
