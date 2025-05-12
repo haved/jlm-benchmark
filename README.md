@@ -88,12 +88,12 @@ If everything went well, it should print out
   557.xz                 90 C files
   538.imagick            97 C files
   sendmail-8.18.1       137 C files
-  emacs-29.4            150 C files
+  emacs-29.4            148 C files
   gdb-15.2              262 C files
   507.cactuBSSN         347 C files
   502.gcc               387 C files
   526.blender          1005 C files
-  ghostscript-10.04.0  1141 C files
+  ghostscript-10.04.0  1139 C files
 ```
 
 # Running benchmarks
@@ -156,6 +156,19 @@ You can start these particular missing jobs again with a lower number of benchma
 ``` sh
 APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch --array=6099 run-slurm-single.sh
 APPTAINER_CONTAINER="jlm-benchmark.sif" BENCHMARK_ANF=1 sbatch --array=4681,4701,4731 run-slurm-single.sh
+```
+
+### Spreading configurations across SLURM jobs
+If the dry-run output for `benchmark-release-anf` contains a task like
+
+```
+[1/12] (1041) jlm-opt emacs-29.4+src_xdisp.c (dry-run)
+```
+
+Then distribute the configs across the cluster using
+
+``` sh
+APPTAINER_CONTAINER="jlm-benchmark.sif" TASK_INDEX=1041 sbatch run-slurm-configarray.sh
 ```
 
 # Analysis
