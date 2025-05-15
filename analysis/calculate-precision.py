@@ -2,10 +2,10 @@
 
 import pandas as pd
 
-file_data = pd.read_csv("statistics-out/file_data.csv")
+file_data = pd.read_csv("statistics-out/file_data.csv", index_col=0)
 
 print("PrecisionEvaluationMode:", file_data["PrecisionEvaluationMode"].unique())
-print("IsRemovingDuplicatePointers:", file_data["IsRemovingDuplicatePointers"].unique())
+print("IsRemovingDuplicatePointers:", file_data["BasicAA-IsRemovingDuplicatePointers"].unique())
 
 def print_average_points_to_external_info():
     # Only includes PointerObjects marked "CanPoint"
@@ -19,9 +19,10 @@ def print_average_points_to_external_info():
 
 
 def calculate_average_for_aa(aaName):
-    module_num_clobbers = file_data["ModuleNumClobbers"]
-
     aaPrefix = aaName + "-"
+
+    module_num_clobbers = file_data[aaPrefix + "ModuleNumClobbers"]
+
     clobber_average_no_alias = file_data[aaPrefix + "ClobberAverageNoAlias"].fillna(0)
     clobber_average_may_alias = file_data[aaPrefix + "ClobberAverageMayAlias"].fillna(0)
     clobber_average_must_alias = file_data[aaPrefix + "ClobberAverageMustAlias"].fillna(0)
@@ -33,9 +34,9 @@ def calculate_average_for_aa(aaName):
 
     # Calculate weighted average per program
     per_program = file_data.groupby("program").sum()
-    program_no_alias = per_program[aaPrefix + "CA_NoAlias"] / per_program["ModuleNumClobbers"]
-    program_may_alias = per_program[aaPrefix + "CA_MayAlias"] / per_program["ModuleNumClobbers"]
-    program_must_alias = per_program[aaPrefix + "CA_MustAlias"] / per_program["ModuleNumClobbers"]
+    program_no_alias = per_program[aaPrefix + "CA_NoAlias"] / per_program[aaPrefix + "ModuleNumClobbers"]
+    program_may_alias = per_program[aaPrefix + "CA_MayAlias"] / per_program[aaPrefix + "ModuleNumClobbers"]
+    program_must_alias = per_program[aaPrefix + "CA_MustAlias"] / per_program[aaPrefix + "ModuleNumClobbers"]
 
     res = pd.DataFrame({
         "NoAlias": program_no_alias,
@@ -47,6 +48,32 @@ def calculate_average_for_aa(aaName):
     res.loc["all", "NoAlias"] = file_data[aaPrefix + "CA_NoAlias"].sum() / module_num_clobbers.sum()
     res.loc["all", "MayAlias"] = file_data[aaPrefix + "CA_MayAlias"].sum() / module_num_clobbers.sum()
     res.loc["all", "MustAlias"] = file_data[aaPrefix + "CA_MustAlias"].sum() / module_num_clobbers.sum()
+
+    return res
+
+# Calculates the load/store clobber rates for the LLVM opt output
+def calculate_average_for_llvm():
+
+    file_data["LLVM-StoreCount"] = file_data["LLVM-StoreCount"].fillna(0)
+    file_data["LLVM-NoAliasRate"] = file_data["LLVM-NoAliasRate"].fillna(0)
+    file_data["LLVM-MayAliasRate"] = file_data["LLVM-MayAliasRate"].fillna(0)
+    file_data["LLVM-PartialAliasRate"] = file_data["LLVM-PartialAliasRate"].fillna(0)
+    file_data["LLVM-MustAliasRate"] = file_data["LLVM-MustAliasRate"].fillna(0)
+
+    per_program = file_data.groupby("program").sum()
+
+    per_program_clobbers = per_program["LLVM-StoreCount"]
+    program_no_alias = per_program["LLVM-NoAliasRate"] / per_program_clobbers
+    program_may_alias = per_program["LLVM-MayAliasRate"] / per_program_clobbers
+    program_partial_alias = per_program["LLVM-PartialAliasRate"] / per_program_clobbers
+    program_must_alias = per_program["LLVM-MustAliasRate"] / per_program_clobbers
+
+    res = pd.DataFrame({
+        "NoAlias": program_no_alias,
+        "MayAlias": program_may_alias + program_partial_alias,
+        # "PartialAlias": is included in may alias
+        "MustAlias": program_must_alias
+    })
 
     return res
 
@@ -78,8 +105,17 @@ def print_aa(aa):
 
     return average_rates
 
+def print_llvm_aa():
+    print()
+    print("LLVM")
+    per_program = file_data.groupby("program").sum()
+    average_rates = calculate_average_for_llvm()
+    print(average_rates)
+
+
 print_average_points_to_external_info()
 
+llvm_basic_aa = print_llvm_aa()
 basic_aa = print_aa("BasicAA")
 ptg_aa   = print_aa("PointsToGraphAA")
 both_aa  = print_aa("ChainedAA(PointsToGraphAA,BasicAA)")

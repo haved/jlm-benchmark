@@ -5,6 +5,9 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 jlm-commit := "40d718bae9477b2812a40506e15da96a6fe7f813"
 
+# llvm-bin := `llvm-config-18 --bindir`
+llvm-bin := "/home/havard/Development/llvm-project/build/bin"
+
 default:
     @just --list
 
@@ -40,7 +43,7 @@ build-release-anf:
 build-both: build-release build-release-anf
 
 # Flags passed to both benchmarking invocations
-common-flags := "--llvmbin " + `llvm-config-18 --bindir`
+common-flags := "--llvmbin " + llvm-bin
 
 # Benchmark all C files with the debug target of jlm-opt
 benchmark-debug flags="":
@@ -83,7 +86,7 @@ extract-aggregated:
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    ./analysis/plot-file-sizes.py --stats statistics-out --out results
+    # ./analysis/plot-file-sizes.py --stats statistics-out --out results
     # ./analysis/compare-anf.py
     ./analysis/calculate-precision.py
 

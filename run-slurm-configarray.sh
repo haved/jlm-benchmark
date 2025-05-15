@@ -31,5 +31,6 @@ fi
     --statsdir statistics/release-anf \
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
     --jlmExactConfig=$SLURM_ARRAY_TASK_ID \
+    --configSweepIterations 50 \
     --timeout 86000 \
     -j1

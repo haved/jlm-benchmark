@@ -7,24 +7,6 @@ import pandas as pd
 import argparse
 import re
 
-def line_to_dict(stats_line):
-    """
-    Splits the given line into a tuple (statistic, {key:value})
-    """
-    statistic, _, *stats = stats_line.split(" ")
-
-    stats_dict = {}
-
-    for stat in stats:
-        stat_name, stat_value = stat.split(":")
-        try:
-            stat_value = int(stat_value)
-        except:
-            pass
-
-        stats_dict[stat_name] = stat_value
-    return statistic, stats_dict
-
 # Values from the AndersenAnalysis that should be the same for all configuration
 PER_FILE_STATS = [
     "#RvsdgNodes", "#PointerObjects", "#MemoryPointerObjects", "#MemoryPointerObjectsCanPoint",
@@ -49,10 +31,50 @@ PER_FILE_STATS_OPTIONAL = [
 ]
 PRECISION_EVALUATION_MODE = "ClobberingStores"
 # PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
-PRECISION_EVALUATION_KEEP_PER_AA = ["IsRemovingDuplicatePointers", "ModuleNumClobbers",
-                                    "ClobberAverageNoAlias", "ClobberAverageMayAlias", "ClobberAverageMustAlias",
-                                    "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
-                                    "PrecisionEvaluationTimer[ns]"]
+PRECISION_EVALUATION_KEEP_PER_AA = [
+    "IsRemovingDuplicatePointers",
+
+    # Counts total instances of each response type, no matter the precision evaluation mode
+    "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
+
+    # Used for load/store conflict queries
+    "ModuleNumClobbers",
+    # The following three values sum up to 1
+    "ClobberAverageNoAlias", "ClobberAverageMayAlias", "ClobberAverageMustAlias",
+
+    "PrecisionEvaluationTimer[ns]"]
+
+ALTERNATIVE_OPT_STAT_PREFIX = "LLVM-"
+ALTERNATIVE_OPT_KEEP = [
+    # Used for deduplicated all pointer pairs queries
+    "NoAliasCount", "MayAliasCount", "PartialAliasCount", "MustAliasCount",
+
+    # Used for load/store conflict queries
+    "StoreCount",
+    # Remember that the following values sum up to the number of stores, not 1
+    "NoAliasRate", "MayAliasRate", "PartialAliasRate", "MustAliasRate",
+    "LoadStoreConflictNoAliasCount", "LoadStoreConflictMayAliasCount",
+    "LoadStoreConflictPartialAliasCount", "LoadStoreConflictMustAliasCount",
+]
+
+
+def line_to_dict(stats_line):
+    """
+    Splits the given line into a tuple (statistic, {key:value})
+    """
+    statistic, _, *stats = stats_line.split(" ")
+
+    stats_dict = {}
+
+    for stat in stats:
+        stat_name, stat_value = stat.split(":")
+        try:
+            stat_value = int(stat_value)
+        except:
+            pass
+
+        stats_dict[stat_name] = stat_value
+    return statistic, stats_dict
 
 def keep_file_stats(program, cfile, line_stats):
     """
@@ -74,6 +96,84 @@ def keep_file_stats(program, cfile, line_stats):
 
     return stats
 
+# Due to splitting workloads, the same cfile can have multiple statistics files
+def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas):
+    file_precision_stats = {}
+    file_andersen_stats = None
+    file_config_rows = []
+
+    program = cfile.split("+")[0]
+
+    with open(stats_filename, encoding='utf-8') as stats_file:
+        for line in stats_file:
+            statistic, line_stats = line_to_dict(line)
+
+            if statistic == "AndersenAnalysis":
+                # If we have not captured file statistics for this file yet
+                if file_andersen_stats is None:
+                    file_andersen_stats = keep_file_stats(program, cfile, line_stats)
+
+                file_config_stats = file_andersen_stats.copy()
+                file_config_stats.update(line_stats)
+                file_config_rows.append(file_config_stats)
+            elif statistic == "AliasAnalysisPrecisionEvaluation":
+
+                # Only include alias analysis precision using the selected mode
+                if line_stats["PrecisionEvaluationMode"] == PRECISION_EVALUATION_MODE:
+                    aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
+                    for col in PRECISION_EVALUATION_KEEP_PER_AA:
+                        line_stats[aaType + col] = line_stats[col]
+                    file_precision_stats.update(line_stats)
+
+            else:
+                print("Ignoring unknown statistic:", statistic)
+
+    # The first AndersenAnalysis statistic line is not part of the configuration sweep
+    if len(file_config_rows) > 1:
+        file_config_rows = file_config_rows[1:]
+    elif len(file_config_rows) == 1:
+        print(f"WARNING: Statistics file {stats_filename} only had a single Andersen line")
+    else:
+        print(f"WARNING: Statistics file {stats_filename} contained no AndersenAnalysis at all")
+
+    # Avoid confusion by only keeping the columns that are prefixed with AA name
+    for col in PRECISION_EVALUATION_KEEP_PER_AA:
+        if col in file_precision_stats:
+            del file_precision_stats[col]
+
+    if cfile not in file_datas:
+        file_datas[cfile] = {}
+    if file_andersen_stats is not None:
+        file_datas[cfile].update(file_andersen_stats)
+    if file_precision_stats is not None:
+        file_datas[cfile].update(file_precision_stats)
+
+    file_config_data = pd.DataFrame(file_config_rows)
+    file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
+
+    file_config_data.reset_index(inplace=True)
+    file_config_data["cfile"] = cfile
+    file_config_datas.append(file_config_data)
+
+
+def handle_alternative_opt_file(stats_filename, cfile, file_datas):
+
+    file_stats = {}
+
+    with open(stats_filename, encoding="utf-8") as stats_file:
+        for line in stats_file:
+            for keep_stat in ALTERNATIVE_OPT_KEEP:
+                if not line.startswith(keep_stat + ": "):
+                    continue
+
+                _, value = line.split(":")
+                file_stats[ALTERNATIVE_OPT_STAT_PREFIX + keep_stat] = value.strip()
+
+    if cfile not in file_datas:
+        file_datas[cfile] = {}
+    file_datas[cfile].update(file_stats)
+
+
 def extract_statistics(stats_folder):
     """
     Create one dataframe with one row for each cfile
@@ -93,57 +193,29 @@ def extract_statistics(stats_folder):
             print(f"Ignoring file {filename}", file=sys.stderr)
             continue
 
-        cfile = filename[:-4] # remove .log
-        single_config_file = False
+        # remove .log suffix
+        cfile = filename[:-4]
+
+        # Remove _configXX suffix
         match_config_suffix = re.search("_config[0-9]+$", cfile)
         if match_config_suffix is not None:
             cfile = cfile[:match_config_suffix.start()]
 
-        program = filename.split("+")[0]
+        # Remove .alternative-opt if present
+        is_alternative_opt_file = False
+        if cfile.endswith(".alternative-opt"):
+            cfile = cfile[:cfile.rfind(".")]
+            is_alternative_opt_file = True
 
-        file_precision_stats = {}
-        file_andersen_stats = None
-        file_config_rows = []
+        stats_filename = os.path.join(stats_folder, filename)
 
-        with open(os.path.join(stats_folder, filename), encoding='utf-8') as stats_file:
-            for line in stats_file:
-                statistic, line_stats = line_to_dict(line)
+        if is_alternative_opt_file:
+            handle_alternative_opt_file(stats_filename, cfile, file_datas)
+        else:
+            handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
 
-                if statistic == "AndersenAnalysis":
-                    # If we have not captured file statistics for this file yet
-                    if file_andersen_stats is None:
-                        file_andersen_stats = keep_file_stats(program, cfile, line_stats)
-
-                    file_config_stats = file_andersen_stats.copy()
-                    file_config_stats.update(line_stats)
-                    file_config_rows.append(file_config_stats)
-                elif statistic == "AliasAnalysisPrecisionEvaluation":
-                    if line_stats["PrecisionEvaluationMode"] == PRECISION_EVALUATION_MODE:
-                        aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
-                        for col in PRECISION_EVALUATION_KEEP_PER_AA:
-                            line_stats[aaType + col] = line_stats[col]
-                        file_precision_stats.update(line_stats)
-
-                else:
-                    print("Ignoring unknown statistic:", statistic)
-
-        # If the file has multiple Andersen statistics lines, the first one is skipped
-        if len(file_config_rows) > 1:
-            file_config_rows = file_config_rows[1:]
-
-        if cfile not in file_datas:
-            file_datas[cfile] = {}
-        if file_andersen_stats is not None:
-            file_datas[cfile].update(file_andersen_stats)
-        if file_precision_stats is not None:
-            file_datas[cfile].update(file_precision_stats)
-
-        file_config_data = pd.DataFrame(file_config_rows)
-        file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
-
-        file_config_data.reset_index(inplace=True)
-        file_config_data["cfile"] = cfile
-        file_config_datas.append(file_config_data)
+    # Some files may have been analyzed by the alternative opt only, skip them
+    file_datas = { cfile: data for cfile, data in file_datas.items() if "cfile" in data }
 
     if len(file_datas) == 0:
         return pd.DataFrame(), pd.DataFrame()
@@ -153,7 +225,7 @@ def extract_statistics(stats_folder):
 
     # Check that no cfile has multiple occurances of the same configuration
     # This could happen if a file has analyzed both regularly, and individually per config
-    num_cfile_config_pairs = file_config_data.groupby(['cfile', 'Configuration']).size()
+    num_cfile_config_pairs = file_config_datas.groupby(['cfile', 'Configuration']).size()
     num_cfile_config_pairs = num_cfile_config_pairs[num_cfile_config_pairs > 1]
     for cfile, config in num_cfile_config_pairs.index:
         print(f"WARNING: Multiple files provide the following combination: ({cfile}, {config})")

@@ -34,6 +34,7 @@ class Options:
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
+        self.alternative_opt = os.path.join(llvm_bindir, "opt")
         self.opt = os.path.join(llvm_bindir, "opt")
         self.llvm_link = os.path.join(llvm_bindir, "llvm-link")
 
@@ -133,6 +134,9 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
             print(f"Stderr:", stderr)
         raise TaskSubprocessError()
 
+def run_command_and_capture(command, env_vars=None):
+    p = subprocess.run(command, env=env_vars, capture_output=True, text=True, check=True)
+    return p.stdout, p.stderr
 
 def move_stats_file(temp_dir, stats_output):
     # Move statisitcs to actual stats_dir, and change filename
@@ -282,16 +286,17 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
 
 
 def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_output,
-                 env_vars=None, opt_flags=None, jlm_opt_flags=None):
+                 env_vars=None, opt_flags=None, alternative_opt_flags=None, jlm_opt_flags=None):
     """
     Compiles the given file with the given arguments to clang.
     :param tasks: the list of tasks to append commands to
     :param full_name: should be a valid filename, unique to the program and source file
     :param workdir: the dir from which clang is invoked
     :param cfile: the name of the c file, relative to workdir
+    :param extra_clang_flags: the flags to pass to clang when making the .ll file
     :param stats_output: the file name and path to use for the statistics file
     :param env_vars: environment variables passed to the executed commands
-    :param extra_clang_flags: the flags to pass to clang when making the .ll file
+    :param alternative_opt_flags: if not None, opt is run with the given flags, only keeping stderr
     :param opt_flags: if not None, opt is run with the given flags
     :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
     :return: a tuple with paths to (clang's output, opt's output, jlm-opt's output)
@@ -325,6 +330,23 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
                           action=lambda task: run_command(opt_command, env_vars=combined_env_vars, timeout=options.timeout)))
     else:
         opt_out = clang_out
+
+    if alternative_opt_flags is not None:
+
+        alternative_opt_log = stats_output[:-4] + ".alternative-opt.log"
+
+        def alternative_opt_action(task):
+            alternative_opt_command = [options.alternative_opt, clang_out, *alternative_opt_flags]
+            stdout, stderr = run_command_and_capture(alternative_opt_command, env_vars=combined_env_vars)
+            if stdout:
+                print(stdout)
+            with open(alternative_opt_log, "w", encoding="utf-8") as fd:
+                fd.write(stderr)
+
+        tasks.append(Task(name=f"alternative opt {full_name}",
+                          input_files=[clang_out],
+                          output_files=[alternative_opt_log],
+                          action=alternative_opt_action))
 
     if jlm_opt_flags is not None:
 
@@ -475,6 +497,8 @@ class Benchmark:
 
         self.extra_clang_flags = []
         self.opt_flags = None
+        # Used for dumping info from LLVM before handing code to jlm-opt
+        self.alternative_opt_flags = None
         self.jlm_opt_flags = None
         self.llvm_link_flags = None
         self.linked_opt_flags = None
@@ -500,6 +524,7 @@ class Benchmark:
             _, _, outfile = compile_file(tasks, full_name=full_name, workdir=cfile.working_dir, cfile=cfile.cfile,
                                          extra_clang_flags=[*self.extra_clang_flags, *cfile.arguments],
                                          opt_flags=self.opt_flags,
+                                         alternative_opt_flags=self.alternative_opt_flags,
                                          jlm_opt_flags=self.jlm_opt_flags,
                                          env_vars=env_vars,
                                          stats_output=stats_output)
@@ -637,7 +662,8 @@ def main():
     parser.add_argument('--jlmExactConfig', dest='jlm_exact_config', action='store', default=None,
                         help='Run jlm-opt with only the specified configuration index. Adds the index to the statistics name.')
     parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
-                    help='The number of times each possible Andersen solver config should be tested. [0]')
+                    help='The number of times each possible Andersen solver config should be tested. \
+                          If combined with --jlmExactConfig, selects the number of times the config is used [0]')
     parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
                         help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
@@ -704,21 +730,21 @@ def main():
     if dryrun: # There is no point in multithreading the dryruns
         workers = 1
 
+    env_vars = {}
     if jlm_exact_config is not None:
-        env_vars = {
-            "JLM_ANDERSEN_USE_EXACT_CONFIG": str(jlm_exact_config)
-        }
-    elif args.configSweepIterations != 0:
+        env_vars["JLM_ANDERSEN_USE_EXACT_CONFIG"] = str(jlm_exact_config)
+
+    if args.configSweepIterations != 0:
         # The files should be analyzed using all possible Andersen configurations
-        env_vars = {
+        env_vars.update({
             "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
             "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
-        }
-    else:
-        env_vars = {}
+        })
 
     for bench in benchmarks:
         # bench.opt_flags = ["--passes=mem2reg"]
+        # Alternative opt uses the custom version of LLVM to dump alias analysi precision metrics
+        bench.alternative_opt_flags = ["--debug-pass-manager", "--passes=aa-eval", "--havard-load-store-conflicts", "--disable-output"]
         # bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis", "--print-aa-precision-evaluation"]
         # bench.llvm_link_flags = [] #["-internalize"]
