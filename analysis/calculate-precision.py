@@ -105,9 +105,9 @@ def print_aa(aa):
 
     return average_rates
 
-def print_llvm_aa():
+def print_alternative_llvm_aa():
     print()
-    print("LLVM")
+    print("LLVM (Alternative)")
     per_program = file_data.groupby("program").sum()
     average_rates = calculate_average_for_llvm()
     print(average_rates)
@@ -115,10 +115,11 @@ def print_llvm_aa():
 
 print_average_points_to_external_info()
 
-llvm_basic_aa = print_llvm_aa()
+alternative_llva_aa = print_alternative_llvm_aa()
 basic_aa = print_aa("BasicAA")
+llvm_aa = print_aa("LlvmAA")
 ptg_aa   = print_aa("PointsToGraphAA")
-both_aa  = print_aa("ChainedAA(PointsToGraphAA,BasicAA)")
+both_aa  = print_aa("ChainedAA(PointsToGraphAA,LlvmAA)")
 
 program_wise_reduction = (1 -
                           (both_aa.loc[both_aa.index != "all", "MayAlias"] /
