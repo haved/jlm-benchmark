@@ -29,10 +29,9 @@ PER_FILE_STATS_OPTIONAL = [
     # Without merging unified pointer objects
     "#PointsToExternalRelations"
 ]
-PRECISION_EVALUATION_MODE = "ClobberingStores"
-# PRECISION_EVALUATION_MODE = "AllLoadStorePairs"
+
 PRECISION_EVALUATION_KEEP_PER_AA = [
-    "IsRemovingDuplicatePointers",
+    "IsRemovingDuplicatePointers", "PrecisionEvaluationMode",
 
     # Counts total instances of each response type, no matter the precision evaluation mode
     "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
@@ -43,20 +42,6 @@ PRECISION_EVALUATION_KEEP_PER_AA = [
     "ClobberAverageNoAlias", "ClobberAverageMayAlias", "ClobberAverageMustAlias",
 
     "PrecisionEvaluationTimer[ns]"]
-
-ALTERNATIVE_OPT_STAT_PREFIX = "LLVM-"
-ALTERNATIVE_OPT_KEEP = [
-    # Used for deduplicated all pointer pairs queries
-    "NoAliasCount", "MayAliasCount", "PartialAliasCount", "MustAliasCount",
-
-    # Used for load/store conflict queries
-    "StoreCount",
-    # Remember that the following values sum up to the number of stores, not 1
-    "NoAliasRate", "MayAliasRate", "PartialAliasRate", "MustAliasRate",
-    "LoadStoreConflictNoAliasCount", "LoadStoreConflictMayAliasCount",
-    "LoadStoreConflictPartialAliasCount", "LoadStoreConflictMustAliasCount",
-]
-
 
 def line_to_dict(stats_line):
     """
@@ -117,13 +102,10 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
                 file_config_stats.update(line_stats)
                 file_config_rows.append(file_config_stats)
             elif statistic == "AliasAnalysisPrecisionEvaluation":
-
-                # Only include alias analysis precision using the selected mode
-                if line_stats["PrecisionEvaluationMode"] == PRECISION_EVALUATION_MODE:
-                    aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
-                    for col in PRECISION_EVALUATION_KEEP_PER_AA:
-                        line_stats[aaType + col] = line_stats[col]
-                    file_precision_stats.update(line_stats)
+                aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
+                for col in PRECISION_EVALUATION_KEEP_PER_AA:
+                    line_stats[aaType + col] = line_stats[col]
+                file_precision_stats.update(line_stats)
 
             else:
                 print("Ignoring unknown statistic:", statistic)
@@ -155,25 +137,6 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
     file_config_data["cfile"] = cfile
     file_config_datas.append(file_config_data)
 
-
-def handle_alternative_opt_file(stats_filename, cfile, file_datas):
-
-    file_stats = {}
-
-    with open(stats_filename, encoding="utf-8") as stats_file:
-        for line in stats_file:
-            for keep_stat in ALTERNATIVE_OPT_KEEP:
-                if not line.startswith(keep_stat + ": "):
-                    continue
-
-                _, value = line.split(":")
-                file_stats[ALTERNATIVE_OPT_STAT_PREFIX + keep_stat] = value.strip()
-
-    if cfile not in file_datas:
-        file_datas[cfile] = {}
-    file_datas[cfile].update(file_stats)
-
-
 def extract_statistics(stats_folder):
     """
     Create one dataframe with one row for each cfile
@@ -201,20 +164,10 @@ def extract_statistics(stats_folder):
         if match_config_suffix is not None:
             cfile = cfile[:match_config_suffix.start()]
 
-        # Remove .alternative-opt if present
-        is_alternative_opt_file = False
-        if cfile.endswith(".alternative-opt"):
-            cfile = cfile[:cfile.rfind(".")]
-            is_alternative_opt_file = True
-
         stats_filename = os.path.join(stats_folder, filename)
+        handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
 
-        if is_alternative_opt_file:
-            handle_alternative_opt_file(stats_filename, cfile, file_datas)
-        else:
-            handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
-
-    # Some files may have been analyzed by the alternative opt only, skip them
+    # Skip files that did not actually have statistics
     file_datas = { cfile: data for cfile, data in file_datas.items() if "cfile" in data }
 
     if len(file_datas) == 0:

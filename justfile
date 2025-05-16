@@ -5,9 +5,7 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 jlm-commit := "40d718bae9477b2812a40506e15da96a6fe7f813"
 
-# llvm-bin := `llvm-config-18 --bindir`
-# Use the customized build to get our custom alias analysis responses
-llvm-bin := "/home/havard/Development/llvm-project/build/bin"
+llvm-bin := `llvm-config-18 --bindir`
 
 default:
     @just --list

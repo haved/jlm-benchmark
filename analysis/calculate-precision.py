@@ -4,7 +4,7 @@ import pandas as pd
 
 file_data = pd.read_csv("statistics-out/file_data.csv", index_col=0)
 
-print("PrecisionEvaluationMode:", file_data["PrecisionEvaluationMode"].unique())
+print("PrecisionEvaluationMode:", file_data["BasicAA-PrecisionEvaluationMode"].unique())
 print("IsRemovingDuplicatePointers:", file_data["BasicAA-IsRemovingDuplicatePointers"].unique())
 
 def print_average_points_to_external_info():
@@ -94,34 +94,27 @@ def calculate_total_query_responses_for_aa(aaName):
 def print_aa(aa):
     print()
     print(aa)
-    print("Statistics for average clobber operation")
-    average_rates = calculate_average_for_aa(aa)
-    print(average_rates)
-    # print("Total no / may / must alias query responses:")
-    # totals = calculate_total_query_responses_for_aa(aa)
-    # print(totals)
+
+    mode, = file_data[aa + "-PrecisionEvaluationMode"].unique()
+
+    if mode == "ClobberingStores":
+        print("Statistics for average clobber operation")
+        average_rates = calculate_average_for_aa(aa)
+        print(average_rates)
+
+    else:
+        print("Total no / may / must alias query responses:")
+        totals = calculate_total_query_responses_for_aa(aa)
+        print(totals)
+
     print("Time spent on alias queries:",
           file_data[aa + "-PrecisionEvaluationTimer[ns]"].sum() / 1.e9, "seconds")
-
-    return average_rates
-
-def print_alternative_llvm_aa():
-    print()
-    print("LLVM (Alternative)")
-    per_program = file_data.groupby("program").sum()
-    average_rates = calculate_average_for_llvm()
-    print(average_rates)
 
 
 print_average_points_to_external_info()
 
-alternative_llva_aa = print_alternative_llvm_aa()
 basic_aa = print_aa("BasicAA")
 llvm_aa = print_aa("LlvmAA")
 ptg_aa   = print_aa("PointsToGraphAA")
 both_aa  = print_aa("ChainedAA(PointsToGraphAA,LlvmAA)")
 
-program_wise_reduction = (1 -
-                          (both_aa.loc[both_aa.index != "all", "MayAlias"] /
-                          basic_aa.loc[basic_aa.index != "all", "MayAlias"]).mean())
-print("On average reduction across programs:", program_wise_reduction)

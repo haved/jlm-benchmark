@@ -34,7 +34,6 @@ class Options:
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
-        self.alternative_opt = os.path.join(llvm_bindir, "opt")
         self.opt = os.path.join(llvm_bindir, "opt")
         self.llvm_link = os.path.join(llvm_bindir, "llvm-link")
 
@@ -286,7 +285,7 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
 
 
 def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_output,
-                 env_vars=None, opt_flags=None, alternative_opt_flags=None, jlm_opt_flags=None):
+                 env_vars=None, opt_flags=None, jlm_opt_flags=None):
     """
     Compiles the given file with the given arguments to clang.
     :param tasks: the list of tasks to append commands to
@@ -296,7 +295,6 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
     :param extra_clang_flags: the flags to pass to clang when making the .ll file
     :param stats_output: the file name and path to use for the statistics file
     :param env_vars: environment variables passed to the executed commands
-    :param alternative_opt_flags: if not None, opt is run with the given flags, only keeping stderr
     :param opt_flags: if not None, opt is run with the given flags
     :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
     :return: a tuple with paths to (clang's output, opt's output, jlm-opt's output)
@@ -330,23 +328,6 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
                           action=lambda task: run_command(opt_command, env_vars=combined_env_vars, timeout=options.timeout)))
     else:
         opt_out = clang_out
-
-    if alternative_opt_flags is not None:
-
-        alternative_opt_log = stats_output[:-4] + ".alternative-opt.log"
-
-        def alternative_opt_action(task):
-            alternative_opt_command = [options.alternative_opt, clang_out, *alternative_opt_flags]
-            stdout, stderr = run_command_and_capture(alternative_opt_command, env_vars=combined_env_vars)
-            if stdout:
-                print(stdout)
-            with open(alternative_opt_log, "w", encoding="utf-8") as fd:
-                fd.write(stderr)
-
-        tasks.append(Task(name=f"alternative opt {full_name}",
-                          input_files=[clang_out],
-                          output_files=[alternative_opt_log],
-                          action=alternative_opt_action))
 
     if jlm_opt_flags is not None:
 
@@ -497,8 +478,6 @@ class Benchmark:
 
         self.extra_clang_flags = []
         self.opt_flags = None
-        # Used for dumping info from LLVM before handing code to jlm-opt
-        self.alternative_opt_flags = None
         self.jlm_opt_flags = None
         self.llvm_link_flags = None
         self.linked_opt_flags = None
@@ -524,7 +503,6 @@ class Benchmark:
             _, _, outfile = compile_file(tasks, full_name=full_name, workdir=cfile.working_dir, cfile=cfile.cfile,
                                          extra_clang_flags=[*self.extra_clang_flags, *cfile.arguments],
                                          opt_flags=self.opt_flags,
-                                         alternative_opt_flags=self.alternative_opt_flags,
                                          jlm_opt_flags=self.jlm_opt_flags,
                                          env_vars=env_vars,
                                          stats_output=stats_output)
@@ -743,8 +721,6 @@ def main():
 
     for bench in benchmarks:
         # bench.opt_flags = ["--passes=mem2reg"]
-        # Alternative opt uses the custom version of LLVM to dump alias analysi precision metrics
-        bench.alternative_opt_flags = ["--debug-pass-manager", "--passes=aa-eval", "--havard-load-store-conflicts", "--disable-output"]
         # bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis", "--print-aa-precision-evaluation"]
         # bench.llvm_link_flags = [] #["-internalize"]
