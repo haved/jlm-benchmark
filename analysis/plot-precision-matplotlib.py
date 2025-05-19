@@ -6,31 +6,38 @@ import matplotlib.lines as mlines
 import numpy as np
 import re
 
-def plot_weighted(data, savefig=None):
-    data.loc[data["AA"] == "BasicAA", "AA"] = "local"
-    data.loc[data["AA"] == "LlvmAA", "AA"] = "LLVM"
-    data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "andersen"
-    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "LLVM+andersen"
+def plot(data, ylabel, savefig=None):
+    """ Takes data in the format
+    Benchmark AA        Response    Rate
+    ========= ========= =========== ====
+    505.gcc   BasicAA   NoAlias     76.0
+    505.gcc   BasicAA   MayAlias    14.2
+    505.gcc   BasicAA   MustAlias   9.8
+    ...
 
-    # Skip the "only PtG column"
-    # data = data[data["AA"] != "andersen"]
+    and plots the MayAlias rate for each benchmark
+    """
+    data.loc[data["AA"] == "BasicAA", "AA"] = "local"
+    data.loc[data["AA"] == "LlvmAA", "AA"] = "LLVM(BasicAA)"
+    data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "andersen"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "andersen+LLVM(BasicAA)"
 
     data = data[data["Response"] != "NoAlias"]
     data = data[data["Response"] != "MustAlias"]
 
     colors = {
         "local": "#CC9600",
-        "LLVM": "#636EFA",
+        "LLVM(BasicAA)": "#636EFA",
         "andersen": "#EF553B",
-        "LLVM+andersen": "#00CC96"
+        "andersen+LLVM(BasicAA)": "#00CC96"
     }
 
     benchmarks = data["Benchmark"].unique()
     AAs = [
         #"local",
-        "LLVM",
+        "LLVM(BasicAA)",
         "andersen",
-        "LLVM+andersen"]
+        "andersen+LLVM(BasicAA)"]
 
     fig, ax = plt.subplots(figsize=(8, 4))
     width = 0.25
@@ -70,7 +77,7 @@ def plot_weighted(data, savefig=None):
         tick.set_verticalalignment("top")
         tick.set_rotation_mode("anchor")
 
-    ax.set_ylabel("Average Store MayAlias %")
+    ax.set_ylabel(ylabel)
     ax.yaxis.label.set_size(13)
 
     ax.set_yticks(np.arange(0, 16 + 1, 2))
@@ -92,7 +99,7 @@ def plot_weighted(data, savefig=None):
     plt.show()
 
 
-def parse_text_weighted(text):
+def parse_text_average(text):
     text = text.strip()
     lines = text.split("\n")
 
@@ -136,8 +143,53 @@ def parse_text_weighted(text):
 
     return pd.DataFrame(rows)
 
+def parse_text_total_responses(text):
+    text = text.strip()
+    lines = text.split("\n")
 
-CS_NoDedup = """
+    rows = []
+
+    # The current alias analysis being used
+    AA = None
+    for line in lines:
+        if line == "":
+            continue
+        parts = line.split(" ")
+        if len(parts) == 1:
+            AA, = parts
+            continue
+
+        # Skip empty parts
+        parts = [part for part in parts if part]
+        benchmark, no_alias, may_alias, must_alias, _ = parts
+        no_alias = float(no_alias)
+        may_alias = float(may_alias)
+        must_alias = float(must_alias)
+        total = no_alias + may_alias + must_alias
+
+        rows.append({
+            "AA": AA,
+            "Benchmark": benchmark,
+            "Response": "MayAlias",
+            "Rate": may_alias / total * 100
+            })
+        rows.append({
+            "AA": AA,
+            "Benchmark": benchmark,
+            "Response": "MustAlias",
+            "Rate": must_alias / total * 100
+            })
+        rows.append({
+            "AA": AA,
+            "Benchmark": benchmark,
+            "Response": "NoAlias",
+            "Rate": no_alias / total * 100
+            })
+
+    return pd.DataFrame(rows)
+
+
+CS_NoDedup_AverageClobber = """
 BasicAA
 500.perlbench  0.804925  0.132681   0.062342
 502.gcc        0.819753  0.058408   0.121347
@@ -199,5 +251,70 @@ ghostscript-10.04.0  0.869496  0.057958   0.072235
 sendmail-8.18.1      0.856676  0.072024   0.070154
 """
 
-data = parse_text_weighted(CS_NoDedup)
-plot_weighted(data, savefig="precision.pdf")
+CS_NoDedup_TotalResponses = """
+BasicAA
+500.perlbench         41424937.0  17076789.0   1695276.0  0.283682
+502.gcc              435617425.0  18462055.0  95247938.0  0.033608
+505.mcf                 152390.0     25387.0      5576.0  0.138460
+507.cactuBSSN        289664689.0  20686707.0  14922846.0  0.063598
+525.x264               5176188.0    549370.0    159062.0  0.093357
+526.blender           46686931.0   5613352.0   2445903.0  0.102534
+538.imagick          260169588.0  38004488.0  17050291.0  0.120563
+544.nab                1526770.0    238695.0     82016.0  0.129200
+557.xz                 3328720.0    511520.0    286950.0  0.123939
+emacs-29.4            28045633.0   2426329.0    998741.0  0.077098
+gdb-15.2              14717167.0   1670172.0    679776.0  0.097859
+ghostscript-10.04.0   75319757.0   7678751.0   4129770.0  0.088132
+sendmail-8.18.1        4638958.0   1008949.0    179555.0  0.173137
+
+LlvmAA
+500.perlbench         47856084.0  10636352.0   1704566.0  0.176692
+502.gcc              426197136.0  27867269.0  95263013.0  0.050730
+505.mcf                 154322.0     23376.0      5655.0  0.127492
+507.cactuBSSN        220065629.0  90270294.0  14938319.0  0.277521
+525.x264               5049437.0    675694.0    159489.0  0.114824
+526.blender           46607505.0   5686889.0   2451792.0  0.103877
+538.imagick          251075201.0  47095961.0  17053205.0  0.149405
+544.nab                1503810.0    261626.0     82045.0  0.141612
+557.xz                 2977202.0    863007.0    286981.0  0.209103
+emacs-29.4            28001001.0   2467895.0   1001807.0  0.078419
+gdb-15.2              14548777.0   1835888.0    682450.0  0.107569
+ghostscript-10.04.0   74186733.0   8788864.0   4152681.0  0.100873
+sendmail-8.18.1        5033499.0    609612.0    184351.0  0.104610
+
+PointsToGraphAA
+500.perlbench         46687187.0  11822276.0   1687539.0  0.196393
+502.gcc              433238088.0  21402002.0  94687328.0  0.038960
+505.mcf                 155505.0     22273.0      5575.0  0.121476
+507.cactuBSSN        291048702.0  19312033.0  14913507.0  0.059372
+525.x264               5155555.0    575906.0    153159.0  0.097866
+526.blender           45624269.0   6919734.0   2202183.0  0.126397
+538.imagick          260220665.0  37977115.0  17026587.0  0.120476
+544.nab                1616284.0    149292.0     81905.0  0.080808
+557.xz                 3470967.0    527629.0    128594.0  0.127842
+emacs-29.4            28183017.0   2316903.0    970783.0  0.073621
+gdb-15.2              14858510.0   1539527.0    669078.0  0.090204
+ghostscript-10.04.0   75675107.0   7417152.0   4036019.0  0.085129
+sendmail-8.18.1        5027463.0    627794.0    172205.0  0.107730
+
+ChainedAA(PointsToGraphAA,LlvmAA)
+500.perlbench         50585145.0   7907295.0   1704562.0  0.131357
+502.gcc              437105435.0  16958609.0  95263374.0  0.030872
+505.mcf                 156666.0     21032.0      5655.0  0.114708
+507.cactuBSSN        291088789.0  19247130.0  14938323.0  0.059172
+525.x264               5225073.0    500058.0    159489.0  0.084977
+526.blender           47074757.0   5219597.0   2451832.0  0.095342
+538.imagick          268533568.0  29637594.0  17053205.0  0.094021
+544.nab                1619025.0    146411.0     82045.0  0.079249
+557.xz                 3646930.0    193279.0    286981.0  0.046831
+emacs-29.4            28937312.0   1531579.0   1001812.0  0.048667
+gdb-15.2              15068764.0   1315892.0    682459.0  0.077101
+ghostscript-10.04.0   76720032.0   6255565.0   4152681.0  0.071797
+sendmail-8.18.1        5168607.0    474504.0    184351.0  0.081425
+"""
+
+#data = parse_text_average(CS_NoDedup_AverageClobber)
+#plot(data, ylabel="Average Store MayAlias %", savefig="precision.pdf")
+
+data = parse_text_total_responses(CS_NoDedup_TotalResponses)
+plot(data, ylabel="MayAlias Response %", savefig="precision.pdf")

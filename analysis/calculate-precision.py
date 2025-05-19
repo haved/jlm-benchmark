@@ -97,15 +97,13 @@ def print_aa(aa):
 
     mode, = file_data[aa + "-PrecisionEvaluationMode"].unique()
 
-    if mode == "ClobberingStores":
-        print("Statistics for average clobber operation")
-        average_rates = calculate_average_for_aa(aa)
-        print(average_rates)
+    #print("Statistics for average clobber operation")
+    #average_rates = calculate_average_for_aa(aa)
+    #print(average_rates)
 
-    else:
-        print("Total no / may / must alias query responses:")
-        totals = calculate_total_query_responses_for_aa(aa)
-        print(totals)
+    print("Total no / may / must alias query responses:")
+    totals = calculate_total_query_responses_for_aa(aa)
+    print(totals)
 
     print("Time spent on alias queries:",
           file_data[aa + "-PrecisionEvaluationTimer[ns]"].sum() / 1.e9, "seconds")

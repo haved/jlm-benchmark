@@ -722,7 +722,12 @@ def main():
     for bench in benchmarks:
         # bench.opt_flags = ["--passes=mem2reg"]
         # bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
-        bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis", "--print-aa-precision-evaluation"]
+        bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
+
+        # Only do precision evaluation if we are not doing exact config
+        if jlm_exact_config is None:
+            bench.jlm_opt_flags.append("--print-aa-precision-evaluation")
+
         # bench.llvm_link_flags = [] #["-internalize"]
         # bench.linked_jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
         # Disable linking with clang
