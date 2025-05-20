@@ -6,7 +6,7 @@
 #SBATCH --cpu-freq=highm1
 #SBATCH --constraint=56c
 #SBATCH --mem=40G
-#SBATCH --time=24:00:00
+#SBATCH --time=1:00:00
 #SBATCH --array=0-69
 #SBATCH -o slurm-log/output-%j-config-%a.out # STDOUT
 set -euo pipefail
@@ -32,5 +32,4 @@ fi
     --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
     --jlmExactConfig=$SLURM_ARRAY_TASK_ID \
     --configSweepIterations 50 \
-    --timeout 86000 \
     -j1

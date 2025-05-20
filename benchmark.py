@@ -309,7 +309,7 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
     if env_vars is not None:
         combined_env_vars.update(env_vars)
 
-    clang_command = [options.clang, "-Xclang", "-disable-O0-optnone",
+    clang_command = [options.clang,
                      "-c", cfile,
                      "-S", "-emit-llvm",
                      "-o", clang_out,
@@ -720,8 +720,12 @@ def main():
         })
 
     for bench in benchmarks:
+        # The top one leads to no tbaa info, while the bottom one includes it
+        bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
+        # bench.extra_clang_flags = ["-O2", "-Xclang", "-disable-llvm-passes"]
+
         # bench.opt_flags = ["--passes=mem2reg"]
-        # bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
+
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
 
         # Only do precision evaluation if we are not doing exact config

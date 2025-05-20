@@ -254,7 +254,22 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
 
 def get_mean_time_per_config(file_config_data):
     # Calculate the average time spent by each technique
+    # First filter away configurations that have not finished for every single file
+
+    cfiles_per_config = file_config_data.groupby("Configuration")["cfile"].nunique()
+    num_cfiles = file_config_data["cfile"].nunique()
+
+    configs_to_keep = cfiles_per_config[cfiles_per_config == num_cfiles].index
+    configs_to_discard = cfiles_per_config[cfiles_per_config != num_cfiles].index
+
+    if len(configs_to_discard):
+        print("The following Configurations are skipped, due to not being present for all cfiles:")
+        print(configs_to_discard)
+
+    print(f"mean_time_per_config contains {len(configs_to_keep)} Configurations")
+
     mean_by_config = file_config_data.groupby("Configuration").mean(numeric_only=True)
+    mean_by_config = mean_by_config[mean_by_config.index.isin(configs_to_keep)]
     total_time = mean_by_config["TotalTime[ns]"].sort_values()
     return total_time
 
