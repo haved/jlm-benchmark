@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=56c
 #SBATCH --mem=40G
-#SBATCH --time=48:00:00
+#SBATCH --time=01:00:00
 #SBATCH --array=0-468
 #SBATCH -o slurm-log/output.%a.out # STDOUT
 set -euo pipefail
@@ -31,5 +31,4 @@ fi
     --builddir build/release \
     --statsdir statistics/release \
     --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --timeout 86000 \
     -j 8 || true

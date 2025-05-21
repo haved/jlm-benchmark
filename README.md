@@ -165,11 +165,15 @@ If the dry-run output for `benchmark-release-anf` contains a task like
 [1/12] (1041) jlm-opt emacs-29.4+src_xdisp.c (dry-run)
 ```
 
-Then distribute the configs across the cluster using
+You can distribute the configs across the cluster, one config per job, using
 
 ``` sh
 APPTAINER_CONTAINER="jlm-benchmark.sif" TASK_INDEX=1041 sbatch run-slurm-configarray.sh
 ```
+
+This lets you quickly analyze the file with each EP config, 50 times each, to remove noise.
+The SLURM script has a timeout of only 1 hour, as the results only need the fastest EP to finish.
+Otherwise it would run for days.
 
 # Analysis
 ## Aggregating statistics
