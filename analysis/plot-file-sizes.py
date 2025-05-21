@@ -42,8 +42,7 @@ def main():
     file_data['#Constraints'] = (file_data['#BaseConstraints'] + file_data['#SupersetConstraints'] + file_data['#StoreConstraints'] +
                                  file_data['#LoadConstraints'] + file_data['#FunctionCallConstraints'] + file_data['#ScalarFlagConstraints'] + file_data['#OtherFlagConstraints'])
 
-    order = ["505.mcf", "544.nab", "557.xz", "525.x264", "507.cactuBSSN", "538.imagick", "502.gcc", "526.blender", "emacs-29.4", "sendmail-8.18.1", "gdb-15.2", "ghostscript-10.04.0"]
-    file_data.sort_values(by="program", key=lambda col: col.map(lambda v: order.index(v)), inplace=True)
+    file_data.sort_values(by="program", inplace=True)
 
     grouped = file_data.groupby('program')
 
@@ -55,7 +54,7 @@ def main():
         'Max Pointer Objects': grouped['#PointerObjects'].max(),
         'Mean Constraints': grouped['#Constraints'].mean().astype(int),
         'Max Constraints': grouped['#Constraints'].max(),
-    }, index=order)
+    })
     # print(table)
 
     print(table.columns)
