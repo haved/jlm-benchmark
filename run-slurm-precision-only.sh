@@ -9,7 +9,7 @@
 #SBATCH --mem=40G
 #SBATCH --time=01:00:00
 #SBATCH --array=0-468
-#SBATCH -o slurm-log/output.%a.out # STDOUT
+#SBATCH -o slurm-log/precision.%a.out # STDOUT
 set -euo pipefail
 
 SELF=./run-slurm-precision-only.sh
