@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=56c
 #SBATCH --mem=40G
-#SBATCH --time=01:00:00
+#SBATCH --time=06:00:00
 #SBATCH --array=0-468
 #SBATCH -o slurm-log/precision.%a.out # STDOUT
 set -euo pipefail

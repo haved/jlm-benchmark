@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import pandas as pd
+import argparse
+import os
+import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+import re
+import numpy as np
 
-file_data = pd.read_csv("statistics-out/file_data.csv", index_col=0)
-
-print("PrecisionEvaluationMode:", file_data["BasicAA-PrecisionEvaluationMode"].unique())
-print("IsRemovingDuplicatePointers:", file_data["BasicAA-IsRemovingDuplicatePointers"].unique())
-
-def print_average_points_to_external_info():
+def print_average_points_to_external_info(file_data):
     # Only includes PointerObjects marked "CanPoint"
     pointer_objects_point_to_external = file_data["#PointsToExternalRelations"]
     pointer_objects_can_point = (
@@ -51,68 +52,160 @@ def calculate_average_for_aa(aaName):
 
     return res
 
-# Calculates the load/store clobber rates for the LLVM opt output
-def calculate_average_for_llvm():
 
-    file_data["LLVM-StoreCount"] = file_data["LLVM-StoreCount"].fillna(0)
-    file_data["LLVM-NoAliasRate"] = file_data["LLVM-NoAliasRate"].fillna(0)
-    file_data["LLVM-MayAliasRate"] = file_data["LLVM-MayAliasRate"].fillna(0)
-    file_data["LLVM-PartialAliasRate"] = file_data["LLVM-PartialAliasRate"].fillna(0)
-    file_data["LLVM-MustAliasRate"] = file_data["LLVM-MustAliasRate"].fillna(0)
-
-    per_program = file_data.groupby("program").sum()
-
-    per_program_clobbers = per_program["LLVM-StoreCount"]
-    program_no_alias = per_program["LLVM-NoAliasRate"] / per_program_clobbers
-    program_may_alias = per_program["LLVM-MayAliasRate"] / per_program_clobbers
-    program_partial_alias = per_program["LLVM-PartialAliasRate"] / per_program_clobbers
-    program_must_alias = per_program["LLVM-MustAliasRate"] / per_program_clobbers
-
-    res = pd.DataFrame({
-        "NoAlias": program_no_alias,
-        "MayAlias": program_may_alias + program_partial_alias,
-        # "PartialAlias": is included in may alias
-        "MustAlias": program_must_alias
-    })
-
-    return res
-
-def calculate_total_query_responses_for_aa(aaName):
+def calculate_total_query_responses_for_aa(file_data, aa_name):
     """This function is used when considering the total number of alias responses"""
-    aaPrefix = aaName + "-"
+    aa_prefix = aa_name + "-"
     per_program = file_data.groupby("program").sum()
 
     result = pd.DataFrame({
-        "NoAlias": per_program[aaPrefix + "#TotalNoAlias"],
-        "MayAlias": per_program[aaPrefix + "#TotalMayAlias"],
-        "MustAlias": per_program[aaPrefix + "#TotalMustAlias"]
+        "NoAlias": per_program[aa_prefix + "#TotalNoAlias"],
+        "MayAlias": per_program[aa_prefix + "#TotalMayAlias"],
+        "MustAlias": per_program[aa_prefix + "#TotalMustAlias"]
                   })
     result["MayRate"] = result["MayAlias"] / result.sum(axis=1)
 
     return result
 
-def print_aa(aa):
-    print()
-    print(aa)
 
-    mode, = file_data[aa + "-PrecisionEvaluationMode"].unique()
+def plot(data, ylabel, savefig=None):
+    """ Takes data in the format
+    Benchmark AA        Rate
+    ========= ========= ====
+    505.gcc   BasicAA   76.0
+    505.gcc   BasicAA   14.2
+    505.gcc   BasicAA    9.8
+    ...
 
-    #print("Statistics for average clobber operation")
-    #average_rates = calculate_average_for_aa(aa)
-    #print(average_rates)
+    and plots the MayAlias rate for each benchmark
+    """
+    data.loc[data["AA"] == "BasicAA", "AA"] = "local"
+    data.loc[data["AA"] == "LlvmAA", "AA"] = "LLVM BasicAA"
+    data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + LLVM BasicAA"
 
-    print("Total no / may / must alias query responses:")
-    totals = calculate_total_query_responses_for_aa(aa)
-    print(totals)
+    colors = {
+        "local": "#CC9600",
+        "LLVM BasicAA": "#636EFA",
+        "Andersen": "#EF553B",
+        "Andersen + LLVM BasicAA": "#00CC96"
+    }
 
-    print("Time spent on alias queries:",
+    benchmarks = data["Benchmark"].unique()
+    AAs = [
+        #"local",
+        #"LLVM BasicAA",
+        "Andersen",
+        #"Andersen + LLVM BasicAA"
+        ]
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    width = 0.25
+    stride = len(AAs) * width + 0.3
+    x = np.arange(len(benchmarks)) * stride
+
+    legend_keys = []
+    legend_names = []
+
+    for i, aa in enumerate(AAs):
+        offset = width * i
+        rates = data[data["AA"] == aa].set_index("Benchmark")
+        rates = rates.loc[benchmarks, "Rate"]
+        rects = ax.bar(x + offset,
+                       rates,
+                       width,
+                       label=aa,
+                       facecolor=colors[aa],
+                       alpha=0.9,
+                       edgecolor="#333",
+                       linewidth=1.5,
+                       zorder=3)
+
+        legend_keys.append(mlines.Line2D([], [],
+                                         marker="s",
+                                         markersize=10,
+                                         linewidth=0,
+                                         color=colors[aa]))
+        legend_names.append(aa)
+
+    ax.set_xlim(-width * 1.5, max(x) + width * len(AAs) + width * 0.5)
+    benchmark_ticks = [re.sub("[-\\.]", "\n", b, count=1) for b in benchmarks]
+    ax.set_xticks(x + width * (len(AAs) - 1) / 2, benchmark_ticks)
+    ax.tick_params(axis='x', labelrotation=40)
+    for tick in ax.xaxis.get_majorticklabels():
+        tick.set_horizontalalignment("right")
+        tick.set_verticalalignment("top")
+        tick.set_rotation_mode("anchor")
+
+    ax.set_ylabel(ylabel)
+    ax.yaxis.label.set_size(13)
+
+    ax.set_yticks(np.arange(0, 20 + 1, 2))
+    ax.tick_params(axis='y', labelsize=12)
+    ax.grid(which='major', axis='y', zorder=0)
+
+    ax.legend(legend_keys, legend_names,
+              loc='best',
+              ncols=3,
+              fontsize=10,
+              frameon=False,
+              borderpad=1.55)
+
+
+    plt.tight_layout(pad=0.05)
+
+    if savefig:
+        plt.savefig(savefig)
+    plt.show()
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Make figures about analysis precision')
+    parser.add_argument('--stats', dest='stats', action='store', required=True,
+                        help='Specify the folder for aggregated statistics')
+    parser.add_argument('--out', dest='out_dir', action='store', required=True,
+                        help='The output folder for plots')
+    args = parser.parse_args()
+
+    file_data = pd.read_csv(os.path.join(args.stats, "file_data.csv"), index_col=0)
+
+    print("PrecisionEvaluationMode:", file_data["BasicAA-PrecisionEvaluationMode"].unique())
+    print("IsRemovingDuplicatePointers:", file_data["BasicAA-IsRemovingDuplicatePointers"].unique())
+
+    print_average_points_to_external_info(file_data)
+
+    aas = ["BasicAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,BasicAA)"]
+
+    # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
+    may_alias_rates = []
+
+    for aa in aas:
+        result = calculate_total_query_responses_for_aa(file_data, aa)
+        print("For alias analysis called:", aa)
+        print(result)
+        print("Time spent on alias queries:",
           file_data[aa + "-PrecisionEvaluationTimer[ns]"].sum() / 1.e9, "seconds")
+        print()
+
+        total = result["NoAlias"] + result["MayAlias"] + result["MustAlias"]
+        may_rate = result["MayAlias"] / total * 100
+
+        may_alias_rates.append(pd.DataFrame({
+            "AA": aa,
+            "Benchmark": result.index,
+            "Rate": may_rate
+        }))
+
+        may_alias_rates.append(pd.DataFrame({
+            "AA": aa,
+            "Benchmark": "all",
+            "Rate": may_rate.mean()
+        }, index=[0]))
+
+    may_alias_rates = pd.concat(may_alias_rates)
+
+    plot(may_alias_rates, ylabel="MayAlias Response %", savefig=os.path.join(args.out_dir, "precision.pdf"))
 
 
-print_average_points_to_external_info()
-
-basic_aa = print_aa("BasicAA")
-llvm_aa = print_aa("LlvmAA")
-ptg_aa   = print_aa("PointsToGraphAA")
-both_aa  = print_aa("ChainedAA(PointsToGraphAA,LlvmAA)")
-
+if __name__ == "__main__":
+    main()

@@ -5,9 +5,21 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import seaborn as sns
 import numpy as np
+import argparse
+import os
 
-file_data = pd.read_csv("statistics-out/file_data.csv")
-all_configs = pd.read_csv("statistics-out/file_config_data.csv")
+parser = argparse.ArgumentParser(description='Make figures and tables about solver runtime')
+parser.add_argument('--stats', dest='stats', action='store', required=True,
+                    help='Specify the folder for aggregated statistics')
+parser.add_argument('--out', dest='out_dir', action='store', required=True,
+                    help='The output folder for plots')
+args = parser.parse_args()
+
+def out_path(filename):
+    return os.path.join(args.out_dir, filename)
+
+file_data = pd.read_csv(os.path.join(args.stats, "file_data.csv"))
+all_configs = pd.read_csv(os.path.join(args.stats, "file_config_data.csv"))
 
 # Remove empty files
 file_data = file_data[file_data["#RvsdgNodes"] > 0]
@@ -142,7 +154,7 @@ if has_ep:
     print("Speedup EP Oracle vs best:", total_time_ns["oracle_with_ep"].sum() / total_time_ns["best_config"].sum())
 
     slowest_with_ep = total_time_ns[total_time_ns["oracle_with_ep"] > 1e9]
-    slowest_with_ep.to_csv("results/slowest_with_ep.csv")
+    slowest_with_ep.to_csv(out_path("slowest_with_ep.csv"))
 
 print("Speedup best vs best_sans_pip:", total_time_ns["best_config_sans_pip"].sum() / total_time_ns["best_config"].sum())
 print("Speedup best vs best_just_without_pip:", total_time_ns["best_config_just_without_pip"].sum() / total_time_ns["best_config"].sum())
@@ -195,10 +207,12 @@ if has_ep:
             oracle_better.loc[cfile, "Index"] = total_time_ns.index.get_loc(cfile)
 
     oracle_better = oracle_better[oracle_better["Diff"] >= 0]
-    oracle_better.to_csv("results/oracle_better.csv")
+    oracle_better.to_csv(out_path("oracle_better.csv"))
 
 # ============== Drawing best config without PIP ratio Oracle with EP ====================
 if has_ep:
+    total_time_ns.sort_values("best_config_sans_pip", ascending=True, inplace=True)
+
     plt.figure(figsize=(7,3))
 
     data = pd.DataFrame({"x": range(len(total_time_ns)), "ratio": (total_time_ns["best_config_sans_pip"]/total_time_ns["oracle_with_ep"])})
@@ -214,23 +228,24 @@ if has_ep:
     plt.grid(zorder=0)
     plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
     lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
-    plt.gca().text(660, 6.2, s=f"$< {lim_1000:.0f}\\mu$s")
+    plt.gca().text(660, 4.2, s=f"$< {lim_1000:.0f}\\mu$s")
     plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
     lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
-    plt.gca().text(1600, 6.2, s=f"$< {lim_2000:.0f}\\mu$s")
+    plt.gca().text(1600, 4.2, s=f"$< {lim_2000:.0f}\\mu$s")
     plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
     lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
-    plt.gca().text(2550, 6.2, s=f"$< {lim_3000:.0f}\\mu$s")
+    plt.gca().text(2550, 4.2, s=f"$< {lim_3000:.0f}\\mu$s")
 
     plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
+    plt.legend(loc='upper center')
     plt.tight_layout(pad=0.2)
-    plt.savefig("results/ip_vs_ep_oracle_ratio.pdf")
+    plt.savefig(out_path("ip_vs_ep_oracle_ratio.pdf"))
 
 # ================== Default best (with PIP) ratio against default best without pip ========================
 total_time_ns.sort_values("best_config_just_without_pip", ascending=True, inplace=True)
 
 slow_best_config_just_without_pip = total_time_ns[total_time_ns["best_config_just_without_pip"] > 1e9]
-slow_best_config_just_without_pip.to_csv("results/slow_best_config_just_without_pip.csv")
+slow_best_config_just_without_pip.to_csv(out_path("slow_best_config_just_without_pip.csv"))
 
 plt.figure(figsize=(7,3))
 
@@ -258,7 +273,7 @@ plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.legend()
 #plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter())
 plt.tight_layout(pad=0.2)
-plt.savefig("results/pip_vs_ip_ratio.pdf")
+plt.savefig(out_path("pip_vs_ip_ratio.pdf"))
 
 print(" ==== Printing statistics about BEST_CONFIG (PIP) vs BEST_CONFIG_JUST_WITHOUT_PIP ======")
 
@@ -299,7 +314,7 @@ if has_ep:
     plt.grid()
     plt.legend()
     plt.tight_layout(pad=0.2)
-    plt.savefig("results/default_best_ratio_oracle_with_ep.pdf")
+    plt.savefig(out_path("default_best_ratio_oracle_with_ep.pdf"))
 
 
 # ========== Make boxplot of runtimes with and without PIP ==============================
@@ -315,7 +330,7 @@ sns.boxplot(data=best_data, x="TotalTime[us]", y="Config", showmeans=True, meanl
 
 #plt.xscale("log")
 plt.tight_layout(pad=0.2)
-plt.savefig("results/best_config_with_and_without_pip.pdf")
+plt.savefig(out_path("best_config_with_and_without_pip.pdf"))
 
 # ========== Make scatterplot between PIP and not PIP ===============================
 
@@ -336,7 +351,7 @@ def plot_diagonal_line(ax):
     ax.set_ylim(lims)
 
 #plot_diagonal_line(plt.gca())
-plt.savefig("results/scatterplot_with_vs_without_pip.pdf")
+plt.savefig(out_path("scatterplot_with_vs_without_pip.pdf"))
 
 
 # ====== Plot scaling ============
@@ -347,7 +362,7 @@ plt.xlabel("#Constraint Variables $V$")
 plt.ylabel("Solver runtime [ms]")
 # plt.ylim((0,1e8))
 plt.tight_layout(pad=0.2)
-plt.savefig("results/runtime_vs_problem_size.pdf")
+plt.savefig(out_path("runtime_vs_problem_size.pdf"))
 
 # ===== Memory usage (representational overhead) =============
 
