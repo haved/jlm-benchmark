@@ -721,10 +721,10 @@ def main():
 
     for bench in benchmarks:
         # The top one leads to no tbaa info, while the bottom one includes it
-        bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
-        # bench.extra_clang_flags = ["-O2", "-Xclang", "-disable-llvm-passes"]
+        # bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
+        bench.extra_clang_flags = ["-O2", "-Xclang", "-disable-llvm-passes"]
 
-        # bench.opt_flags = ["--passes=mem2reg"]
+        bench.opt_flags = ["--passes=mem2reg"]
 
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
 
