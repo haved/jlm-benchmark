@@ -80,23 +80,23 @@ def plot(data, ylabel, savefig=None):
     and plots the MayAlias rate for each benchmark
     """
     data.loc[data["AA"] == "BasicAA", "AA"] = "local"
-    data.loc[data["AA"] == "LlvmAA", "AA"] = "LLVM BasicAA"
+    data.loc[data["AA"] == "LlvmAA", "AA"] = "BasicAA"
     data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
-    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + LLVM BasicAA"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + BasicAA"
 
     colors = {
         "local": "#CC9600",
-        "LLVM BasicAA": "#636EFA",
+        "BasicAA": "#636EFA",
         "Andersen": "#EF553B",
-        "Andersen + LLVM BasicAA": "#00CC96"
+        "Andersen + BasicAA": "#00CC96"
     }
 
     benchmarks = data["Benchmark"].unique()
     AAs = [
         #"local",
-        #"LLVM BasicAA",
+        "BasicAA",
         "Andersen",
-        #"Andersen + LLVM BasicAA"
+        "Andersen + BasicAA"
         ]
 
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -129,7 +129,7 @@ def plot(data, ylabel, savefig=None):
         legend_names.append(aa)
 
     ax.set_xlim(-width * 1.5, max(x) + width * len(AAs) + width * 0.5)
-    benchmark_ticks = [re.sub("[-\\.]", "\n", b, count=1) for b in benchmarks]
+    benchmark_ticks = [re.sub("([-\\.])", "\\1\n", b, count=1) for b in benchmarks]
     ax.set_xticks(x + width * (len(AAs) - 1) / 2, benchmark_ticks)
     ax.tick_params(axis='x', labelrotation=40)
     for tick in ax.xaxis.get_majorticklabels():
@@ -140,16 +140,17 @@ def plot(data, ylabel, savefig=None):
     ax.set_ylabel(ylabel)
     ax.yaxis.label.set_size(13)
 
-    ax.set_yticks(np.arange(0, 20 + 1, 2))
+    ax.set_yticks(np.arange(0, 28 + 1, 2))
     ax.tick_params(axis='y', labelsize=12)
     ax.grid(which='major', axis='y', zorder=0)
 
     ax.legend(legend_keys, legend_names,
               loc='best',
               ncols=3,
-              fontsize=10,
-              frameon=False,
-              borderpad=1.55)
+              fontsize=12,
+              frameon=True,
+              framealpha=1,
+              borderpad=0.35)
 
 
     plt.tight_layout(pad=0.05)
@@ -174,7 +175,7 @@ def main():
 
     print_average_points_to_external_info(file_data)
 
-    aas = ["BasicAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,BasicAA)"]
+    aas = ["LlvmAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA)"]
 
     # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
     may_alias_rates = []
@@ -198,7 +199,7 @@ def main():
 
         may_alias_rates.append(pd.DataFrame({
             "AA": aa,
-            "Benchmark": "all",
+            "Benchmark": "arithmetic\nmean",
             "Rate": may_rate.mean()
         }, index=[0]))
 
@@ -206,6 +207,8 @@ def main():
 
     plot(may_alias_rates, ylabel="MayAlias Response %", savefig=os.path.join(args.out_dir, "precision.pdf"))
 
+    print("mean MayAlias rates using different AAs:")
+    print(may_alias_rates[may_alias_rates["Benchmark"] == "aritmetic\nmean"])
 
 if __name__ == "__main__":
     main()

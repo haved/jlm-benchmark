@@ -184,6 +184,12 @@ The processing of all these statistics `.log` files is dumped to `statistics-out
 just aggregate
 ```
 
+This can also be done in a SLURM-job if desired:
+
+``` sh
+APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm-aggregate.sh
+```
+
 ## Alternative: Extracting aggregated statistics
 The repository also contains aggregated statistics from a complete run. Extract them using
 

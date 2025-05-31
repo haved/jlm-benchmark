@@ -43,7 +43,7 @@ BEST_CONFIG_WITH_EP = "EP_OVS_Solver=Worklist_Policy=LeastRecentlyFired_OnlineCD
 BEST_CONFIG_PRETTY = "IP+WL(FIFO)+PIP"
 BEST_CONFIG_SANS_PIP_PRETTY = "IP+WL(FIFO)+LCD+DP"
 BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY = "IP+WL(FIFO)"
-BEST_CONFIG_WITH_EP_PRETTY = "EP+OVS+WL(LRF)+OVS"
+BEST_CONFIG_WITH_EP_PRETTY = "EP+OVS+WL(LRF)+OCD"
 
 # Double check that these "best" configurations are actually the best
 total_runtime_per_config = all_configs.groupby("Configuration")["TotalTime[ns]"].sum()

@@ -81,13 +81,18 @@ extract-aggregated:
     rm -rf statistics-out
     tar -xzf archives/statistics-out-may21.tar.gz -C .
 
+    # TODO: Remove precision-only once all results are merged
+    rm -rf precision-only
+    mkdir -p precision-only
+    tar -xzf archives/statistics-out-precision-only-may23.tar.gz -C precision-only
+
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
     # ./analysis/plot-file-sizes.py --stats statistics-out --out results
     # ./analysis/compare-anf.py --stats statistics-out --out results
-    ./analysis/calculate-precision.py --stats statistics-out --out results
+    ./analysis/calculate-precision.py --stats precision-only/statistics-out --out results
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean:
