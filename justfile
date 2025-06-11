@@ -92,7 +92,9 @@ analyze-all:
     mkdir -p results
     # ./analysis/plot-file-sizes.py --stats statistics-out --out results
     # ./analysis/compare-anf.py --stats statistics-out --out results
-    ./analysis/calculate-precision.py --stats precision-only/statistics-out --out results
+    ./analysis/calculate-precision.py --stats statistics-out --out results
+    # ./analysis/calculate-precision-selected-llvms.py --stats statistics-out --out results
+    ./analysis/calculate-precision-mayalias-reduction.py --stats statistics-out --out results
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean:

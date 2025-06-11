@@ -8,11 +8,6 @@ import matplotlib.lines as mlines
 import re
 import numpy as np
 
-# LLVM_VERSION = "LlvmAA+GlobalsAA+TypeBasedAA"
-LLVM_VERSION = "LlvmAA"
-LLVM_EXTRA = "LlvmAA+TypeBasedAA"
-CHAINED_LLVM_VERSION = f"ChainedAA(PointsToGraphAA,{LLVM_VERSION})"
-
 def print_average_points_to_external_info(file_data):
     # Only includes PointerObjects marked "CanPoint"
     pointer_objects_point_to_external = file_data["#PointsToExternalRelations"]
@@ -85,27 +80,30 @@ def plot(data, ylabel, savefig=None):
 
     and plots the MayAlias rate for each benchmark
     """
-    data.loc[data["AA"] == "BasicAA", "AA"] = "own-local"
-    data.loc[data["AA"] == LLVM_VERSION, "AA"] = "Basic"
-    data.loc[data["AA"] == LLVM_EXTRA, "AA"] = "Basic + Type"
+    data.loc[data["AA"] == "BasicAA", "AA"] = "local"
     data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
-    data.loc[data["AA"] == CHAINED_LLVM_VERSION, "AA"] = "Basic + Andersen"
+    data.loc[data["AA"] == "LlvmAA+TypeBasedAA", "AA"] = "Basic + Type"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+TypeBasedAA)", "AA"] = "Basic + Type + Andersen"
+    data.loc[data["AA"] == "LlvmAA+GlobalsAA+TypeBasedAA", "AA"] = "Basic + Type + Global"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA+TypeBasedAA)", "AA"] = "Basic + Type + Global + Andersen"
 
     colors = {
-        "own-local": "#CC9600",
-        "Basic": "#636EFA",
-        "Basic + Type": "#CC9600",
+        "local": "#CC9600",
         "Andersen": "#EF553B",
-        "Basic + Andersen": "#00CC96"
+        "Basic + Type": "#636EFA",
+        "Basic + Type + Andersen": "#00CC96",
+        "Basic + Type + Global": "#EF553B", #"#AB63FA",
+        "Basic + Type + Global + Andersen": "#FFA15A"
     }
 
     benchmarks = data["Benchmark"].unique()
     AAs = [
         #"local",
-        "Basic",
-        # "Basic + Type",
-        "Andersen",
-        "Basic + Andersen"
+        # "Andersen",
+        "Basic + Type",
+        "Basic + Type + Global",
+        "Basic + Type + Andersen",
+        "Basic + Type + Global + Andersen"
         ]
 
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -149,16 +147,16 @@ def plot(data, ylabel, savefig=None):
     ax.set_ylabel(ylabel)
     ax.yaxis.label.set_size(13)
 
-    ax.set_yticks(np.arange(0, 95+1, 5))
+    ax.set_yticks(np.arange(0, 75+1, 5))
     ax.tick_params(axis='y', labelsize=12)
     ax.grid(which='major', axis='y', zorder=0)
 
     ax.legend(legend_keys, legend_names,
               loc='best',
-              ncols=3,
+              ncols=1,
               fontsize=12,
               frameon=True,
-              framealpha=0.8,
+              framealpha=1,
               borderpad=0.35)
 
 
@@ -184,7 +182,9 @@ def main():
 
     print_average_points_to_external_info(file_data)
 
-    aas = [LLVM_VERSION, LLVM_EXTRA, "PointsToGraphAA", CHAINED_LLVM_VERSION]
+    aas = ["LlvmAA", "LlvmAA+GlobalsAA", "LlvmAA+TypeBasedAA", "LlvmAA+GlobalsAA+TypeBasedAA"]
+    aas.extend([f"ChainedAA(PointsToGraphAA,{aa})" for aa in aas])
+    aas.extend(["PointsToGraphAA"])
 
     # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
     may_alias_rates = []
@@ -192,7 +192,7 @@ def main():
     for aa in aas:
         result = calculate_total_query_responses_for_aa(file_data, aa)
         print("For alias analysis called:", aa)
-        print(result)
+        # print(result)
         # print("Average clobber:")
         # print(calculate_average_for_aa(file_data, aa))
         print("Time spent on alias queries:",
@@ -216,17 +216,28 @@ def main():
 
     may_alias_rates = pd.concat(may_alias_rates)
 
-    llvm_aa = may_alias_rates[may_alias_rates["AA"] == LLVM_VERSION].set_index("Benchmark")["Rate"]
-    chained_aa = may_alias_rates[may_alias_rates["AA"] == CHAINED_LLVM_VERSION].set_index("Benchmark")["Rate"]
+    print(may_alias_rates)
+
+    llvm_aa = may_alias_rates[may_alias_rates["AA"] == "LlvmAA+TypeBasedAA"].set_index("Benchmark")["Rate"]
+    chained_aa = may_alias_rates[may_alias_rates["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+TypeBasedAA)"].set_index("Benchmark")["Rate"]
     reduction = 1 - (chained_aa / llvm_aa)
-    print(reduction)
+    print("Reduction from llvm to llvm+andersen:", reduction[reduction.index != "arithmetic\nmean"].mean())
 
-    print("Average of reductions: ", reduction[reduction.index != "arithmetic\nmean"].mean())
+    llvm_g_aa = may_alias_rates[may_alias_rates["AA"] == "LlvmAA+GlobalsAA+TypeBasedAA"].set_index("Benchmark")["Rate"]
+    chained_g_aa = may_alias_rates[may_alias_rates["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA+TypeBasedAA)"].set_index("Benchmark")["Rate"]
+    reduction = 1 - (chained_g_aa / llvm_g_aa)
+    print("Reduction from llvm+globals to llvm+globals+andersen:", reduction[reduction.index != "arithmetic\nmean"].mean())
 
-    plot(may_alias_rates, ylabel="MayAlias Response %", savefig=os.path.join(args.out_dir, f"precision-{LLVM_VERSION}.pdf"))
+    reduction = 1 - (chained_g_aa / llvm_aa)
+    print("Reduction from llvm to llvm+globals+andersen:", reduction[reduction.index != "arithmetic\nmean"].mean())
 
-    print("mean MayAlias rates using different AAs:")
-    print(may_alias_rates[may_alias_rates["Benchmark"] == "arithmetic\nmean"])
+    reduction = 1 - (chained_g_aa / chained_aa)
+    print("Reduction from llvm+andersen to llvm+globals+andersen: ", reduction[reduction.index != "arithmetic\nmean"].mean())
+
+    reduction = 1 - (llvm_g_aa / llvm_aa)
+    print("Reduction from llvm to llvm+globals: ", reduction[reduction.index != "arithmetic\nmean"].mean())
+
+    plot(may_alias_rates, ylabel="MayAlias Response %", savefig=os.path.join(args.out_dir, f"precision-selected-llvms.pdf"))
 
 if __name__ == "__main__":
     main()
