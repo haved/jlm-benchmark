@@ -80,9 +80,9 @@ def plot(data, ylabel, savefig=None):
     and plots the MayAlias rate for each benchmark
     """
     data.loc[data["AA"] == "BasicAA", "AA"] = "local"
-    data.loc[data["AA"] == "LlvmAA", "AA"] = "BasicAA"
+    data.loc[data["AA"] == "LlvmAA+GlobalsAA", "AA"] = "BasicAA"
     data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
-    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + BasicAA"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA)", "AA"] = "Andersen + BasicAA"
 
     colors = {
         "local": "#CC9600",
@@ -175,7 +175,7 @@ def main():
 
     print_average_points_to_external_info(file_data)
 
-    aas = ["LlvmAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA)"]
+    aas = ["LlvmAA+GlobalsAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA)"]
 
     # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
     may_alias_rates = []
