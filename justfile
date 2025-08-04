@@ -3,6 +3,8 @@ set dotenv-load
 # Get the JLM_PATH environment variable, or set it to the default
 export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
+# This is the commit used for artifact evaluation.
+# It is already included in the artifact download.
 jlm-commit := "TODO"
 
 llvm-bin := `llvm-config-18 --bindir`
@@ -10,17 +12,15 @@ llvm-bin := `llvm-config-18 --bindir`
 default:
     @just --list
 
-# Clone and hard reset to the correct revision of jlm
 checkout-jlm-revision:
-    #!/usr/bin/bash -eu
+    @#!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
       echo "{{JLM_PATH}} not found, cloning from git!"
-      git clone https://github.com/phate/jlm.git {{JLM_PATH}}
+      git clone --depth=1 https://github.com/phate/jlm.git {{JLM_PATH}}
+    else
+      echo "Checking out revision of jlm: {{jlm-commit}}"
+      git -C {{JLM_PATH}} checkout {{jlm-commit}}
     fi
-
-    echo "Checking out revision of jlm: {{jlm-commit}}"
-    git fetch origin
-    git -C {{JLM_PATH}} checkout {{jlm-commit}}
 
 # Build the release and target of jlm-opt
 build-release:
@@ -43,14 +43,6 @@ build-both: build-release build-release-anf
 
 # Flags passed to both benchmarking invocations
 common-flags := "--llvmbin " + llvm-bin
-
-# Benchmark all C files with the debug target of jlm-opt
-benchmark-debug flags="":
-    mkdir -p build statistics
-    ./benchmark.py {{common-flags}} --jlm-opt "{{JLM_PATH}}/build-debug/jlm-opt" \
-                   --builddir build/debug \
-                   --statsdir statistics/debug \
-                   {{flags}}
 
 # Benchmark all C files with the release target of jlm-opt
 benchmark-release flags="":
@@ -81,17 +73,12 @@ extract-aggregated:
     rm -rf statistics-out
     tar -xzf archives/statistics-out-may21.tar.gz -C .
 
-    # TODO: Remove precision-only once all results are merged
-    rm -rf precision-only
-    mkdir -p precision-only
-    tar -xzf archives/statistics-out-precision-only-may23.tar.gz -C precision-only
-
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    # ./analysis/plot-file-sizes.py --stats statistics-out --out results
-    # ./analysis/compare-anf.py --stats statistics-out --out results
+    ./analysis/plot-file-sizes.py --stats statistics-out --out results
+    ./analysis/compare-anf.py --stats statistics-out --out results
     ./analysis/calculate-precision.py --stats statistics-out --out results
 
 # Clean statistics-out and plotted results, but not raw statistics

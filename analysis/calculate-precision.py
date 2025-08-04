@@ -208,7 +208,7 @@ def main():
     plot(may_alias_rates, ylabel="MayAlias Response %", savefig=os.path.join(args.out_dir, "precision.pdf"))
 
     print("mean MayAlias rates using different AAs:")
-    print(may_alias_rates[may_alias_rates["Benchmark"] == "aritmetic\nmean"])
+    print(may_alias_rates[may_alias_rates["Benchmark"] == "arithmetic\nmean"])
 
 if __name__ == "__main__":
     main()
