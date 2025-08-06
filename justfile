@@ -5,7 +5,7 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 # This is the commit used for artifact evaluation.
 # It is already included in the artifact download.
-jlm-commit := "TODO"
+jlm-commit := "c19acfbc2edfd7b1b2b739a50bdc73a33a5cb7e6"
 
 llvm-bin := `llvm-config-18 --bindir`
 
@@ -16,11 +16,11 @@ checkout-jlm-revision:
     @#!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
       echo "{{JLM_PATH}} not found, cloning from git!"
-      git clone --depth=1 https://github.com/phate/jlm.git {{JLM_PATH}}
-    else
-      echo "Checking out revision of jlm: {{jlm-commit}}"
-      git -C {{JLM_PATH}} checkout {{jlm-commit}}
+      git clone https://github.com/phate/jlm.git {{JLM_PATH}}
     fi
+
+    echo "Checking out revision of jlm: {{jlm-commit}}"
+    git -C {{JLM_PATH}} checkout {{jlm-commit}}
 
 # Build the release and target of jlm-opt
 build-release:
@@ -40,6 +40,10 @@ build-release-anf:
     make jlm-opt -j`nproc`
 
 build-both: build-release build-release-anf
+
+clean-jlm-builds:
+    rm -rf {{JLM_PATH}}/build-release
+    rm -rf {{JLM_PATH}}/build-release-anf
 
 # Flags passed to both benchmarking invocations
 common-flags := "--llvmbin " + llvm-bin

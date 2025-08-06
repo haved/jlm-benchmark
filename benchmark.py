@@ -624,48 +624,47 @@ def main():
     parser.add_argument('--llvmbin', dest='llvm_bindir', action='store', default=Options.DEFAULT_LLVM_BINDIR,
                         help='Specify bindir of LLVM tools and clang')
     parser.add_argument('--sources', dest='sources_file', action='store', default=Options.DEFAULT_SOURCES,
-                    help=f'Specify the sources.json file to scan for benchmarks in [{Options.DEFAULT_SOURCES}]')
+                        help=f'Specify the sources.json file to scan for benchmarks in [{Options.DEFAULT_SOURCES}]')
     parser.add_argument('--builddir', dest='build_dir', action='store', default=Options.DEFAULT_BUILD_DIR,
-                    help=f'Specify the build folder to build benchmarks in. [{Options.DEFAULT_BUILD_DIR}]')
+                        help=f'Specify the build folder to build benchmarks in. [{Options.DEFAULT_BUILD_DIR}]')
     parser.add_argument('--statsdir', dest='stats_dir', action='store', default=Options.DEFAULT_STATS_DIR,
-                    help=f'Specify the folder to put jlm-opt statistics in. [{Options.DEFAULT_STATS_DIR}]')
+                        help=f'Specify the folder to put jlm-opt statistics in. [{Options.DEFAULT_STATS_DIR}]')
     parser.add_argument('--jlm-opt', dest='jlm_opt', action='store', default=Options.DEFAULT_JLM_OPT,
-                    help=f'Override the jlm-opt binary used. [{Options.DEFAULT_JLM_OPT}]')
+                        help=f'Override the jlm-opt binary used. [{Options.DEFAULT_JLM_OPT}]')
 
     parser.add_argument('--filter', metavar='FILTER', dest='benchmark_filter', action='store', default=None,
-                    help='Only include benchmarks whose name includes the given regex')
+                        help='Only include benchmarks whose name includes a match of the given regex')
     parser.add_argument('--list', dest='list_benchmarks', action='store_true',
-                    help='List (filtered) benchmarks and exit')
+                        help='List (filtered) benchmarks and exit')
 
-    parser.add_argument('--jlmExactConfig', dest='jlm_exact_config', action='store', default=None,
-                        help='Run jlm-opt with only the specified configuration index. Adds the index to the statistics name.')
+    parser.add_argument('--separateConfigurations', dest='separate_configurations', action='store', default=None,
+                        help='Create separate instances of jlm-opt for each of the K Andersen configurations.')
     parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
-                    help='The number of times each possible Andersen solver config should be tested. \
-                          If combined with --jlmExactConfig, selects the number of times the config is used [0]')
+                        help='The number of times each possible Andersen solver config should be tested. [0]')
     parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
                         help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
     parser.add_argument('--offset', metavar='O', dest='offset', action='store', default="0",
-                    help='Skip the first O tasks. [0]')
+                        help='Skip the first O tasks. [0]')
     parser.add_argument('--limit', metavar='L', dest='limit', action='store', default=None,
-                    help='Execute at most L tasks. [infinity]')
+                        help='Execute at most L tasks. [infinity]')
     parser.add_argument('--stride', metavar='S', dest='stride', action='store', default="1",
-                    help='Executes every S task, starting at offset [1]')
+                        help='Executes every S task, starting at offset [1]')
     parser.add_argument('--eager', dest='eager', action='store_true',
-                    help='Makes tasks run even if all their outputs exist')
+                        help='Makes tasks run even if all their outputs exist')
     parser.add_argument('--dry-run', dest='dryrun', action='store_true',
-                    help='Prints the name of each task that would run, but does not run it')
+                        help='Prints the name of each task that would run, but does not run it')
     parser.add_argument('--timeout', dest='timeout', action='store', default=None,
-                    help='Sets a maximum allowed runtime for subprocesses. In seconds. The process may run for at most a minute longer.')
+                        help='Sets a maximum allowed runtime for subprocesses. In seconds. The process may run for at most a minute longer.')
 
     parser.add_argument('-j', metavar='N', dest='workers', action='store', default='1',
-                    help='Run up to N tasks in parallel when possible')
+                        help='Run up to N tasks in parallel when possible')
 
     parser.add_argument('--clean', dest='clean', action='store_true',
-                    help='Remove the build and stats folders before running')
+                        help='Remove the build and stats folders before running')
     args = parser.parse_args()
 
-    jlm_exact_config = intOrNone(args.jlm_exact_config)
+    separate_configurations = args.separate_configurations
     statistics_suffix = f"_config{jlm_exact_config}" if jlm_exact_config is not None else None
 
     global options
@@ -695,7 +694,7 @@ def main():
     if args.list_benchmarks:
         print(f"{len(benchmarks)} benchmarks:")
         for bench in benchmarks:
-            print(f"  {bench.name:<20} {len(bench.cfiles):4d} C files") #, {len(bench.non_cfiles):4d} non-C files")
+            print(f"  {bench.name:<20} {len(bench.cfiles):4d} C files")
         sys.exit(0)
 
     offset = int(args.offset)
@@ -709,7 +708,7 @@ def main():
         workers = 1
 
     env_vars = {}
-    if jlm_exact_config is not None:
+    if  is not None:
         env_vars["JLM_ANDERSEN_USE_EXACT_CONFIG"] = str(jlm_exact_config)
 
     if args.configSweepIterations != 0:

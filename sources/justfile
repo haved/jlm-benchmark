@@ -1,73 +1,18 @@
+################ Creating sources-raw.json yourself ##############
+###  This file is only relevant if you want to make            ###
+###  your own set of sources*.json files from scratch.         ###
+###  This is only for those who are particularily interested.  ###
+###  You also absolutely must have cpu2017.tar.xz              ###
+##################################################################
 
-default:
-    @echo "Helper for downloading, extracting and building benchmark programs"
-    @echo "For downloading and building all non-propriatary benchmarks, do:"
-    @echo "    just build-all-free"
-    @echo ""
-    @echo "If you also have the file cpu2017.tar.xz, place it somewhere, and run"
-    @echo "    just build-all-spec <path/to/cpu2017.tar.xz>"
-    @echo ""
-    @echo "Once you have built the benchmarks you want to include, create the index sources.json by running"
-    @echo "    just create-sources-json"
+# Builds all benchmarks, and traces the compilation commands,
+# creating a sources-raw.json file containing the commands used to compile benchmarks
+create-sources-raw-json:
+    just programs/build-all-free
+    just programs/build-cpu2017
+    python3 create_sources_json.py --output sources-raw.json
 
-
-download-emacs:
-    [ -f emacs-29.4.tar.gz ] || \
-        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
-
-extract-emacs: download-emacs
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf emacs-29.4
-    tar xzf emacs-29.4.tar.gz
-
-build-emacs: extract-emacs
-    cd emacs-29.4 && make clean && bear -- make -j12
-
-download-ghostscript:
-    [ -f ghostscript-10.04.0.tar.gz ] || \
-        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz
-
-extract-ghostscript: download-ghostscript
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf ghostscript-10.04.0
-    tar xzf ghostscript-10.04.0.tar.gz
-
-build-ghostscript: extract-ghostscript
-    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
-
-download-gdb:
-    [ -f gdb-15.2.tar.gz ] || \
-        wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
-
-extract-gdb: download-gdb
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf gdb-15.2
-    tar xzf gdb-15.2.tar.gz
-
-build-gdb: extract-gdb
-    cd gdb-15.2 && ./configure && bear -- make -j12
-
-download-sendmail:
-    [ -f sendmail.8.18.1.tar.gz ] || \
-        wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz
-
-extract-sendmail: download-sendmail
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf sendmail.8.18.1
-    tar xzf sendmail.8.18.1.tar.gz
-
-build-sendmail: extract-sendmail
-    cd sendmail-8.18.1 && \
-    find * -name "obj.*" -exec rm -r {} + -depth && \
-    make clean && \
-    bear -- make -j12
-
-# Builds all the free C benchmarks. Downloads them first if missing
-build-all-free: build-emacs build-ghostscript build-gdb build-sendmail
-
-create-sources-json flags="":
-    ./create_sources_json.py {{flags}}
-
-# Removes all unpacked free C benchmarks, but does not delete downloads
-clean:
-    rm -rf emacs-29.4 ghostscript-10.04.0 gdb-15.2 sendmail-8.18.1
+# Makes paths in sources-raw.json nicer to work with on general machines
+process-sources-json:
+    python3 process_sources_json.py --useRedist2017 --input sources-raw.json --output sources-redist2017.json
+    python3 process_sources_json.py --input sources-raw.json --output sources.json

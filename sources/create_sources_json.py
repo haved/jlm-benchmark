@@ -7,6 +7,9 @@ import sys
 import subprocess
 import re
 
+PROGRAM_FOLDER = "programs"
+SPEC2017_FOLDER = f"{PROGRAM_FOLDER}/cpu2017/benchspec/CPU"
+
 # The script should be run from the sources folder
 SCRIPT_ROOT = os.getcwd()
 
@@ -293,14 +296,14 @@ def program_from_spec_make(make_out_file):
     return programs[0]
 
 def program_from_spec(spec_program):
-    build_dir = f"spec2017/cpu2017/benchspec/CPU/{spec_program}_r/build/"
+    build_dir = os.path.join(SPEC2017_FOLDER, f"{spec_program}_r/build/")
     if not os.path.isdir(build_dir):
-        raise ValueError(f"The spec benchmark {spec_program} has not been built before, see spec2017/README.md")
+        raise ValueError(f"The spec benchmark {spec_program} has not been built before")
 
     dirlist = os.listdir(build_dir)
     dirlist = [f for f in dirlist if f.startswith("build")]
     if len(dirlist) == 0:
-        raise ValueError(f"The spec benchmark {spec_program} has not been built before, see spec2017/README.md")
+        raise ValueError(f"The spec benchmark {spec_program} has not been built before")
 
     latest_build_dir = os.path.join(build_dir, max(dirlist))
 
@@ -380,6 +383,9 @@ def main():
                         help="Print the number of lines of C code in each program")
     args = parser.parse_args()
 
+    # We can not place the sources.json file anywhere else, as that messes with relative paths
+    assert "/" not in args.output
+
     if args.list:
         print("Known programs in SPEC:")
         for p in SPEC_PROGRAMS:
@@ -387,7 +393,7 @@ def main():
         print("Known other programs:")
         for p in OTHER_PROGRAMS:
             print(f" - {p}")
-        exit(0)
+        sys.exit(0)
 
     def should_skip(program):
         return args.filter is not None and not re.search(args.filter, program)
@@ -406,7 +412,8 @@ def main():
         if should_skip(program):
             continue
         print(f"Trying to index program {program}")
-        program_object = program_from_folder(program)
+        program_folder_path = os.path.join(PROGRAM_FOLDER, program)
+        program_object = program_from_folder(program_folder_path)
         if program_object is not None:
             programs[program] = program_object
 
@@ -416,8 +423,6 @@ def main():
             loc, filecount = program.get_loc()
             print(f"{name:<20} | {filecount:>20} | {loc/1000:>20}")
 
-    # We can not place the sources.json file anywhere else, as that messes with relative paths
-    assert "/" not in args.output
     with open(args.output, 'w', encoding='utf-8') as output_file:
         json.dump({k: v.to_dict() for k, v in programs.items()}, output_file, indent=2)
 

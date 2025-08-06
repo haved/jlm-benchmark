@@ -1,0 +1,126 @@
+
+default:
+    @just --list
+
+#################### Free & open source benchmarks ##################
+##### The below benchmarks are already downloaded and included ######
+#####################################################################
+
+download-emacs:
+    [ -f emacs-29.4.tar.gz ] || \
+        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
+
+extract-emacs: download-emacs
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf emacs-29.4
+    tar xzf emacs-29.4.tar.gz
+
+build-emacs: extract-emacs
+    cd emacs-29.4 && make clean && bear -- make -j12
+
+download-ghostscript:
+    [ -f ghostscript-10.04.0.tar.gz ] || \
+        wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz
+
+extract-ghostscript: download-ghostscript
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf ghostscript-10.04.0
+    tar xzf ghostscript-10.04.0.tar.gz
+
+build-ghostscript: extract-ghostscript
+    #!/usr/bin/bash
+    export CFLAGS=-std=c17 -D_POSIX_C_SOURCE=200809L
+    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
+
+download-gdb:
+    [ -f gdb-15.2.tar.gz ] || \
+        wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
+
+extract-gdb: download-gdb
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf gdb-15.2
+    tar xzf gdb-15.2.tar.gz
+
+build-gdb: extract-gdb
+    cd gdb-15.2 && ./configure && bear -- make -j12
+
+download-sendmail:
+    [ -f sendmail.8.18.1.tar.gz ] || \
+        wget https://ftp.sendmail.org/sendmail.8.18.1.tar.gz
+
+extract-sendmail: download-sendmail
+    # Make clean does not clean everything, so re-extract the source instead
+    rm -rf sendmail.8.18.1
+    tar xzf sendmail.8.18.1.tar.gz
+
+build-sendmail: extract-sendmail
+    cd sendmail-8.18.1 && \
+    find * -name "obj.*" -exec rm -r {} + -depth && \
+    make clean && \
+    bear -- make -j12
+
+# Extracts all the free C benchmarks. Downloads them first if missing.
+extract-all-free: extract-emacs extract-ghostscript extract-gdb extract-sendmail
+
+# Builds all the free C benchmarks
+build-all-free: build-emacs build-ghostscript build-gdb build-sendmail
+
+# Removes all unpacked free C benchmarks, but does not delete downloads
+clean-all-free:
+    rm -rf emacs-29.4 ghostscript-10.04.0 gdb-15.2 sendmail-8.18.1
+
+
+########################### SPEC2017 redist ############################
+### Command for extracting from SPEC2017's redistributable_sources/ ####
+########################################################################
+
+extract-redist2017:
+    echo "TODO"
+
+############################## SPEC2017 ################################
+###  The below commands only work if you have a cpu2017.tar.xz file  ###
+########################################################################
+
+cpu2017-tar := "cpu2017.tar.xz"
+cpu2017-dir := "cpu2017"
+cpu2017-subset-dir := "cpu2017-subset"
+
+extract-cpu2017:
+    #!/usr/bin/bash -eux
+    if [ ! -d {{cpu2017-dir}} ]; then
+       mkdir -p {{cpu2017-dir}}/install_archives
+       ln -s `readlink -f {{cpu2017-tar}}` {{cpu2017-dir}}/install_archives/cpu2017.tar.xz
+       cd {{cpu2017-dir}}
+       tar -xvf install_archives/cpu2017.tar.xz \
+            tools/bin/linux-x86_64 \
+            bin/harness/runcpu \
+            bin/scripts.misc/exec_test \
+            install.sh
+
+        ./install.sh -f
+    fi
+
+install-cpu2017-config:
+    cp -r --update=all {{cpu2017-subset-dir}}/config {{cpu2017-dir}}
+
+build-cpu2017: extract-cpu2017 install-cpu2017-config
+    #!/usr/bin/bash
+    cd {{cpu2017-dir}}
+    source shrc
+    set -euxo pipefail
+
+    export LLVM_BIN_PATH=`llvm-config-18 --bindir`
+
+    runcpu --config=clang-config --size=test --copies=1 --noreportable --iterations=1 \
+        500.perlbench \
+        502.gcc \
+        505.mcf \
+        507.cactuBSSN \
+        525.x264 \
+        526.blender \
+        538.imagick \
+        557.xz \
+        544.nab
+
+clean-cpu2017:
+    rm -rf {{cpu2017-dir}}
