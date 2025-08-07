@@ -2,17 +2,22 @@
 ###  This file is only relevant if you want to make            ###
 ###  your own set of sources*.json files from scratch.         ###
 ###  This is only for those who are particularily interested.  ###
-###  You also absolutely must have cpu2017.tar.xz              ###
+###  You also must have cpu2017.tar.xz                         ###
 ##################################################################
 
-# Builds all benchmarks, and traces the compilation commands,
-# creating a sources-raw.json file containing the commands used to compile benchmarks
-create-sources-raw-json:
+_default:
+    @just --list
+
+# Builds all benchmarks while tracing the compilation commands
+build-all-benchmarks:
     just programs/build-all-free
     just programs/build-cpu2017
-    python3 create_sources_json.py --output sources-raw.json
 
-# Makes paths in sources-raw.json nicer to work with on general machines
+# After all benchmarks have been built and traced, create sources-raw.json
+create-sources-raw-json:
+    python3 create_sources_raw_json.py --output sources-raw.json
+
+# Cleans up sources-raw.json for use when benchmarking jlm-opt
 process-sources-json:
     python3 process_sources_json.py --useRedist2017 --input sources-raw.json --output sources-redist2017.json
-    python3 process_sources_json.py --input sources-raw.json --output sources.json
+    python3 process_sources_json.py --input sources-raw.json --output sources.json --check

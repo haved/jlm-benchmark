@@ -8,15 +8,20 @@ The open source benchmarks have been downloaded from
  - gdb 15.2: `https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz`
  - sendmail 8.18.1: `https://ftp.sendmail.org/sendmail.8.18.1.tar.gz`
 
-They can all be found in the `tarballs/` folder
+They can all be found in the `programs/` folder
 
 ### SPEC 2017 benchmarks
 While SPEC 2017 is propriatary, they include a folder called `redistributable_sources/`, containing both original and modified sources.
-In `tarballs/cpu2017/`, the relevant subset of this folder is included, using the modified version when available.
+In `programs/redist2017/`, the relevant subset of this folder is included, using the modified version when available.
 We also include the `Docs/licences` folder, as it contains licencing information about all the programs and SPEC2017 itself.
 
+If you have a copy of `cpu2017.tar.xz`, place it in the folder 
+
 ### Extracting benchmarks
-TODO
+To extract all free
+``` sh
+
+```
 
 ### Build commands
 The file `sources.json` contains all the compiler invocations used to build the programs,

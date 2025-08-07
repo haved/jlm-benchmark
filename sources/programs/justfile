@@ -1,10 +1,13 @@
-
-default:
+_default:
     @just --list
 
 #################### Free & open source benchmarks ##################
 ##### The below benchmarks are already downloaded and included ######
 #####################################################################
+
+# For the free open source benchmarks, specify compiler and flags to ensure reproducability
+export CC := `llvm-config-18 --bindir` / "clang"
+export CFLAGS := "-std=c17 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE"
 
 download-emacs:
     [ -f emacs-29.4.tar.gz ] || \
@@ -28,8 +31,6 @@ extract-ghostscript: download-ghostscript
     tar xzf ghostscript-10.04.0.tar.gz
 
 build-ghostscript: extract-ghostscript
-    #!/usr/bin/bash
-    export CFLAGS=-std=c17 -D_POSIX_C_SOURCE=200809L
     cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
 
 download-gdb:
@@ -54,9 +55,19 @@ extract-sendmail: download-sendmail
     tar xzf sendmail.8.18.1.tar.gz
 
 build-sendmail: extract-sendmail
-    cd sendmail-8.18.1 && \
-    find * -name "obj.*" -exec rm -r {} + -depth && \
-    make clean && \
+    #!/usr/bin/bash -eu
+    cd sendmail-8.18.1
+
+    # Create config with CC and CFLAGS
+    echo "\
+    define(\`confCC', \`$CC')
+    define(\`confCFLAGS', \`$CFLAGS')
+    " > devtools/Site/site.config.m4
+
+    # Delete previous builds
+    find * -name "obj.*" -exec rm -r {} + -depth
+
+    make clean
     bear -- make -j12
 
 # Extracts all the free C benchmarks. Downloads them first if missing.
@@ -74,6 +85,8 @@ clean-all-free:
 ### Command for extracting from SPEC2017's redistributable_sources/ ####
 ########################################################################
 
+redist2017-dir := "redist2017"
+
 extract-redist2017:
     echo "TODO"
 
@@ -83,7 +96,6 @@ extract-redist2017:
 
 cpu2017-tar := "cpu2017.tar.xz"
 cpu2017-dir := "cpu2017"
-cpu2017-subset-dir := "cpu2017-subset"
 
 extract-cpu2017:
     #!/usr/bin/bash -eux
@@ -101,7 +113,7 @@ extract-cpu2017:
     fi
 
 install-cpu2017-config:
-    cp -r --update=all {{cpu2017-subset-dir}}/config {{cpu2017-dir}}
+    cp -r --update=all {{redist2017-dir}}/config {{cpu2017-dir}}
 
 build-cpu2017: extract-cpu2017 install-cpu2017-config
     #!/usr/bin/bash
@@ -124,3 +136,10 @@ build-cpu2017: extract-cpu2017 install-cpu2017-config
 
 clean-cpu2017:
     rm -rf {{cpu2017-dir}}
+
+
+###########################################################################
+###           Cleanup. Does not delete any downloads.                   ###
+###########################################################################
+
+clean-all: clean-all-free clean-redist2017 clean-cpu2017

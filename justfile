@@ -1,17 +1,22 @@
 set dotenv-load
 
-# Get the JLM_PATH environment variable, or set it to the default
+# Set the default JLM_PATH environment variable, unless specified in .env
 export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 # This is the commit used for artifact evaluation.
 # It is already included in the artifact download.
 jlm-commit := "c19acfbc2edfd7b1b2b739a50bdc73a33a5cb7e6"
 
+# Use LLVM18 for processing benchmarks
 llvm-bin := `llvm-config-18 --bindir`
+
+# Compile jlm-opt using the system C++ compiler, unless specified in .env
+JLM_CXX := env_var_or_default("JLM_CXX", "c++")
 
 default:
     @just --list
 
+# Clone and checkout the artifact revision of jlm
 checkout-jlm-revision:
     @#!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
@@ -28,7 +33,7 @@ build-release:
     cd {{JLM_PATH}}
 
     echo "Building release target"
-    ./configure.sh --target release
+    ./configure.sh --target release CXX={{JLM_CXX}}
     make jlm-opt -j`nproc`
 
 build-release-anf:
@@ -36,11 +41,10 @@ build-release-anf:
     cd {{JLM_PATH}}
 
     echo "Building release-anf target"
-    ./configure.sh --target release-anf
+    ./configure.sh --target release-anf CXX={{JLM_CXX}}
     make jlm-opt -j`nproc`
 
-build-both: build-release build-release-anf
-
+# Remove builds of jlm-opt
 clean-jlm-builds:
     rm -rf {{JLM_PATH}}/build-release
     rm -rf {{JLM_PATH}}/build-release-anf
@@ -51,7 +55,8 @@ common-flags := "--llvmbin " + llvm-bin
 # Benchmark all C files with the release target of jlm-opt
 benchmark-release flags="":
     mkdir -p build statistics
-    ./benchmark.py {{common-flags}} --jlm-opt "{{JLM_PATH}}/build-release/jlm-opt" \
+    ./benchmark.py {{common-flags}} \
+                   --jlm-opt "{{JLM_PATH}}/build-release/jlm-opt" \
                    --builddir build/release \
                    --statsdir statistics/release \
                    {{flags}}

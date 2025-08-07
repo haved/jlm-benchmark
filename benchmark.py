@@ -708,8 +708,6 @@ def main():
         workers = 1
 
     env_vars = {}
-    if  is not None:
-        env_vars["JLM_ANDERSEN_USE_EXACT_CONFIG"] = str(jlm_exact_config)
 
     if args.configSweepIterations != 0:
         # The files should be analyzed using all possible Andersen configurations
