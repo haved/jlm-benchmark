@@ -1,8 +1,9 @@
 _default:
     @just --list
 
-#################### Free & open source benchmarks ##################
-##### The below benchmarks are already downloaded and included ######
+################## Free & open source benchmarks ####################
+##### The below benchmarks are already downloaded and included, #####
+##### but we provide the download links just in case.           #####
 #####################################################################
 
 # For the free open source benchmarks, specify compiler and flags to ensure reproducability
@@ -86,9 +87,19 @@ clean-all-free:
 ########################################################################
 
 redist2017-dir := "redist2017"
+redist2017-srcs := redist2017-dir / "redistributable_sources"
+redist2017-extracted := redist2017-dir / "extracted"
 
 extract-redist2017:
-    echo "TODO"
+    mkdir -p {{redist2017-extracted}}
+    echo "Extracting redist2017/perlbench"
+
+    mkdir -p {{redist2017-extracted}}/500.perlbench
+    tar -xvf {{redist2017-srcs}}/original/500.perlbench/perl-5.22.1.tar.xz -C {{redist2017-extracted}}/500.perlbench
+
+clean-redist2017:
+    rm -rf {{redist2017-extracted}}
+
 
 ############################## SPEC2017 ################################
 ###  The below commands only work if you have a cpu2017.tar.xz file  ###

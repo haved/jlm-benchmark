@@ -2,7 +2,7 @@
 ###  This file is only relevant if you want to make            ###
 ###  your own set of sources*.json files from scratch.         ###
 ###  This is only for those who are particularily interested.  ###
-###  You also must have cpu2017.tar.xz                         ###
+###  You also must have your own cpu2017.tar.xz to do this     ###
 ##################################################################
 
 _default:

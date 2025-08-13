@@ -11,19 +11,54 @@ The open source benchmarks have been downloaded from
 They can all be found in the `programs/` folder
 
 ### SPEC 2017 benchmarks
-While SPEC 2017 is propriatary, they include a folder called `redistributable_sources/`, containing both original and modified sources.
-In `programs/redist2017/`, the relevant subset of this folder is included, using the modified version when available.
+We use the following benchmarks from SPEC2017:
+ - 500.perlbench
+ - 502.gcc
+ - 505.mcf
+ - 507.cactuBSSN
+ - 525.x264
+ - 526.blender
+ - 538.imagick
+ - 557.xz
+ - 544.nab
+
+#### If you have a copy of SPEX2017
+If you have a copy of `cpu2017.tar.xz`, place it in the folder next to `PLACE_cpu2017_tar_xz_HERE`.
+
+#### If you do not have a copy
+While SPEC 2017 is propriatary, they provide a folder called `redistributable_sources/`, containing both original and modified sources.
+In `programs/redist2017/`, a relevant subset of this folder is included, using the modified versions when available.
 We also include the `Docs/licences` folder, as it contains licencing information about all the programs and SPEC2017 itself.
 
-If you have a copy of `cpu2017.tar.xz`, place it in the folder 
+When using redist2017, the benchmark `505.mcf` is skipped, as its sources are not included in `redistributable_sources/`
 
 ### Extracting benchmarks
-To extract all free
+To extract the benchmarks from their tarballs, in the current directory run:
 ``` sh
+just programs/extract-all-free
 
+# If you do not have your own cpu2017.tar.xz 
+just programs/extract-redist2017
+
+# If you have provided cpu2017.tar.xz
+just prorams/extract-cpu2017
 ```
 
-### Build commands
-The file `sources.json` contains all the compiler invocations used to build the programs,
+### Tracing build commands
+The file `sources-raw.json` contains all the compiler invocations used to build the programs,
 created by tracing complete builds of the target programs.
-The SPEC2017 traces were created from the `make.out` log files, while the open source programs were traced using the `bear` utility.
+The SPEC2017 traces were created from the `make.out` log files,
+while the open source programs were traced using the `bear` utility.
+
+If you are not running on Ubuntu, or using the provided Docker image, the build commands might not work on your system.
+You can perform fresh builds and trace your own build commands, if you have provided a copy of `cpu2017.tar.xz`.
+
+In the current directory, run:
+``` sh
+just build-all-benchmarks
+just create-sources-raw-json
+just process-sources-json
+```
+
+Note that you need to have `llvm-config-18` in your PATH, as well as a lot of dependencies for the free benchmarks.
+See the Dockerfile for list of suggestions.

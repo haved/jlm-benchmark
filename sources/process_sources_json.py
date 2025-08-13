@@ -4,9 +4,7 @@ import argparse
 import json
 import re
 import os
-
-# If true, paths inside cpu2017/ are replaced by paths in redist2017/
-use_redist_2017 = False
+import sys
 
 # Arguments that should be removed
 IGNORED_ARGUMENTS = [
@@ -104,12 +102,26 @@ def process_cfile(data):
         "arguments": arguments
     }
 
+def replace_working_dir(cfile, old, new):
+    working_dir = cfile["working_dir"]
+    assert old in working_dir
+    cfile["working_dir"] = working_dir.replace(old, new)
 
-def process_program(name, data):
+def process_program(program_name, data, use_redist_2017=False):
+
     processed_cfiles = [process_cfile(cfile) for cfile in data["cfiles"]]
 
     # Remove None-cfiles, as they have been skipped
     processed_cfiles = [cfile for cfile in processed_cfiles if cfile is not None]
+
+    # Perform redist-specific changes
+    if use_redist_2017:
+        if program_name == "505.mcf":
+            return None
+
+        if program_name == "500.perlbench":
+            for cfile in processed_cfiles:
+                replace_working_dir(cfile, "cpu2017/benchspec/CPU/500.perlbench_r/src", "redist2017/extracted/500.perlbench/perl-5.22.1")
 
     return {
         **data,
@@ -130,13 +142,14 @@ def main():
                         help="Check that all C files exist")
 
     args = parser.parse_args()
-    global use_redist_2017
-    use_redist_2017 = args.use_redist_2017
 
     with open(args.input, 'r', encoding='utf-8') as input_file:
         programs = json.load(input_file)
 
-    programs = {key: process_program(key, value) for key, value in programs.items()}
+    programs = {key: process_program(key, value, args.use_redist_2017) for key, value in programs.items()}
+
+    # Remove programs that have been None-d out
+    programs = {key: value for key, value in programs.items() if value is not None}
 
     missing_cfiles = []
     if args.check:
