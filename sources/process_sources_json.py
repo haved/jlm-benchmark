@@ -107,6 +107,13 @@ def replace_working_dir(cfile, old, new):
     assert old in working_dir
     cfile["working_dir"] = working_dir.replace(old, new)
 
+def cfile_exists(cfile):
+    path = os.path.join(cfile["working_dir"], cfile["cfile"])
+    if os.path.isfile(path):
+        return True
+
+    print(f"warning: file not found in redist2017: {path}")
+
 def process_program(program_name, data, use_redist_2017=False):
 
     processed_cfiles = [process_cfile(cfile) for cfile in data["cfiles"]]
@@ -123,6 +130,9 @@ def process_program(program_name, data, use_redist_2017=False):
             for cfile in processed_cfiles:
                 replace_working_dir(cfile, "cpu2017/benchspec/CPU/500.perlbench_r/src", "redist2017/extracted/500.perlbench/perl-5.22.1")
 
+        # Remove any C files that can no longer be found
+        processed_cfiles = [cfile for cfile in processed_cfiles if cfile_exists(cfile)]
+
     return {
         **data,
         "cfiles": processed_cfiles
@@ -138,8 +148,6 @@ def main():
                         help="The name of the destination json file [sources.json]")
     parser.add_argument('--useRedist2017', dest='use_redist_2017', action='store_true',
                         help="If set, cpu2017/ paths are replaced by redist2017/ paths")
-    parser.add_argument('--check', dest='check', action='store_true',
-                        help="Check that all C files exist")
 
     args = parser.parse_args()
 
@@ -150,22 +158,6 @@ def main():
 
     # Remove programs that have been None-d out
     programs = {key: value for key, value in programs.items() if value is not None}
-
-    missing_cfiles = []
-    if args.check:
-        for program in programs.values():
-            for cfile_data in program["cfiles"]:
-                working_dir = cfile_data["working_dir"]
-                cfile = cfile_data["cfile"]
-                path = os.path.join(working_dir, cfile)
-                if not os.path.isfile(path):
-                    missing_cfiles.append(path)
-    if missing_cfiles:
-        print("Cfile(s) missing!!!")
-        for cfile in missing_cfiles:
-            print(cfile)
-        sys.exit(1)
-
 
     with open(args.output, 'w', encoding='utf-8') as output_file:
         json.dump(programs, output_file, indent=2)

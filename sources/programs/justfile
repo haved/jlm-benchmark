@@ -52,8 +52,23 @@ download-sendmail:
 
 extract-sendmail: download-sendmail
     # Make clean does not clean everything, so re-extract the source instead
-    rm -rf sendmail.8.18.1
+    rm -rf sendmail-8.18.1
     tar xzf sendmail.8.18.1.tar.gz
+
+    # Manually do some "configuration" to avoid needing to make a build directory
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/editmap/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/libsmdb/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/libsm/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/libsmutil/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/mail.local/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/mailstats/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/makemap/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/praliases/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/rmail/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/sendmail/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/smrsh/sm_os.h
+    ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/vacation/sm_os.h
+
 
 build-sendmail: extract-sendmail
     #!/usr/bin/bash -eu
@@ -90,12 +105,24 @@ redist2017-dir := "redist2017"
 redist2017-srcs := redist2017-dir / "redistributable_sources"
 redist2017-extracted := redist2017-dir / "extracted"
 
-extract-redist2017:
-    mkdir -p {{redist2017-extracted}}
-    echo "Extracting redist2017/perlbench"
+extract-redist2017-perlbench:
+    #!/usr/bin/bash -eux
 
+    [[ -d {{redist2017-extracted}}/500.perlbench ]] && exit 0
     mkdir -p {{redist2017-extracted}}/500.perlbench
     tar -xvf {{redist2017-srcs}}/original/500.perlbench/perl-5.22.1.tar.xz -C {{redist2017-extracted}}/500.perlbench
+
+    pushd {{redist2017-extracted}}/500.perlbench/perl-5.22.1
+    # Ensure we remove any old configuration
+    rm -rf config.sh Policy.sh
+    ./Configure -Dcc="{{CC}}" -Accflags="{{CFLAGS}}" -de
+    make
+
+    #popd
+    # After configuring, copy in some dependency files
+    # tar -xzf {{redist2017-srcs}}/original/500.perlbench/HTML-Parser-3.71.tar.gz -C {{redist2017-extracted}}/500.perlbench/perl-5.22.1/cpan --strip-components 1
+
+extract-redist2017: extract-redist2017-perlbench
 
 clean-redist2017:
     rm -rf {{redist2017-extracted}}

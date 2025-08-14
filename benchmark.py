@@ -15,6 +15,12 @@ import threading
 import concurrent.futures
 import queue
 import json
+import functools
+
+SEPARATE_CONFIG_SUFFIX = "_onlyconfig"
+SEPARATE_CONFIG_ONLYPRECISION_SUFFIX = "_onlyprecision"
+SEPARATE_CONFIG_ONLYPRECISION_ILLEGAL_ENV = ["JLM_ANDERSEN_TEST_ALL_CONFIGS", "JLM_ANDERSEN_DOUBLE_CHECK"]
+SEPARATE_CONFIG_ENV = "JLM_ANDERSEN_USE_EXACT_CONFIG"
 
 class TaskTimeoutError(Exception):
     pass
@@ -30,7 +36,7 @@ class Options:
     DEFAULT_JLM_OPT = "../jlm/build-release/jlm-opt"
     DEFAULT_JLM_OPT_VERBOSITY = 1
 
-    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt, jlm_opt_verbosity, statistics_suffix, timeout):
+    def __init__(self, llvm_bindir, build_dir, stats_dir, jlm_opt, jlm_opt_verbosity, timeout):
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
@@ -42,9 +48,6 @@ class Options:
 
         self.jlm_opt = jlm_opt
         self.jlm_opt_verbosity = jlm_opt_verbosity
-
-        # Allows statistics that are somehow different to not override each other
-        self.statistics_suffix = statistics_suffix if statistics_suffix is not None else ""
 
         # Allow setting a timeout on running subprocesses. In seconds.
         # When reached, the task's action function raises a TaskTimeoutError
@@ -166,11 +169,14 @@ def ensure_folder_exists(path):
 
 
 class Task:
-    def __init__(self, *, name, input_files, output_files, action):
+    def __init__(self, *, name, input_files, output_files, action, skip_if_any_file_exists=None):
         self.name = name
         self.input_files = input_files
         self.output_files = output_files
         self.action = action
+
+        # Bonus list of files that can cause this task to be skipped
+        self.skip_if_any_file_exists = [] if skip_if_any_file_exists is None else skip_if_any_file_exists
 
     def run(self):
         self.action(self)
@@ -179,9 +185,21 @@ def any_output_matches(task, regex):
     """Returns true if any one of the output files of the given task contains a match for the given regex"""
     return any(regex.search(of) is not None for of in task.output_files)
 
-def all_outputs_exist(task):
-    """Returns true if all outputs of the given task already exist"""
-    return all(os.path.exists(of) for of in task.output_files)
+def can_skip_task(task):
+    """
+    Returns true if all outputs of the given task already exist.
+    Or the disk has a file that allows the task to be skipped.
+    """
+    all_outputs_exist = all(os.path.exists(of) for of in task.output_files)
+
+    if all_outputs_exist:
+        return True
+
+    for skip_if_exists in task.skip_if_any_file_exists:
+        if os.path.isfile(skip_if_exists):
+            return True
+
+    return False
 
 def run_all_tasks(tasks, workers=1, dryrun=False):
     """
@@ -284,8 +302,9 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
     return (tasks_finished, tasks_failed, tasks_timed_out, tasks_skipped)
 
 
-def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_output,
-                 env_vars=None, opt_flags=None, jlm_opt_flags=None):
+def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_dir,
+                 env_vars=None, opt_flags=None, jlm_opt_flags=None,
+                 jlm_opt_flags_baseline_only=None, separate_configurations=None):
     """
     Compiles the given file with the given arguments to clang.
     :param tasks: the list of tasks to append commands to
@@ -303,7 +322,6 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
 
     clang_out = options.get_build_dir(f"{full_name}-clang-out.ll")
     opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
-    jlm_opt_out = options.get_build_dir(f"{full_name}-jlm-opt-out.ll")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -331,101 +349,77 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_outp
 
     if jlm_opt_flags is not None:
 
-        def jlm_opt_action(task):
+        #SEPARATE_CONFIG_SUFFIX = "_onlyconfig{}"
+        #SEPARATE_CONFIG_BASELINE_SUFFIX = "_onlybaseline"
+        #SEPARATE_CONFIG_ENV = "JLM_ANDERSEN_USE_EXACT_CONFIG"
+
+        def jlm_opt_action(task, jlm_opt_out, stats_output, flags, env_vars):
             with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
-                jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
-                            print_prefix=f"({task.index})", timeout=options.timeout)
+                jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *flags]
+                run_command(jlm_opt_command, env_vars=env_vars, verbose=options.jlm_opt_verbosity,
+                        print_prefix=f"({task.index})", timeout=options.timeout)
                 move_stats_file(tmpdir, stats_output)
 
-        tasks.append(Task(name=f"jlm-opt {full_name}",
-                          input_files=[opt_out],
-                          output_files=[jlm_opt_out, stats_output],
-                          action=jlm_opt_action))
+        if jlm_opt_flags_baseline_only is not None:
+            jlm_opt_flags_baseline = jlm_opt_flags + jlm_opt_flags_baseline_only
+        else:
+            jlm_opt_flags_baseline = jlm_opt_flags
+
+        plain_jlm_opt_out = options.get_build_dir(f"{full_name}-jlm-opt-out.ll")
+        plain_stats_output = os.path.join(stats_dir, f"{full_name}.log")
+
+        jlm_opt_out_onlyprecision = options.get_build_dir(f"{full_name}{SEPARATE_CONFIG_ONLYPRECISION_SUFFIX}-jlm-opt-out.ll")
+        stats_output_onlyprecision = os.path.join(stats_dir, f"{full_name}{SEPARATE_CONFIG_ONLYPRECISION_SUFFIX}.log")
+
+        # The separate configuruation runs are all configured to be skipped if a regular run has finished, and vice versa
+        if separate_configurations is not None:
+            # Do the onlyprecision run of jlm-opt
+            env_vars_onlyprecision = { key: value for key, value in combined_env_vars.items() if key not in SEPARATE_CONFIG_ONLYPRECISION_ILLEGAL_ENV }
+
+            tasks.append(Task(name=f"jlm-opt {full_name} precision only",
+                              input_files=[opt_out],
+                              output_files=[jlm_opt_out_onlyprecision, stats_output_onlyprecision],
+                              action=functools.partial(jlm_opt_action,
+                                                       jlm_opt_out=jlm_opt_out_onlyprecision,
+                                                       stats_output=stats_output_onlyprecision,
+                                                       flags=jlm_opt_flags_baseline,
+                                                       env_vars=env_vars_onlyprecision),
+                              skip_if_any_file_exists=[plain_stats_output]))
+
+            # Do one run of jlm-opt for each config index
+            for i in range(separate_configurations):
+                env_vars_onlyconfig = {
+                    **combined_env_vars,
+                    SEPARATE_CONFIG_ENV: f"{i}"
+                }
+
+                jlm_opt_out_onlyconfig = options.get_build_dir(f"{full_name}{SEPARATE_CONFIG_SUFFIX}{i}-jlm-opt-out.ll")
+                stats_output_onlyconfig = os.path.join(stats_dir, f"{full_name}{SEPARATE_CONFIG_SUFFIX}{i}.log")
+
+                tasks.append(Task(name=f"jlm-opt {full_name} only config {i}",
+                              input_files=[opt_out],
+                              output_files=[jlm_opt_out_onlyconfig, stats_output_onlyconfig],
+                              action=functools.partial(jlm_opt_action,
+                                                       jlm_opt_out=jlm_opt_out_onlyconfig,
+                                                       stats_output=stats_output_onlyconfig,
+                                                       flags=jlm_opt_flags,
+                                                       env_vars=env_vars_onlyconfig),
+                              skip_if_any_file_exists=[plain_stats_output]))
+
+        else:
+            # Just do the regular plain jlm-opt
+            tasks.append(Task(name=f"jlm-opt {full_name}",
+                              input_files=[opt_out],
+                              output_files=[plain_jlm_opt_out, plain_stats_output],
+                              action=functools.partial(jlm_opt_action,
+                                                       jlm_opt_out=plain_jlm_opt_out,
+                                                       stats_output=plain_stats_output,
+                                                       flags=jlm_opt_flags_baseline,
+                                                       env_vars=combined_env_vars),
+                              skip_if_any_file_exists=[stats_output_onlyprecision]))
+
     else:
         jlm_opt_out = opt_out
-
-    return (clang_out, opt_out, jlm_opt_out)
-
-
-def link_and_optimize(tasks, full_name, compiled_cfiles, compiled_non_cfiles, stats_output, env_vars=None,
-                      llvm_link_flags=None, opt_flags=None, jlm_opt_flags=None, clang_link_flags=None):
-    """
-    Links together the given files. The files can be LLVM IR files or object files.
-    opt and jlm-opt can only be used if llvm-link is enabled.
-    If llvm-link is not enabled, the final clang command will be given all the input files.
-
-    :param tasks: the list of tasks to append commands to
-    :param full_name: should be a valid filename, unique to the program
-    :param compiled_cfiles: a list of LLVM IR/bitcode files
-    :param compiled_non_cfiles: a list of object files
-    :param stats_output: the file name and path to use for the statistics file
-    :param env_vars: environment variables passed to the executed commands
-    :param llvm_link_flags: if not None, llvm-link is run with the given flags
-    :param opt_flags: if not None, opt is run with the given flags
-    :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
-    :param clang_link_flags: if not None, clang is used to create a binary
-    """
-    assert "/" not in full_name
-
-    llvm_link_out = options.get_build_dir(f"{full_name}-llvm-link-out.ll")
-    opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
-    jlm_opt_out = options.get_build_dir(f"{full_name}-jlm-opt-out.ll")
-    clang_link_out = options.get_build_dir(f"{full_name}-clang-link-out")
-
-    combined_env_vars = os.environ.copy()
-    if env_vars is not None:
-        combined_env_vars.update(env_vars)
-
-    if llvm_link_flags is not None:
-        llvm_link_command = [options.llvm_link, "-S",
-                             *compiled_cfiles, "-o", llvm_link_out, *llvm_link_flags]
-        tasks.append(Task(name=f"llvm-link {full_name}",
-                          input_files=compiled_cfiles,
-                          output_files=llvm_link_out,
-                          action=lambda task: run_command(llvm_link_command, env_vars=combined_env_vars, timeout=options.timeout)))
-
-        if opt_flags is not None:
-            # use --debug-pass-manager to print more pass info
-            opt_command = [options.opt, llvm_link_out, "-S", "-o", opt_out, *opt_flags]
-            tasks.append(Task(name=f"opt {full_name}",
-                              input_files=[llvm_link_out],
-                              output_files=[opt_out],
-                              action=lambda task: run_command(opt_command, env_vars=combined_env_vars, timeout=options.timeout)))
-        else:
-            opt_out = llvm_link_out
-
-        if jlm_opt_flags is not None:
-            assert llvm_link_flags is not None
-
-            def jlm_opt_action(task):
-                with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
-                    jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
-                    run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
-                                print_prefix=f"({task.index})", timeout=options.timeout)
-                    move_stats_file(tmpdir, stats_output)
-
-            tasks.append(Task(name=f"jlm_opt {full_name}",
-                              input_files=[opt_out],
-                              output_files=[jlm_opt_out],
-                              action=jlm_opt_action))
-
-        else:
-            jlm_opt_out = opt_out
-
-        compiled_cfiles = [jlm_opt_out]
-    else:
-        # Without llvm-link, opt and jlm-opt can not be used
-        assert opt_flags is None and jlm_opt_flags is None
-
-    if clang_link_flags is not None:
-        clang_command = [CLANG_LINK, *compiled_cfiles, *compiled_non_cfiles, "-o", clang_link_out, *clang_link_flags]
-        tasks.append(Task(name=f"clang (link) {full_name}",
-                          input_files=compiled_cfiles,
-                          output_files=clang_link_out,
-                          action=lambda task: run_command(clang_command, env_vars=combined_env_vars, timeout=options.timeout)))
-
-    return (llvm_link_out, opt_out, jlm_opt_out, clang_link_out)
 
 
 def find_common_prefix(strings):
@@ -452,7 +446,7 @@ class CFile:
         return os.path.abspath(os.path.join(self.working_dir, self.cfile))
 
 class Benchmark:
-    def __init__(self, name, cfiles, linker_workdir, ofiles, linkflags):
+    def __init__(self, name, cfiles):
         """
         Constructs a benchmark representing a single program.
         The input passed to this constructor represents the "standard" compile+link pipeline.
@@ -469,9 +463,6 @@ class Benchmark:
         """
         self.name = name
         self.cfiles = cfiles
-        self.linker_workdir = linker_workdir
-        self.ofiles = ofiles
-        self.linkflags = linkflags
 
         # Avoid including parts of the source paths that are shared between all cfiles in the program
         self.common_abspath = find_common_prefix(cfile.get_abspath() for cfile in self.cfiles)
@@ -479,10 +470,8 @@ class Benchmark:
         self.extra_clang_flags = []
         self.opt_flags = None
         self.jlm_opt_flags = None
-        self.llvm_link_flags = None
-        self.linked_opt_flags = None
-        self.linked_jlm_opt_flags = None
-        self.clang_link_flags = linkflags
+        self.jlm_opt_flags_baseline_only = None # Flags that are only included in baseline jlm-opt invocations
+        self.separate_configurations = None
 
     def get_full_cfile_name(self, cfile):
         """Get a cfile name, including the program name, and enough of the path to make it unique"""
@@ -494,27 +483,15 @@ class Benchmark:
     def get_tasks(self, stats_dir, env_vars):
         tasks = []
 
-        # Maps from the ofile name used in sources, to the ofile path we use
-        cfile_ofile_mapping = {}
-
         for cfile in self.cfiles:
             full_name = self.get_full_cfile_name(cfile)
-            stats_output = os.path.join(stats_dir, f"{full_name}{options.statistics_suffix}.log")
-            _, _, outfile = compile_file(tasks, full_name=full_name, workdir=cfile.working_dir, cfile=cfile.cfile,
-                                         extra_clang_flags=[*self.extra_clang_flags, *cfile.arguments],
-                                         opt_flags=self.opt_flags,
-                                         jlm_opt_flags=self.jlm_opt_flags,
-                                         env_vars=env_vars,
-                                         stats_output=stats_output)
-            cfile_ofile_mapping[cfile.ofile] = outfile
-
-        #stats_output = os.path.join(stats_dir, f"{self.name}{options.statistics_suffix}.log")
-        #link_and_optimize(tasks, self.name, compiled_cfiles, compiled_non_cfiles,
-        #                  llvm_link_flags=self.llvm_link_flags,
-        #                  opt_flags=self.linked_opt_flags,
-        #                  jlm_opt_flags=self.linked_jlm_opt_flags,
-        #                  clang_link_flags=self.clang_link_flags,
-        #                  env_vars=env_vars, stats_output=stats_output)
+            compile_file(tasks, full_name=full_name, workdir=cfile.working_dir, cfile=cfile.cfile,
+                         extra_clang_flags=[*self.extra_clang_flags, *cfile.arguments],
+                         opt_flags=self.opt_flags,
+                         jlm_opt_flags=self.jlm_opt_flags, jlm_opt_flags_baseline_only=self.jlm_opt_flags_baseline_only,
+                         separate_configurations=self.separate_configurations,
+                         env_vars=env_vars,
+                         stats_dir=stats_dir)
 
         return tasks
 
@@ -531,10 +508,6 @@ def get_benchmarks(sources_json):
         programs = json.load(sources_fd)
 
     for name, data in programs.items():
-        linker_workdir = os.path.join(sources_folder, data["linker_workdir"])
-        ofiles = [os.path.join(sources_folder, ofile) for ofile in data["ofiles"]]
-        linker_arguments = data["linker_arguments"]
-
         cfiles = []
         for cfile_data in data["cfiles"]:
             working_dir = os.path.join(sources_folder, cfile_data["working_dir"])
@@ -544,10 +517,7 @@ def get_benchmarks(sources_json):
             cfiles.append(CFile(working_dir=working_dir, cfile=cfile, ofile=ofile, arguments=arguments))
 
         benchmarks.append(Benchmark(name=name,
-                                    cfiles=cfiles,
-                                    linker_workdir=linker_workdir,
-                                    ofiles=ofiles,
-                                    linkflags=linker_arguments))
+                                    cfiles=cfiles))
 
     # Sort benchmarks in order of ascending number of C files
     benchmarks.sort(key=lambda bench: len(bench.cfiles))
@@ -586,7 +556,7 @@ def run_benchmarks(benchmarks,
 
     if not eager:
         pre_skip_len = len(tasks)
-        tasks = [task for task in tasks if not all_outputs_exist(task)]
+        tasks = [task for task in tasks if not can_skip_task(task)]
         if len(tasks) != pre_skip_len:
             print(f"Skipping {pre_skip_len - len(tasks)} tasks due to laziness, leaving {len(tasks)}")
 
@@ -637,7 +607,7 @@ def main():
     parser.add_argument('--list', dest='list_benchmarks', action='store_true',
                         help='List (filtered) benchmarks and exit')
 
-    parser.add_argument('--separateConfigurations', dest='separate_configurations', action='store', default=None,
+    parser.add_argument('--separateConfigurations', metavar='K', dest='separate_configurations', action='store', default=None,
                         help='Create separate instances of jlm-opt for each of the K Andersen configurations.')
     parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
                         help='The number of times each possible Andersen solver config should be tested. [0]')
@@ -665,7 +635,6 @@ def main():
     args = parser.parse_args()
 
     separate_configurations = args.separate_configurations
-    statistics_suffix = f"_config{jlm_exact_config}" if jlm_exact_config is not None else None
 
     global options
     options = Options(llvm_bindir=args.llvm_bindir,
@@ -673,7 +642,6 @@ def main():
                       stats_dir=args.stats_dir,
                       jlm_opt=args.jlm_opt,
                       jlm_opt_verbosity=int(args.jlm_opt_verbosity),
-                      statistics_suffix=statistics_suffix,
                       timeout=intOrNone(args.timeout))
 
     dryrun = args.dryrun
@@ -707,32 +675,32 @@ def main():
     if dryrun: # There is no point in multithreading the dryruns
         workers = 1
 
-    env_vars = {}
+    env_vars = {
+        "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
+        "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
+    }
 
     if args.configSweepIterations != 0:
         # The files should be analyzed using all possible Andersen configurations
-        env_vars.update({
-            "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
-            "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
-        })
+        env_vars.update()
 
     for bench in benchmarks:
         # The top one leads to no tbaa info, while the bottom one includes it
         bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
         # bench.extra_clang_flags = ["-O2", "-Xclang", "-disable-llvm-passes"]
 
+        # Uncomment the below line to run opt on each LLVM IR file before passing it to jlm-opt
         # bench.opt_flags = ["--passes=mem2reg"]
 
+        # Configure the flags sent to jlm-opt here
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
 
-        # Only do precision evaluation if we are not doing exact config
-        if jlm_exact_config is None:
-            bench.jlm_opt_flags.append("--print-aa-precision-evaluation")
+        # If requested to, spawn one instance of jlm-opt per configuration, in addition to the "main" invocation
+        bench.separate_configurations = int(args.separate_configurations)
 
-        # bench.llvm_link_flags = [] #["-internalize"]
-        # bench.linked_jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
-        # Disable linking with clang
-        bench.clang_link_flags = None
+        # The baseline flags are only given to the "main" invocation of jlm-opt, one per C file
+        bench.jlm_opt_flags_baseline_only = ["--print-aa-precision-evaluation"]
+
 
     return run_benchmarks(benchmarks,
                    env_vars=env_vars,

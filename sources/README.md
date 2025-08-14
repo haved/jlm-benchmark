@@ -56,8 +56,7 @@ You can perform fresh builds and trace your own build commands, if you have prov
 In the current directory, run:
 ``` sh
 just build-all-benchmarks
-just create-sources-raw-json
-just process-sources-json
+just create-sources-json
 ```
 
 Note that you need to have `llvm-config-18` in your PATH, as well as a lot of dependencies for the free benchmarks.

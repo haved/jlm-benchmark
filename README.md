@@ -28,8 +28,7 @@ docker run -it --mount type=bind,source="$(pwd)",target=/mnt pip-2026-image ./ru
 
 The script builds the `jlm-opt` compiler, extracts the benchmarks, and passes all C files to `jlm-opt` for analysis.
 
-Each invocation of `jlm-opt` is given a timeout. You can configure this timeout with `--timeout <seconds>`, but do be aware that some files can be extremely slow to solve with certain configurations.
-
+Each invocation of `jlm-opt` is given a timeout.
 The script first tries to analyze each C file using all 208 configurations 50 times each, like done in the paper.
 
 Files that time out are re-tried with fewer iterations, and eventually run with separate `jlm-opt` invocations per configuration.
@@ -43,6 +42,8 @@ If you wish to perform other experiments, there are multiple options for customi
    any C program, and pass it to the `./benchmark.py` script.
    You may want to use the scripts in `sources/`, or just do it by hand for small programs.
    
+ - How long timeouts are, and which steps are executed, can be configured at the top of `run.sh`.
+   
  - You can modify the the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
 
- - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18. 
+ - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.

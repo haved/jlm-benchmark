@@ -5,7 +5,7 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 # This is the commit used for artifact evaluation.
 # It is already included in the artifact download.
-jlm-commit := "c19acfbc2edfd7b1b2b739a50bdc73a33a5cb7e6"
+jlm-commit := "7b9dad19d429b88b47363e61fb9f8d8d7c0b0f41"
 
 # Use LLVM18 for processing benchmarks
 llvm-bin := `llvm-config-18 --bindir`
@@ -18,7 +18,7 @@ default:
 
 # Clone and checkout the artifact revision of jlm
 checkout-jlm-revision:
-    @#!/usr/bin/bash -eu
+    #!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
       echo "{{JLM_PATH}} not found, cloning from git!"
       git clone https://github.com/phate/jlm.git {{JLM_PATH}}

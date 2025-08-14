@@ -15,9 +15,13 @@ build-all-benchmarks:
 
 # After all benchmarks have been built and traced, create sources-raw.json
 create-sources-raw-json:
-    python3 create_sources_raw_json.py --output sources-raw.json
+    ./create_sources_raw_json.py --output sources-raw.json
+
+# Creating the redist2017 version of sources.json requires knowing which C files actually exist
+_extract-redist2017:
+    just programs/extract-redist2017
 
 # Cleans up sources-raw.json for use when benchmarking jlm-opt
-process-sources-json:
-    python3 process_sources_json.py --useRedist2017 --input sources-raw.json --output sources-redist2017.json
-    python3 process_sources_json.py --input sources-raw.json --output sources.json --check
+create-sources-json: create-sources-raw-json _extract-redist2017
+    ./process_sources_json.py --useRedist2017 --input sources-raw.json --output sources-redist2017.json
+    ./process_sources_json.py --input sources-raw.json --output sources.json
