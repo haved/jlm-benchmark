@@ -8,6 +8,7 @@ import sys
 
 # Arguments that should be removed
 IGNORED_ARGUMENTS = [
+    "-O",
     "-O0",
     "-O1",
     "-O2",
@@ -79,7 +80,7 @@ def process_cfile(data):
         return None
 
     # Skip files we have been told to skip
-    if any(cfile.endswith(s) for s in SKIPPED_FILES):
+    if any(os.path.join(working_dir, cfile).endswith(s) for s in SKIPPED_FILES):
         return None
 
     # Replace and remove compiler arguments

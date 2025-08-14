@@ -9,22 +9,27 @@ set -eu
 # Timeout in seconds given to each invocation of jlm-opt
 TIMEOUT=20
 # Timeout given to files that timed out, and got promoted to getting separate jlm-opt invocations per configuration
-# It is still okay if some of these time out, as the oracle only cares about the fastest config per file
-TIMEOUT_SEPARATE_CONFIGS=200
-
-# Uncomment the below line to delete jlm-opt builds before starting
-# CLEAN_JLM_BUILD="yes"
-
-# Uncomment the below line to delete results from previous jlm-opt runs
-# CLEAN_JLM_RUNS="yes"
+TIMEOUT_SEPARATE_CONFIGS=1200
+# The explicit pointee files can run for a really long time, but we only really care about the fastest one finishing
+TIMEOUT_SEPARATE_CONFIGS_ANF=200
 
 # Uncomment the below line to create sources.json and sources-redist2017.json from scratch
 # [Requires cpu2017.tar.xz in sources/programs/]
-# RETRACE_ALL_BENCHMARK_BUILDS="yes"
+# RECREATE_SOURCES_JSON="yes"
 
-if [[ -v CLEAN_JLM_BUILD ]]; then
+# Restore the artifact back to a clean state by using ./run.sh clean
+# The exception is if you have made any changes to sources.json
+if [[ "${1-}" == "clean" ]]; then
     echo "Deleting old builds of jlm-opt"
     just clean-jlm-builds
+
+    echo "Deleting extracted sources"
+    just sources/programs/clean-all-free
+
+    echo "Removing all result files from previous runs of jlm-opt"
+    just purge
+
+    exit 0
 fi
 
 echo "Building jlm-opt"
@@ -32,10 +37,11 @@ echo "Building jlm-opt"
 just build-release
 just build-release-anf
 
-# Prepare source folders
+
+# Prepare the source folder
 pushd sources
-if [[ -v RETRACE_ALL_BENCHMARK_BUILDS ]]; then
-    # Only if the user has specifically requested it do we build all the benchmarks again
+if [[ -v RECREATE_SOURCES_JSON ]]; then
+    # Only if the user has specifically requested it do we trace the building all the benchmarks
 
     echo "Performing full builds of all benchmarks, and tracing compilation commands"
     just build-all-benchmarks
@@ -45,7 +51,7 @@ if [[ -v RETRACE_ALL_BENCHMARK_BUILDS ]]; then
 
     SOURCES_JSON="sources/sources.json"
 else
-    # The default option: only extract benchmarks, and do not rebuild them
+    # The default option: only extract benchmarks, unless building is necessary
 
     echo "Extracting open source programs"
     just programs/extract-all-free
@@ -63,22 +69,19 @@ else
 fi
 popd
 
-# Remove all files from previous benchmarking runs if requested
-if [[ -v CLEAN_JLM_RUNS ]]; then
-    echo "Removing all files from previous runs of jlm-opt"
-    just purge
-fi
 
 echo "Starting benchmarking of jlm-opt"
 set -x
 
 # Benchmark on all files in sources.json.
 # Try solving the constraint graph 50 times per config, but only try for a limited time per file
-just benchmark-both "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=50"
+just benchmark-release     "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=50" || true
+just benchmark-release-anf "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=50" || true
 
 # Try again on files that timed out, but only try 1 time per configuration this time
-just benchmark-both "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=1"
+just benchmark-release     "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=1" || true
+just benchmark-release-anf "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT} --configSweepIterations=1" || true
 
 # Try again on files that timed out, but only try 1 time per configuration this time
-just benchmark-release "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT_SEPARATE_CONFIGS} --separateConfigurations 138"
-just benchmark-release-anf "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT_SEPARATE_CONFIGS} --separateConfigurations 70"
+just benchmark-release     "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT_SEPARATE_CONFIGS} --separateConfigurations 138" || true
+just benchmark-release-anf "--sources=$SOURCES_JSON -j$(nproc) --timeout=${TIMEOUT_SEPARATE_CONFIGS} --separateConfigurations 70" || true

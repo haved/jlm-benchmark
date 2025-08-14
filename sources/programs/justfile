@@ -15,36 +15,61 @@ download-emacs:
         wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
 
 extract-emacs: download-emacs
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf emacs-29.4
+    #!/usr/bin/bash
+
+    # Skip extracting if it is alreadt extracted
+    if [[ -d emacs-29.4 ]]; then
+       exit 0
+    fi
+
     tar xzf emacs-29.4.tar.gz
+    # emacs requires a full build to create needed config files
+    cd emacs-29.4 && ./configure && bear -- make -j12
 
 build-emacs: extract-emacs
-    cd emacs-29.4 && make clean && bear -- make -j12
+# Do nothing here as extracting emacs already builds it
+
 
 download-ghostscript:
     [ -f ghostscript-10.04.0.tar.gz ] || \
         wget https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz
 
 extract-ghostscript: download-ghostscript
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf ghostscript-10.04.0
+    #!/usr/bin/bash -eux
+
+    # Skip extracting if it is already extracted
+    if [[ -d ghostscript-10.04.0 ]]; then
+       exit 0
+    fi
+
     tar xzf ghostscript-10.04.0.tar.gz
+    cd ghostscript-10.04.0
+    ./configure
+    bear -- make -j12
 
 build-ghostscript: extract-ghostscript
-    cd ghostscript-10.04.0 && ./configure && make clean && bear -- make -j12
+# Do nothing here as extracting already builds it
+
 
 download-gdb:
     [ -f gdb-15.2.tar.gz ] || \
         wget https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz
 
 extract-gdb: download-gdb
-    # Make clean does not clean everything, so re-extract the source instead
-    rm -rf gdb-15.2
+    #!/usr/bin/bash -eux
+
+    # Skip extracting if it is already extracted
+    if [[ -d gdb-15.2 ]]; then
+      exit 0
+    fi
+
     tar xzf gdb-15.2.tar.gz
+    # gdb requires a full build to create its config files
+    cd gdb-15.2 && ./configure && bear -- make -j12
 
 build-gdb: extract-gdb
-    cd gdb-15.2 && ./configure && bear -- make -j12
+# Do nothing here, as extracting gdb already involves building it
+
 
 download-sendmail:
     [ -f sendmail.8.18.1.tar.gz ] || \
@@ -68,7 +93,6 @@ extract-sendmail: download-sendmail
     ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/sendmail/sm_os.h
     ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/smrsh/sm_os.h
     ln -s ../include/sm/os/sm_os_linux.h sendmail-8.18.1/vacation/sm_os.h
-
 
 build-sendmail: extract-sendmail
     #!/usr/bin/bash -eu

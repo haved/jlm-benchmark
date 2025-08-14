@@ -675,10 +675,12 @@ def main():
     if dryrun: # There is no point in multithreading the dryruns
         workers = 1
 
-    env_vars = {
-        "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
-        "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
-    }
+    env_vars = {}
+    if args.configSweepIterations:
+        env_vars = {
+            "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
+            "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
+        }
 
     if args.configSweepIterations != 0:
         # The files should be analyzed using all possible Andersen configurations
@@ -696,7 +698,9 @@ def main():
         bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
 
         # If requested to, spawn one instance of jlm-opt per configuration, in addition to the "main" invocation
-        bench.separate_configurations = int(args.separate_configurations)
+        if args.separate_configurations:
+            bench.separate_configurations = int(args.separate_configurations)
+            env_var["JLM_ANDERSEN_DOUBLE_CHECK"] = "YES"
 
         # The baseline flags are only given to the "main" invocation of jlm-opt, one per C file
         bench.jlm_opt_flags_baseline_only = ["--print-aa-precision-evaluation"]
