@@ -6,10 +6,12 @@ and in most cases would have absolutely no effect on the results. (The EP Oracle
 
 This folder is provided purely as an extra to look at.
 It contains:
- - `statistics-out-may21.tar.gz` which are the actual aggregated statistics files used for all runtime numbers in the paper.
  - `jlm-benchmark.sif` the Apptainer Image description file used to run benchmarks
  - A bunch of SLURM scripts for running jobs, and extra scripts for re-running ones that timed out.
  
+See also the file `statistics-out-may21.tar.gz` in the `results-in-2026-paper` directory,
+which contains the `statistics-out` folder that was used to create the runtime results.
+
 The rest of this README is the original README used while working on the paper
 
 -----------------------------------------------------------------------
