@@ -79,10 +79,9 @@ def plot(data, ylabel, savefig=None):
 
     and plots the MayAlias rate for each benchmark
     """
-    data.loc[data["AA"] == "BasicAA", "AA"] = "local"
-    data.loc[data["AA"] == "LlvmAA+GlobalsAA", "AA"] = "BasicAA"
+    data.loc[data["AA"] == "LlvmAA", "AA"] = "BasicAA"
     data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
-    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA)", "AA"] = "Andersen + BasicAA"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + BasicAA"
 
     colors = {
         "local": "#CC9600",
@@ -93,7 +92,6 @@ def plot(data, ylabel, savefig=None):
 
     benchmarks = data["Benchmark"].unique()
     AAs = [
-        #"local",
         "BasicAA",
         "Andersen",
         "Andersen + BasicAA"
@@ -157,7 +155,7 @@ def plot(data, ylabel, savefig=None):
 
     if savefig:
         plt.savefig(savefig)
-    plt.show()
+    # plt.show()
 
 
 def main():
@@ -170,12 +168,12 @@ def main():
 
     file_data = pd.read_csv(os.path.join(args.stats, "file_data.csv"), index_col=0)
 
-    print("PrecisionEvaluationMode:", file_data["BasicAA-PrecisionEvaluationMode"].unique())
-    print("IsRemovingDuplicatePointers:", file_data["BasicAA-IsRemovingDuplicatePointers"].unique())
+    print("PrecisionEvaluationMode:", file_data["LlvmAA-PrecisionEvaluationMode"].unique())
+    print("IsRemovingDuplicatePointers:", file_data["LlvmAA-IsRemovingDuplicatePointers"].unique())
 
     print_average_points_to_external_info(file_data)
 
-    aas = ["LlvmAA+GlobalsAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA+GlobalsAA)"]
+    aas = ["LlvmAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA)"]
 
     # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
     may_alias_rates = []

@@ -5,7 +5,7 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 # This is the commit used for artifact evaluation.
 # It is already included in the artifact download.
-jlm-commit := "7b9dad19d429b88b47363e61fb9f8d8d7c0b0f41"
+jlm-commit := "6952f832a0f5a40e5deddeb88ce9456a51a58e1f"
 
 # Use LLVM18 for processing benchmarks
 llvm-bin := `llvm-config-18 --bindir`
@@ -69,26 +69,18 @@ benchmark-release-anf flags="":
                    --statsdir statistics/release-anf \
                    {{flags}}
 
-# Benchmark all C files with both the release and release-anf targets
-benchmark-both flags="": (benchmark-release flags) (benchmark-release-anf flags)
-
 # Aggregate statistics from runs of both release and release-anf
 aggregate:
     mkdir -p statistics-out
     ./analysis/aggregate.py --clean --stats-in statistics --stats-out statistics-out
-
-# Extract aggregated statistics from an archived run instead of aggregating statistics from the statistics folder
-extract-aggregated:
-    rm -rf statistics-out
-    tar -xzf archives/statistics-out-may21.tar.gz -C .
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
     ./analysis/plot-file-sizes.py --stats statistics-out --out results
-    ./analysis/compare-anf.py --stats statistics-out --out results
-    ./analysis/calculate-precision.py --stats statistics-out --out results
+    ./analysis/compare-anf.py --stats statistics-out --out results | tee results/compare-anf.log
+    ./analysis/calculate-precision.py --stats statistics-out --out results | tee results/calculate-precision.log
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean:

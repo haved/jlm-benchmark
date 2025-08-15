@@ -159,14 +159,6 @@ def extract_statistics(stats_folder):
         # remove .log suffix
         cfile = filename[:-4]
 
-        # Remove _onlyconfigXX suffix
-        match_config_suffix = re.search("_onlyconfig[0-9]+$", cfile)
-        if match_config_suffix is not None:
-            cfile = cfile[:match_config_suffix.start()]
-        match_precision_suffix = re.search("_onlyprecision$", cfile)
-        if match_precision_suffix is not None:
-            cfile = cfile[:match_precision_suffix.start()]
-
         stats_filename = os.path.join(stats_folder, filename)
         handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
 
@@ -236,7 +228,6 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
         missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
         if len(missing_configs) != 0:
             print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
-            # file_config_data = file_config_data[~(file_config_data["cfile"].isin(missing_configs))]
         if 0 < len(missing_configs) < 10:
             print(missing_configs)
 
