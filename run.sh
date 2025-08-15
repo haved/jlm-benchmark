@@ -107,7 +107,7 @@ fi
 
 if [[ $(< .run.sh.progress) -lt 5 ]]; then
     # Solve using one specific configuration to avoid taking forever
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --exactConfiguration=35 --skipPrecisionEvaluation --jlmV=2"
+    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --exactConfiguration=35 --skipPrecisionEvaluation"
     echo 5 > .run.sh.progress
 fi
 
