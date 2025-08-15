@@ -15,7 +15,9 @@ RUN apt update && \
     libgif-dev libxpm-dev libjpeg-dev libtiff-dev libgnutls28-dev \
     libmpfr-dev libxxhash-dev gawk flex bison && \
     \
-    apt-get clean
+    apt-get clean && \
+    locale-gen en_US.UTF-8 && \
+    update-locale
 
 # Install LLVM 18
 RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \

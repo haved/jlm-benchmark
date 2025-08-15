@@ -69,7 +69,6 @@ fi
 
 # Instead of benchmarking jlm-opt, the user has requested to build all benchmarks to re-create sources.json
 if [[ "${1-}" == "create-sources-json" ]]; then
-
     echo "Performing full builds of all benchmarks, and tracing compilation commands"
     just build-all-benchmarks
 
@@ -87,11 +86,11 @@ touch .run.sh.progress
 
 # Try solving the constraint graph many times per config, but only try for a limited time per file
 if [[ $(< .run.sh.progress) -lt 1 ]]; then
-    just benchmark-release     "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY}"
+    just benchmark-release     "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY}"  || true
     echo 1 > .run.sh.progress
 fi
 if [[ $(< .run.sh.progress) -lt 2 ]]; then
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY} --skipPrecisionEvaluation"
+    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY} --skipPrecisionEvaluation"  || true
     echo 2 > .run.sh.progress
 fi
 
@@ -102,7 +101,7 @@ if [[ $(< .run.sh.progress) -lt 3 ]]; then
     echo 3 > .run.sh.progress
 fi
 if [[ $(< .run.sh.progress) -lt 4 ]]; then
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT_MEDIUM_ANF} --configSweepIterations=${CONFIG_COUNT_FEW} --skipPrecisionEvaluation"
+    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT_MEDIUM_ANF} --configSweepIterations=${CONFIG_COUNT_FEW} --skipPrecisionEvaluation" || true
     echo 4 > .run.sh.progress
 fi
 

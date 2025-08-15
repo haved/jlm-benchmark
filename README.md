@@ -26,15 +26,35 @@ Then mount the current directory and run the script `./run.sh` inside the Docker
 docker run -it --mount type=bind,source="$(pwd)",target=/mnt pip-2026-image ./run.sh
 ```
 
-The script builds the `jlm-opt` compiler, extracts the benchmarks, and passes all C files to `jlm-opt` for analysis.
+The script builds the `jlm-opt` compiler, extracts the benchmarks, and passes all C files to `jlm-opt` for analysis. The benchmarks are not actually built, only analyzed.
 
 Each invocation of `jlm-opt` is given a timeout.
 The script first tries to analyze each C file using all 208 configurations 50 times each, like done in the paper.
+Files that time out are re-tried, using each analysis configuration once.
+If the `jlm-opt` compiler with Expiclit Pointee (EP) representation *still* times out,
+it will be invoked one last time where it only uses the `EP+OVS+WL(LRF)+OCD` configuration.
+To make the results more stable, the timout and iteration count variables in `run.sh` can be increased.
 
-Files that time out are re-tried with fewer iterations, and eventually run with separate `jlm-opt` invocations per configuration.
+### Resetting execution
+If the `run.sh` script is aborted, it can be restarted and resume roughly where it left off.
+To reset all progress made by the script, execute `./run.sh clean`. 
+
+### Running without docker
+If you install all dependencies mentioned in the `Dockerfile`, you can also run without docker.
+However, some dependencies may be located in different locations.
+To ensure building the benchmarks will work, you can configure and build all benchmarks from scratch and trace the C compiler invocations using
+``` sh
+./run.sh create-sources-json
+```
+
+Doing this requires bringing your own copy of `cpu2017.tar.xz`.
+
+This will create a new `sources/sources.json` file, which contains the C compiler invocations involved in building each benchmark program.
+
+If you prefer Apptainer over docker, there is an equivalent Apptainer definition file in the `extras/` folder.
 
 ## Results
-
+Once building is done, results are aggregated and analyzed producing tables and figures in the `results/` folder. They correspond to tables and figures from the paper, as well as numbers mentioned in the text of the paper. Numbers based on meassured runtimes will differ from those in the paper. Precision numbers should be identical.
 
 ## Performing custom experiments
 If you wish to perform other experiments, there are multiple options for customizing the process:
@@ -47,3 +67,10 @@ If you wish to perform other experiments, there are multiple options for customi
  - You can modify the the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
 
  - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.
+ 
+ - The source code of the Anderen-style analysis is located in `jlm/jlm/llvm/opt/aa/`:
+  - `Andersen.{cpp,hpp}` converts program IR into constraint variables and constraints.
+  - `PointerObjectSet.{cpp,hpp}` contains the algorithms for solving constraint sets
+  - `AliasAnalysis.{cpp,hpp}` contains alias analyses, including the one using the PointsToGraph from Andersen.
+  - `PrecisionEvaluator.{cpp,hpp}` produces precision metrics from the different alias analyses
+ 

@@ -9,7 +9,7 @@
 #SBATCH --constraint=56c
 #SBATCH --mem=128G
 #SBATCH --time=48:00:00
-#SBATCH -o slurm-log/output.%a.out # STDOUT
+#SBATCH -o slurm-log/output.%j.out # STDOUT
 set -euo pipefail
 
 exec apptainer exec "$APPTAINER_CONTAINER" ./run.sh "$@"
