@@ -52,16 +52,16 @@ print("Number of configurations with EP:", len(all_ep_configs["Configuration"].u
 cfiles_of_ip_configs = all_ip_configs["cfile"].unique()
 assert (all_ip_configs.groupby("Configuration")["cfile"].nunique() == len(cfiles_of_ip_configs)).all()
 
-# Remove cfiles that have only been solved by EP configs
+# Remove any cfiles that have only been solved by EP configs
 all_configs = all_configs[all_configs["cfile"].isin(cfiles_of_ip_configs)]
 
-# Remove configurations that have not solved every cfile solved by the IP config
-solved_all_cfiles = all_configs.groupby("Configuration")["cfile"].nunique() >= len(cfiles_of_ip_configs)
+# Find configurations that solved every cfile solved by the IP configs
+solved_all_cfiles = all_configs.groupby("Configuration")["cfile"].nunique() == len(cfiles_of_ip_configs)
 solved_all_cfiles = solved_all_cfiles[solved_all_cfiles]
-all_configs = all_configs[all_configs["Configuration"].isin(solved_all_cfiles.index)]
 
-# Double check that these "best" configurations are actually the best
+# Among configurations that have successfully solved all cfiles, add up their total runtime
 total_runtime_per_config = all_configs.groupby("Configuration")["TotalTime[ns]"].sum()
+total_runtime_per_config = total_runtime_per_config[total_runtime_per_config.index.isin(solved_all_cfiles.index)]
 print("Number of configs left after skipping half-finished:", len(total_runtime_per_config))
 assert len(total_runtime_per_config) > 0
 
@@ -72,6 +72,7 @@ if total_runtime_per_config.index.str.startswith("EP_").sum() == 0:
     print()
     has_ep = False
 
+# Double check that these "best" configurations are actually the best
 best_config = total_runtime_per_config.idxmin()
 if best_config != BEST_CONFIG:
     print(f"WARNING: In the paper, the on average fastest config is {BEST_CONFIG}, but in your results it is {best_config}")
