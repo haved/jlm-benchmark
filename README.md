@@ -23,7 +23,7 @@ sudo cpupower frequency-set --min 3GHz --max 3GHz --governor performance
 
 Then mount the current directory and run the script `./run.sh` inside the Docker environment using
 ``` sh
-docker run -it --mount type=bind,source="$(pwd)",target=/mnt pip-2026-image ./run.sh
+docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image ./run.sh
 ```
 
 The script builds the `jlm-opt` compiler, extracts the benchmarks, and passes all C files to `jlm-opt` for analysis. The benchmarks are not actually built, only analyzed.

@@ -27,5 +27,5 @@ RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.
     apt install -y llvm-18-dev clang-18 clang-format-18 && \
     pipx install "lit~=18.0"
 
-RUN mkdir /mnt
-WORKDIR /mnt
+RUN mkdir /artifact
+WORKDIR /artifact

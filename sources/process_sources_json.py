@@ -134,6 +134,9 @@ def process_program(program_name, data, use_redist_2017=False):
         # Remove any C files that can no longer be found
         processed_cfiles = [cfile for cfile in processed_cfiles if cfile_exists(cfile)]
 
+    # Sort cfiles
+    processed_cfiles.sort(key=lambda x:x["cfile"])
+
     return {
         **data,
         "cfiles": processed_cfiles

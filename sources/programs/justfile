@@ -140,7 +140,6 @@ extract-redist2017-perlbench:
     # Ensure we remove any old configuration
     rm -rf config.sh Policy.sh
     ./Configure -Dcc="{{CC}}" -Accflags="{{CFLAGS}}" -de
-    make
 
     #popd
     # After configuring, copy in some dependency files
@@ -178,7 +177,7 @@ install-cpu2017-config:
     cp -r --update=all {{redist2017-dir}}/config {{cpu2017-dir}}
 
 build-cpu2017: extract-cpu2017 install-cpu2017-config
-    #!/usr/bin/bash
+    #!/usr/bin/bash -eux
     cd {{cpu2017-dir}}
     source shrc
     set -euxo pipefail
