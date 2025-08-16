@@ -53,7 +53,7 @@ def main():
         'Max Constraints': grouped['#Constraints'].max(),
     })
 
-    file_sizes_txt = os.path.join(args.out_dir, "file-sizes.txt")
+    file_sizes_txt = os.path.join(args.out_dir, "file-sizes-table.txt")
     with open(file_sizes_txt, 'w', encoding='utf-8') as fd:
         print(table.columns, file=fd)
         for row in table.index:

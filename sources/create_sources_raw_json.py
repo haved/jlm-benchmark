@@ -38,6 +38,8 @@ def make_relative_to(path, base):
             return result
         prefix += "../"
         base = os.path.dirname(base)
+        if base == "/": # Workaround for basename of root having trailing /
+            base = ""
 
 class CFile:
     """

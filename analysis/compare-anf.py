@@ -252,7 +252,7 @@ data_above = data[data["y"] > 1]
 data_below = data[data["y"] <= 1]
 
 plt.scatter(x=data_above["x"], y=data_above["y"], color="red", marker=".", alpha=0.3, label=f"{BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY} is faster", zorder=100)
-plt.scatter(x=data_below["x"], y=data_below["y"], color="blue", marker=".", alpha=0.3, label=f"{BEST_CONFIG} is faster", zorder=100)
+plt.scatter(x=data_below["x"], y=data_below["y"], color="blue", marker=".", alpha=0.3, label=f"{BEST_CONFIG_PRETTY} is faster", zorder=100)
 plt.xlabel("Files sorted by " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + " solving time")
 plt.ylabel("Runtime ratio\n" + BEST_CONFIG_PRETTY + " / " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY)
 

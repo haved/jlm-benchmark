@@ -33,7 +33,8 @@ The script first tries to analyze each C file using all 208 configurations 50 ti
 Files that time out are re-tried, using each analysis configuration once.
 If the `jlm-opt` compiler with Expiclit Pointee (EP) representation *still* times out,
 it will be invoked one last time where it only uses the `EP+OVS+WL(LRF)+OCD` configuration.
-To make the results more stable, the timout and iteration count variables in `run.sh` can be increased.
+
+To make the results more stable, the timout and/or iteration count variables in `run.sh` can be increased.
 
 ### Resetting execution
 If the `run.sh` script is aborted, it can be restarted and resume roughly where it left off.
@@ -54,7 +55,12 @@ This will create a new `sources/sources.json` file, which contains the C compile
 If you prefer Apptainer over docker, there is an equivalent Apptainer definition file in the `extras/` folder.
 
 ## Results
-Once building is done, results are aggregated and analyzed producing tables and figures in the `results/` folder. They correspond to tables and figures from the paper, as well as numbers mentioned in the text of the paper. Numbers based on meassured runtimes will differ from those in the paper. Precision numbers should be identical.
+Once building is done, results are aggregated and analyzed, producing tables and figures in the `results/` folder. They correspond to tables and figures from the paper. The produced log files contain the numbers mentioned in the text of the paper.
+
+Numbers based on measured runtimes will probably differ from those in the paper, based on the system you run on. The overall ratios between configuration should still be roughly the same, however.
+For the paper, each C file was analyzed 50 times per configuration, while the artifact sometimes reduces this number in the interest of time. The resulting plots might therefore look more noisy.
+
+Precision numbers, file size numbers and the number of pointees should be almost identical, but may differ by a miniscule amount due to the open source benchmarks including slightly different files on different systems.
 
 ## Performing custom experiments
 If you wish to perform other experiments, there are multiple options for customizing the process:
