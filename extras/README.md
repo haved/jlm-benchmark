@@ -59,7 +59,8 @@ just checkout-jlm-revision
 
 Once ready to build both the release and the release-anf targets of `jlm-opt`, run
 ``` sh
-just build-both
+just build-release
+just build-release-anf
 ```
 
 # Setting up benchmark programs

@@ -7,7 +7,7 @@ set -eu
 # The current directory must be mounted into the Docker container.
 
 # Lets multiple jlm-opt invocations run at once.
-# (To be safe, have a least have 4GB RAM and one core per invocation)
+# You should have a least have 4GB RAM and one physical core per invocation.
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
 PARALLEL_INVOCATIONS=8
 
