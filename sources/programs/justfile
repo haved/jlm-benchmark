@@ -107,7 +107,6 @@ build-sendmail: extract-sendmail
     # Delete previous builds
     find * -name "obj.*" -exec rm -r {} + -depth
 
-    sh Build -c
     bear -- make -j12
 
 # Extracts all the free C benchmarks. Downloads them first if missing.
