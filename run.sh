@@ -57,7 +57,7 @@ echo "Extracting open source programs"
 just programs/extract-all-free
 
 echo "Extracting SPEC2017"
-if [ -f programs/XXXcpu2017.tar.xz ]; then
+if [ -f programs/cpu2017.tar.xz ]; then
     echo " - Found cpu2017.tar.xz, using it for all the SPEC2017 benchmarks"
     just programs/extract-cpu2017
     SOURCES_JSON="sources/sources.json"
