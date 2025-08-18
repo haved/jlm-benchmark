@@ -8,7 +8,14 @@ The open source benchmarks have been downloaded from
  - gdb 15.2: `https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz`
  - sendmail 8.18.1: `https://ftp.sendmail.org/sendmail.8.18.1.tar.gz`
 
-They can all be found in the `programs/` folder
+They are licenced as follows:
+ - Emacs is licenced under GNU General Public Licence version 3.
+ - Some parts of Ghostscript are GPL, while others are under the GNU Affero General Public License version 3 or later.
+ - gdb is licenced under GNU General Public Licence version 3.
+ - sendmail is licenced under the SENDMAIL LICENCE.
+
+Full license documents for these programs can be found inside their respective archives.
+They can all be found in the `programs/` folder.
 
 ### SPEC 2017 benchmarks
 We use the following benchmarks from SPEC2017:
