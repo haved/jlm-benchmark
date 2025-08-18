@@ -101,13 +101,13 @@ build-sendmail: extract-sendmail
     # Create config with CC and CFLAGS
     echo "\
     define(\`confCC', \`$CC')
-    define(\`confCFLAGS', \`$CFLAGS')
+    APPENDDEF(\`confCCOPTS', \`$CFLAGS')
     " > devtools/Site/site.config.m4
 
     # Delete previous builds
     find * -name "obj.*" -exec rm -r {} + -depth
 
-    make clean
+    sh Build -c
     bear -- make -j12
 
 # Extracts all the free C benchmarks. Downloads them first if missing.
@@ -131,21 +131,41 @@ redist2017-extracted := redist2017-dir / "extracted"
 
 extract-redist2017-perlbench:
     #!/usr/bin/bash -eux
+    [[ -d {{redist2017-extracted}}/perl-5.22.1 ]] && exit 0
 
-    [[ -d {{redist2017-extracted}}/500.perlbench ]] && exit 0
-    mkdir -p {{redist2017-extracted}}/500.perlbench
-    tar -xvf {{redist2017-srcs}}/original/500.perlbench/perl-5.22.1.tar.xz -C {{redist2017-extracted}}/500.perlbench
+    mkdir -p {{redist2017-extracted}}
+    tar -xvf {{redist2017-srcs}}/original/500.perlbench/perl-5.22.1.tar.xz -C {{redist2017-extracted}}
 
-    pushd {{redist2017-extracted}}/500.perlbench/perl-5.22.1
-    # Ensure we remove any old configuration
-    rm -rf config.sh Policy.sh
+    pushd {{redist2017-extracted}}/perl-5.22.1
     ./Configure -Dcc="{{CC}}" -Accflags="{{CFLAGS}}" -de
+    popd
 
-    #popd
-    # After configuring, copy in some dependency files
-    # tar -xzf {{redist2017-srcs}}/original/500.perlbench/HTML-Parser-3.71.tar.gz -C {{redist2017-extracted}}/500.perlbench/perl-5.22.1/cpan --strip-components 1
+extract-redist2017-common name:
+    #!/usr/bin/bash -eux
+    [[ -d {{redist2017-extracted}}/{{name}} ]] && exit 0
+    mkdir -p {{redist2017-extracted}}
+    tar -xvf {{redist2017-srcs}}/modified/{{name}}.tar.xz -C {{redist2017-extracted}}
 
-extract-redist2017: extract-redist2017-perlbench
+extract-redist2017-imagick:
+    #!/usr/bin/bash -eux
+    [[ -d {{redist2017-extracted}}/ImageMagick-6.8.9-1 ]] && exit 0
+
+    mkdir -p {{redist2017-extracted}}
+    tar -xvf {{redist2017-srcs}}/original/538.imagick/ImageMagick-6.8.9-1.tar.xz -C {{redist2017-extracted}}
+
+    cd {{redist2017-extracted}}/ImageMagick-6.8.9-1
+    # SPEC uses these options, by hard coding them into magick-config.h
+    ./configure --with-quantum-depth=16 --disable-hdri
+
+
+extract-redist2017: extract-redist2017-perlbench \
+                    (extract-redist2017-common "502.gcc_r") \
+                    (extract-redist2017-common "507.cactuBSSN_r") \
+                    (extract-redist2017-common "525.x264_r") \
+                    (extract-redist2017-common "526.blender_r") \
+                    extract-redist2017-imagick \
+                    (extract-redist2017-common "544.nab_r") \
+                    (extract-redist2017-common "557.xz_r")
 
 clean-redist2017:
     rm -rf {{redist2017-extracted}}

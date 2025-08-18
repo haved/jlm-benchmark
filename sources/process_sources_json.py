@@ -108,6 +108,14 @@ def replace_working_dir(cfile, old, new):
     assert old in working_dir
     cfile["working_dir"] = working_dir.replace(old, new)
 
+def remove_cfile(cfiles, name):
+    result = [cfile for cfile in cfiles if cfile["cfile"] != name]
+    assert len(result) + 1 == len(cfiles)
+    return result
+
+def add_cflags(cfile, flags):
+    cfile["arguments"].extend(flags)
+
 def cfile_exists(cfile):
     path = os.path.join(cfile["working_dir"], cfile["cfile"])
     if os.path.isfile(path):
@@ -124,12 +132,27 @@ def process_program(program_name, data, use_redist_2017=False):
 
     # Perform redist-specific changes
     if use_redist_2017:
-        if program_name == "505.mcf":
-            return None
-
-        if program_name == "500.perlbench":
+        if program_name in ["502.gcc", "507.cactuBSSN", "525.x264", "526.blender", "544.nab", "557.xz"]:
             for cfile in processed_cfiles:
-                replace_working_dir(cfile, "cpu2017/benchspec/CPU/500.perlbench_r/src", "redist2017/extracted/500.perlbench/perl-5.22.1")
+                replace_working_dir(cfile, "cpu2017/benchspec/CPU/", "redist2017/extracted/")
+
+        elif program_name == "500.perlbench":
+            for cfile in processed_cfiles:
+                replace_working_dir(cfile, "cpu2017/benchspec/CPU/500.perlbench_r/src", "redist2017/extracted/perl-5.22.1")
+
+            # perl.c expects git_version.h, which we do not have
+            processed_cfiles = remove_cfile(processed_cfiles, "perl.c")
+
+        elif program_name == "538.imagick":
+            for cfile in processed_cfiles:
+                replace_working_dir(cfile, "cpu2017/benchspec/CPU/538.imagick_r/src", "redist2017/extracted/ImageMagick-6.8.9-1")
+
+                # SPEC modifies the magick-config.h file to add these, so we have add them to the command instead
+                add_cflags(cfile, ["-DMAGICKCORE_HDRI_ENABLE=0", "-DMAGICKCORE_QUANTUM_DEPTH=16"])
+
+        elif program_name == "505.mcf":
+            # We have to skip mcf as it is not redistributed by SPEC
+            return None
 
         # Remove any C files that can no longer be found
         processed_cfiles = [cfile for cfile in processed_cfiles if cfile_exists(cfile)]

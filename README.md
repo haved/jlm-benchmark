@@ -6,7 +6,8 @@ It should be a file called `cpu2017.tar.xz` containing files like `install.sh`.
 
 If SPEC2017 is not provided, the run script will automatically use the included `redist2017` folder instead,
 which contains redistributable sources from SPEC2017.
-This will skip the `505.mcf` benchmark, and use slightly different and fewer source files on the other benchmarks, but should give mostly similar results.
+This will skip the `505.mcf` benchmark, and use a subset of the sources on `500.perlbench`,
+but all the other benchmarks should give the same results. See `sources/README.md` for details.
 
 The artifact assumes you have at least 8 physical cores, and 32 GB of RAM.
 If you have more, you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
