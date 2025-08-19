@@ -10,7 +10,7 @@ This will skip the `505.mcf` benchmark, and use a subset of the sources on `500.
 but all the other benchmarks should give the same results. See `sources/README.md` for details.
 
 The artifact assumes you have at least 8 physical cores, and 32 GB of RAM.
-If you have more, you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
+If you have more, then you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
 to make evaluation go faster. The default is 8.
 
 ## Running
@@ -33,11 +33,11 @@ docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image
 
 The `run.sh` script does the following:
 
- - Build the included jlm compiler in the `jlm/` folder. It builds both the `release` target, and the `release-anf` target.
+ - Builds the included jlm compiler in the `jlm/` folder. It builds both the `release` target, and the `release-anf` target.
    ANF means "Andersen No Flags", and corresponds to all configurations with the Explicit Pointee representation.
-   The finished binaries are located in `jlm/build-release/jlm-opt` and `jlm/build-release-anf/jlm-opt`.
+   The finished binaries are located in `jlm/build-release/jlm-opt` and `jlm/build-release-anf/jlm-opt`, respectively.
    
- - Extract the 4 free and open source benchmark programs. The tarballs in `sources/programs/` are extracted in place.
+ - Extracts the 4 free and open source benchmark programs. The tarballs in `sources/programs/` are extracted in place.
    Some of the benchmarks are also configured and built, because the build process creates some header files that are necessary for compiling.
    
  - Depending on whether or not SPEC2017 was provided, it will:
@@ -45,7 +45,7 @@ The `run.sh` script does the following:
    
    - Extract the subset of SPEC2017 that is available in `redistributed_sources/`.
    
- - Start the actual benchmarking. This step has a progress counter that looks like `[394/7868] ...`.
+ - Starts the actual benchmarking. This step has a progress counter that looks like `[394/7498] ...`.
    First it compiles all the C files from all the benchmarks into LLVM IR.
    Then it uses `jlm-opt` to perform points-to analysis on each IR file.
    
@@ -56,10 +56,10 @@ The `run.sh` script does the following:
     4. Then it re-tries solving files that timed out in (2.), but using each EP Configuration just 1 time. It times out after `TIMEOUT_MEDIUM_ANF` seconds.
     5. Lastly it re-tries solving files that time out in (4.), using only the `EP+OVS+WL(LRF)+OCD` configuration. This can not time out.
 
- - Finally it aggregates the statistics produced from each points-to analysis and precision evaluation, into csv files in `statistics-out/`.
+ - Finally it aggregates the statistics produced from each points-to analysis and precision evaluation, into CSV files in `statistics-out/`.
    These are used to create plots and tables in the `results/` folder.
 
-In the paper, each configuration has been run 50 times per file.
+In the paper, each configuration has been run 50 times per file without any timeouts.
 For the artifact, the timeouts ensure that evaluation can be done in a reasonable amount of time.
 To make the results less noisy, the timeout and/or analysis iteration count variables in `run.sh` can be increased.
 An archive of the `statistics-out` folder used in the paper can be found in `results-in-2026-paper/`.
@@ -78,7 +78,7 @@ If you install all dependencies mentioned in the `Dockerfile`, you can also run 
 However, some dependencies may be located in different locations on your system.
 To ensure building the benchmarks will still work, you can configure and build all benchmarks from scratch and trace the C compiler invocations using
 ``` sh
-docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image ./run.sh create-sources-json
+./run.sh create-sources-json
 ```
 
 Doing this requires having your own copy of `cpu2017.tar.xz` in `sources/programs/`.
@@ -107,14 +107,15 @@ If you wish to perform other experiments, there are multiple options for customi
    
  - Change timeouts and number of iterations at the top of `run.sh`.
    
- - You can modify the the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
+ - You can modify the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
 
  - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.
     - Use the flags `--AAAndersenAgnostic --print-andersen-analysis` to dump statistics.
     - Use the flag `--print-aa-precision-evaluation` to do precision evaluation against LLVM's BasicAA.
     - Use `-s .` to place the output statistics in the current folder.
- 
- - The source code of the Anderen-style analysis is located in `jlm/jlm/llvm/opt/aa/`:
+    - Set the environment variable `JLM_ANDERSEN_DUMP_SUBSET_GRAPH` to print the constraint graph to stdout in GraphViz dot format, before and after solving the constraint set.
+
+ - The source code of the Anderen-style analysis is located in `jlm/jlm/llvm/opt/alias-analyses/`:
   - `Andersen.{cpp,hpp}` converts program IR into constraint variables and constraints.
   - `PointerObjectSet.{cpp,hpp}` contains the algorithms for solving constraint sets
   - `AliasAnalysis.{cpp,hpp}` contains alias analyses, including the one using the PointsToGraph from Andersen.

@@ -98,15 +98,17 @@ build-sendmail: extract-sendmail
     #!/usr/bin/bash -eu
     cd sendmail-8.18.1
 
-    # Create config with CC and CFLAGS
+    # Create config with CC
     echo "\
     define(\`confCC', \`$CC')
-    APPENDDEF(\`confCCOPTS', \`$CFLAGS')
     " > devtools/Site/site.config.m4
+    # The below command in the above file adds CFLAGS, that went too wild
+    # APPENDDEF(\`confCCOPTS', \`$CFLAGS')
 
     # Delete previous builds
     find * -name "obj.*" -exec rm -r {} + -depth
 
+    make clean
     bear -- make -j12
 
 # Extracts all the free C benchmarks. Downloads them first if missing.
@@ -154,7 +156,17 @@ extract-redist2017-imagick:
 
     cd {{redist2017-extracted}}/ImageMagick-6.8.9-1
     # SPEC uses these options, by hard coding them into magick-config.h
-    ./configure --with-quantum-depth=16 --disable-hdri
+    ./configure --with-quantum-depth=16 --disable-hdri \
+                --without-bzlib --disable-cipher \
+                --without-djvu --without-fontconfig \
+                --without-freetype \
+                --without-jbig --without-jpeg \
+                --without-lcms --without-lcms2 \
+                --without-openjp2 --without-lqr \
+                --without-lzma --without-pango \
+                --without-png --without-zlib \
+                --without-tiff --without-webp
+
 
 
 extract-redist2017: extract-redist2017-perlbench \

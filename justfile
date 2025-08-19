@@ -5,7 +5,7 @@ export JLM_PATH := env_var_or_default("JLM_PATH", "jlm")
 
 # This is the commit used for artifact evaluation.
 # It is already included in the artifact download.
-jlm-commit := "6952f832a0f5a40e5deddeb88ce9456a51a58e1f"
+jlm-commit := "787169b415f63857d14fe59c6c36cfc398b3c051"
 
 # Use LLVM18 for processing benchmarks
 llvm-bin := `llvm-config-18 --bindir`
