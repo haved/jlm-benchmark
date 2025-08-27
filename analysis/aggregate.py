@@ -110,11 +110,10 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
             else:
                 print("Ignoring unknown statistic:", statistic)
 
-    # The first AndersenAnalysis statistic line is not part of the configuration sweep
-    if len(file_config_rows) > 1:
+    # The first AndersenAnalysis statistic line is always the standard solver,
+    # so it can be skipped
+    if len(file_config_rows) >= 1:
         file_config_rows = file_config_rows[1:]
-    elif len(file_config_rows) == 1:
-        print(f"WARNING: Statistics file {stats_filename} only had a single Andersen line")
     else:
         print(f"WARNING: Statistics file {stats_filename} contained no AndersenAnalysis at all")
 
@@ -130,12 +129,13 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
     if file_precision_stats is not None:
         file_datas[cfile].update(file_precision_stats)
 
-    file_config_data = pd.DataFrame(file_config_rows)
-    file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
+    if len(file_config_rows) > 0:
+        file_config_data = pd.DataFrame(file_config_rows)
+        file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
 
-    file_config_data.reset_index(inplace=True)
-    file_config_data["cfile"] = cfile
-    file_config_datas.append(file_config_data)
+        file_config_data.reset_index(inplace=True)
+        file_config_data["cfile"] = cfile
+        file_config_datas.append(file_config_data)
 
 def extract_statistics(stats_folder):
     """
@@ -158,11 +158,6 @@ def extract_statistics(stats_folder):
 
         # remove .log suffix
         cfile = filename[:-4]
-
-        # Remove _configXX suffix
-        match_config_suffix = re.search("_config[0-9]+$", cfile)
-        if match_config_suffix is not None:
-            cfile = cfile[:match_config_suffix.start()]
 
         stats_filename = os.path.join(stats_folder, filename)
         handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
@@ -233,7 +228,6 @@ def extract_or_load(stats_in, file_data_out, file_config_data_out):
         missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
         if len(missing_configs) != 0:
             print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
-            # file_config_data = file_config_data[~(file_config_data["cfile"].isin(missing_configs))]
         if 0 < len(missing_configs) < 10:
             print(missing_configs)
 

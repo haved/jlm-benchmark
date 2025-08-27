@@ -5,7 +5,6 @@ import sys
 import shutil
 import pandas as pd
 import argparse
-#import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import seaborn as sns
@@ -15,8 +14,6 @@ def load_aggregated_statistics(stats_folder):
     file_data = pd.read_csv(os.path.join(stats_folder, "file_data.csv"))
     file_config_data = pd.read_csv(os.path.join(stats_folder, "file_config_data.csv"))
     return file_data, file_config_data
-
-
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze statistics about file sizes')
@@ -34,7 +31,7 @@ def main():
         shutil.rmtree(args.out_dir, ignore_errors=True)
 
     if not os.path.exists(args.out_dir):
-        os.mkdir(args.out_out)
+        os.mkdir(args.out_dir)
 
     # Only care about non-empty cfiles
     file_data = file_data[file_data['#RvsdgNodes'] > 0]
@@ -55,41 +52,23 @@ def main():
         'Mean Constraints': grouped['#Constraints'].mean().astype(int),
         'Max Constraints': grouped['#Constraints'].max(),
     })
-    # print(table)
 
-    print(table.columns)
-    for row in table.index:
-        print(f"{row:<13} &" , end=" ")
-        for c in table.columns:
-            number = table.loc[row, c]
-            number = f"{number:_}"
-            number = number.replace("_", "\\;")
-            print(f"& {number:>8}", end=" ")
-        print("\\\\")
-
-    #fig = go.Figure()
-    #fig.add_trace(go.Box(y=program_files['#RvsdgNodes'], marker_color='darkblue'))
-    #fig.write_image(os.path.join(args.out_dir, program + ".pdf"))
+    file_sizes_txt = os.path.join(args.out_dir, "file-sizes-table.txt")
+    with open(file_sizes_txt, 'w', encoding='utf-8') as fd:
+        print(table.columns, file=fd)
+        for row in table.index:
+            print(f"{row:<13} &" , end=" ", file=fd)
+            for c in table.columns:
+                number = table.loc[row, c]
+                number = f"{number:_}"
+                number = number.replace("_", "\\;")
+                print(f"& {number:>8}", end=" ", file=fd)
+            print("\\\\", file=fd)
 
     sns.set_theme(style="whitegrid", palette=None)
     fig, ax = plt.subplots(figsize=(10,4))
     sns.boxplot(data=file_data, x="#RvsdgNodes", y="program", showmeans=True, meanline=True, meanprops={"color": ".1"},
                 color=".8", linecolor=".1", fliersize="5", ax=ax)
-
-    #for artist in ax.lines:
-    #    if artist.get_linestyle() == "None":
-    #        pos = artist.get_ydata()
-    #        artist.set_ydata(pos + np.random.uniform(-.09, .09, len(pos)))
-
-    # ax.grid(axis="x")
-
-    # ax.spines['top'].set_visible(False)
-    # ax.spines['right'].set_visible(False)
-    # ax.spines['bottom'].set_visible(False)
-    # ax.spines['left'].set_visible(False)
-    # ax.get_xaxis().set_ticks([])
-    # ax.get_yaxis().set_ticks([])
-    # ax.margins(y=0)
 
     ax.set_xlabel("IR instruction count")
     ax.set_ylabel(None)

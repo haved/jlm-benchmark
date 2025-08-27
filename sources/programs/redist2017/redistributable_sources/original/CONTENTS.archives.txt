@@ -1,0 +1,102 @@
+Document Title: CONTENTS.archives
+       Subject: Information about SPEC CPU2017 original sources directory
+------------------------------------------------------------------------------
+
+The redistributable_sources/original subdirectory on the SPEC CPU2017
+media contains archives of the original sources that that were used
+for various CPU2017 tools and for the benchmarks.
+
+These archives are provided primarily for reference purposes, so that
+interested parties can investigate the changes required to turn an
+application into a benchmark.  Some of the archives must also be here
+to satisfy requirements of their licenses.
+
+In nearly every case there is a newer version of the package in question
+available.  When looking for sources to build for general use, you should
+check for those newer versions.  Several packages can be downloaded from
+ftp://ftp.gnu.org/gnu, while everything Perl is available from the
+Comprehensive Perl Archive Network at http://www.cpan.org.
+
+The following table lists the archives of the tools components.  For
+information on the licenses that apply to them, please see
+../Docs/licenses/.
+
+Archive names
+-------------------------------
+Algorithm-Diff-1.1903.tar.gz
+Core14_AFMs.tar.xz
+File-NFSLock-1.27.tar.gz
+Font-AFM-1.20.tar.gz
+Font-TTF-1.05.tar.gz
+HTML-Parser-3.71.tar.gz
+IO-String-1.08.tar.gz
+IO-stringy-2.111.tar.gz
+MIME-tools-5.507.tar.gz
+MailTools-2.14.tar.gz
+PDF-API2-2.025.tar.gz
+SVG-2.64.tar.gz
+String-ShellQuote-1.04.tar.gz
+Test-Deep-0.119.tar.gz
+Text-CSV_XS-1.20.tgz
+TimeDate-2.30.tar.gz
+URI-1.69.tar.gz
+XML-NamespaceSupport-1.11.tar.gz
+XML-SAX-0.99.tar.gz
+XML-SAX-Base-1.08.tar.gz
+XML-SAX-ExpatXS-1.33.tar.gz
+coreutils-8.24.tar.xz
+expat-2.1.0.tar.gz
+filepp-1.8.0.tar.gz
+make-4.1.tar.bz2
+makedepf90-2.8.8.tar.gz
+perl-5.24.0.tar.xz
+rxp-1.5.0.tar.gz
+tar-1.28.tar.xz
+xz-5.2.2.tar.xz
+zsh.zip
+
+The following table lists the benchmarks and their associated archive or
+archives.  For information on the licenses that apply to them, please see
+../Docs/licenses/.
+
+Benchmark       Archive name
+-----------------------------------------------
+500.perlbench   perl-5.22.0.tar.xz
+                Mail-SpamAssassin-3.4.0.tar.bz2
+                HTML-Parser-3.71.tar.gz
+                IO-stringy-2.110.tar.gz
+                MHonArc-2.6.19.tar.bz2
+                MailTools-2.13.tar.gz
+                TimeDate-2.30.tar.gz
+                mt19937ar.sep.tgz (in common/specrand)
+502.gcc         gcc-4.5.0.tar.xz
+                qsort.c (in common/spec_qsort)
+505.mcf         msinttypes-26.zip
+                qsort.c (in common/spec_qsort)
+507.cactuBSSN   CactusBSSN.tgz
+511.povray      spec-3.7.tar.xz
+                qsort.c (in common/spec_qsort)
+521.wrf         netcdf-3.6.0-p1.tar.xz
+525.x264        x264-snapshot-20090515-2245.tar.bz2
+                pstdint.h
+526.blender     blender_20141028_48529.tar.xz 
+                libpng-1.5.10.tar.xz (in common/libpng)
+                zlib-1.2.6.tar.bz2 (in common/zlib)
+                mt19937ar.sep.tgz (in common/specrand)
+527.cam4        cesm1_0_2.tar.xz
+                netcdf-3.6.0-p1.tar.xz (in 521.wrf)
+628.pop2        cesm1_0_2.tar.xz (in 527.cam4)
+                netcdf-3.6.0-p1.tar.xz (in 521.wrf)
+538.imagick     ImageMagick-6.8.9-1.tar.xz
+544.nab         AmberTools12.tar.xz
+                mt19937ar.sep.tgz (in common/specrand)
+554.roms        ROMS3.2_405.tar.xz
+                netcdf-3.6.0-p1.tar.xz (in 521.wrf)
+557.xz          xz-5.0.5.tar.bz2
+                msinttypes-26.zip
+                cld.tar.xz (in 557.xz/data/all/input)
+                pxz-ae808463<...>.tar.xz
+999.specrand    mt19937ar.sep.tgz (in common/specrand)
+
+----------------------------------------------------------------------------
+$Id: CONTENTS.archives 4945 2016-09-27 14:25:53Z CloyceS $

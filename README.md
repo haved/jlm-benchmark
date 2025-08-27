@@ -1,206 +1,123 @@
-# Andersen with flags - Benchmarking and results
-This repository is used for running benchmarks of the Andersen analysis in jlm, and analyzing the resulting statistics.
+# Artifact for PIP paper
 
-Note that you will need a distribution of the file `cpu2017.tar.xz`, not provided here.
+## Setup
+If you have a copy of SPEC2017, place it inside the `sources/programs/` folder.
+It should be a file called `cpu2017.tar.xz` containing files like `install.sh`.
 
-# Setup
-First, clone this repository to a suitable location.
+If SPEC2017 is not provided, the run script will automatically use the included `redist2017` folder instead,
+which contains redistributable sources from SPEC2017.
+This will skip the `505.mcf` benchmark, and use a subset of the sources on `500.perlbench`,
+but all the other benchmarks should give the same results. See `sources/README.md` for details.
 
-The machines used for running the bechmarks require the following:
- - Has `llvm-18`/`clang-18`.
- - Can build and run the revision of `jlm-opt` specified in `justfile`.
- - Has Python 3 with `matplotlib`, `seaborn` and `pandas`, to run the benchmarks and plot the results.
- - The steps below use `just` as a command runner.
+The artifact assumes you have at least 8 physical cores, and 32 GB of RAM.
+If you have more, then you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
+to make evaluation go faster. The default is 8.
 
-The simplest way of getting everything set up is using the provided Apptainer image definition file.
-If you want to install dependencies locally, see the commands in `jlm-benchmark.def`.
+## Running
+The easiest way to run this artifact is using the provided `Dockerfile`.
 
-## Building Apptainer image
-Create the apptainer image using:
+Build a docker image with all the needed dependencies using
 ``` sh
-apptainer build --fakeroot jlm-benchmark.sif jlm-benchmark.def
+docker build -t pip-2026-image .
 ```
 
-The rest of the commands in this guide can then be run inside an apptainer shell:
-``` sh
-apptainer shell jlm-benchmark.sif
-```
-
-## Building jlm
-By default, `jlm` is cloned and built in the folder `jlm/`, if it does not already exist.
-If you want to use a different path, create a file called `.env` and add a line like so
-```
-# Use jlm folder parallel to the benchmark repository
-JLM_PATH=../jlm
-```
-
-Cloning and checking out the correct revision of `jlm` is done using
-``` sh
-just checkout-jlm-revision
-```
-
-Once ready to build both the release and the release-anf targets of `jlm-opt`, run
-``` sh
-just build-both
-```
-
-# Setting up benchmark programs
-
-## Downloading and setting up open source benchmarks
-Go into the folder `sources/` and execute the build job to prepare all source files.
-
-```sh
-cd sources
-just build-all-free
-```
-
-## Unpacking SPEC2017
-If you have a copy of `cpu2017.tar.xz`, go into `sources/spec2017/` and unpack it using the following command:
-``` sh
-cd sources/spec2017
-just install-cpu2017 <path/to/cpu2017.tar.xz>
-just run-cpu2017
-```
-
-## Creating sources.json
-The file `sources/sources.json` contains an index of all C files that will be included in the bechmarking.
-Create this file using
-
-``` sh
-cd sources/
-just create-sources-json 
-```
-
-## Verifying you have the programs
-From the root of this repository, run
-``` sh
-just benchmark-release --list
-```
-
-If everything went well, it should print out
-
-``` sh
-13 benchmarks:
-  505.mcf                12 C files
-  544.nab                20 C files
-  525.x264               36 C files
-  500.perlbench          69 C files
-  557.xz                 90 C files
-  538.imagick            97 C files
-  sendmail-8.18.1       137 C files
-  emacs-29.4            148 C files
-  gdb-15.2              262 C files
-  507.cactuBSSN         347 C files
-  502.gcc               387 C files
-  526.blender          1005 C files
-  ghostscript-10.04.0  1139 C files
-```
-
-# Running benchmarks
-For running, you have the option of distributing the work across a SLURM cluster.
-This is almost necessary when doing multiple iterations, but if one iteration is fine you can do it locally.
-
-## Running without SLURM
-Before bechmarking, you should try to make the CPU clock as stable as possible, e.g. using
+Before running benchmarks, configure your CPU to run at a stable frequency where it does not boost or throttle, e.g., using
 ``` sh
 sudo cpupower frequency-set --min 3GHz --max 3GHz --governor performance
 ```
 
-Benchmarking all C files with both the release and release-anf targets of `jlm-opt` can be done using
+Then mount the current directory and run the script `./run.sh` inside a Docker container using
 ``` sh
-# Optional: clean up any existing benchmark results first
-just purge
-
-just benchmark-release "--configSweepIterations 1 -j8 --timeout=1000"
-just benchmark-release-anf "--configSweepIterations 1 -j8 --timeout=1000"
+docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image ./run.sh
 ```
-This will only test each configuration once per file, yet still take a long time.
-The `-j8` can be changed to use more worker threads.
 
-By passing `--timeout=1000`, the maximum amount of time any `jlm-opt` process gets to use is limited to 1000 seconds.
-When finished, all tasks that timed out will be listed, and the script will exit with status code 1.
-Keep in mind that omitting the slowest files will skew the results.
+The `run.sh` script does the following:
 
-Running the benchmark script again will skip all tasks that have already finished, unless the `--eager` flag is passed. Running with `--dry-run` will quickly print the set of tasks left to be done.
+ - Builds the included jlm compiler in the `jlm/` folder. It builds both the `release` target, and the `release-anf` target.
+   ANF means "Andersen No Flags", and corresponds to all configurations with the Explicit Pointee representation.
+   The finished binaries are located in `jlm/build-release/jlm-opt` and `jlm/build-release-anf/jlm-opt`, respectively.
+   
+ - Extracts the 4 free and open source benchmark programs. The tarballs in `sources/programs/` are extracted in place.
+   Some of the benchmarks are also configured and built, because the build process creates some header files that are necessary for compiling.
+   
+ - Depending on whether or not SPEC2017 was provided, it will:
+   - Extract `cpu2017.tar.xz`, using SPEC's own setup script.
+   
+   - Extract the subset of SPEC2017 that is available in `redistributed_sources/`.
+   
+ - Starts the actual benchmarking. This step has a progress counter that looks like `[394/7498] ...`.
+   First it compiles all the C files from all the benchmarks into LLVM IR.
+   Then it uses `jlm-opt` to perform points-to analysis on each IR file.
+   
+   The progress counter can be a bit misleading, because benchmarking runs 5 times:
+    1. First it tries to analyze all the files using each IP Configuration 50 times, but with a `TIMEOUT`.
+    2. Then it tries to analyze all the files using each EP Configuration 50 times, also with a `TIMEOUT`.
+    3. Then it re-tries solving files that timed out in (1.), but using each IP Configuration just 1 time. This can not time out.
+    4. Then it re-tries solving files that timed out in (2.), but using each EP Configuration just 1 time. It times out after `TIMEOUT_MEDIUM_ANF` seconds.
+    5. Lastly it re-tries solving files that time out in (4.), using only the `EP+OVS+WL(LRF)+OCD` configuration. This can not time out.
 
-Extra flags can be passed to run only a subset of tasks. See `--help` for details.
+ - Finally it aggregates the statistics produced from each points-to analysis and precision evaluation, into CSV files in `statistics-out/`.
+   These are used to create plots and tables in the `results/` folder.
 
-## Running on SLURM
-In order to benchmark each configuration multiple times in a reasonable amount of time,
-the work has to be split across a SLURM cluster.
-`sbatch` is not available inside the apptainer, so run it from outside.
-The array job divides all the work into separate jobs.
-Each job will start its own container using the specified apptainer image.
+In the paper, each configuration has been run 50 times per file without any timeouts.
+For the artifact, the timeouts ensure that evaluation can be done in a reasonable amount of time.
+To make the results less noisy, the timeout and/or analysis iteration count variables in `run.sh` can be increased.
+An archive of the `statistics-out` folder used in the paper can be found in `results-in-2026-paper/`.
 
+### Restarting evaluation
+If the `run.sh` script is for some reason aborted, it can be restarted and resume roughly where it left off.
+
+If you wish to reset all progress made by the script and start from scratch, you can pass `clean` to the run script like so:
 ``` sh
-mkdir -p build statistics
-rm -rf slurm-log
-APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm.sh
+docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image ./run.sh clean
 ```
+This will remove all builds of `jlm-opt`, all extracted benchmarks, and any results from previous runs.
 
-### Restarting files that timed out
-You can check if any of the jobs timed out by doing a `--dry-run` as described above, which may look something like:
-```
-$ just benchmark-release --dry-run
-Skipping 7359 tasks due to laziness, leaving 1
-[1/1] (6099) jlm-opt ghostscript-10.04.0+base_gdevp14.c (dry-run)
-
-$ just benchmark-release-anf --dry-run
-Skipping 7357 tasks due to laziness, leaving 3
-[1/3] (4681) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_nodetree_gen.c (dry-run)
-[2/3] (4701) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_scene_gen.c (dry-run)
-[3/3] (4731) jlm-opt 526.blender+blender_bin_source_blender_makesrna_intern_rna_userdef_gen.c (dry-run)
-```
-
-You can start these particular missing jobs again with a lower number of benchmark iterations using
+### Running without docker
+If you install all dependencies mentioned in the `Dockerfile`, you can also run without docker.
+However, some dependencies may be located in different locations on your system.
+To ensure building the benchmarks will still work, you can configure and build all benchmarks from scratch and trace the C compiler invocations using
 ``` sh
-APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch --array=6099 run-slurm-single.sh
-APPTAINER_CONTAINER="jlm-benchmark.sif" BENCHMARK_ANF=1 sbatch --array=4681,4701,4731 run-slurm-single.sh
+./run.sh create-sources-json
 ```
 
-### Spreading configurations across SLURM jobs
-If the dry-run output for `benchmark-release-anf` contains a task like
+Doing this requires having your own copy of `cpu2017.tar.xz` in `sources/programs/`.
 
-```
-[1/12] (1041) jlm-opt emacs-29.4+src_xdisp.c (dry-run)
-```
+This will create a new `sources/sources.json` file, which contains the C compiler invocations involved in building each benchmark program.
 
-You can distribute the configs across the cluster, one config per job, using
+If you prefer Apptainer over docker, there is an Apptainer definition file in the `extras/` folder that is equivalent to the `Dockerfile`.
+It can be used without re-creating `sources.json`.
 
-``` sh
-APPTAINER_CONTAINER="jlm-benchmark.sif" TASK_INDEX=1041 sbatch run-slurm-configarray.sh
-```
+## Results
+After running, tables and figures are written to the `results/` folder.
+Tables and figures from the paper are `.txt` and `.pdf` files,
+while numbers mentioned in the text of the paper can be found in the `.log` files.
 
-This lets you quickly analyze the file with each EP config, 50 times each, to remove noise.
-The SLURM script has a timeout of only 1 hour, as the results only need the fastest EP to finish.
-Otherwise it would run for days.
+Numbers based on measured runtimes will probably differ from those in the paper, based on the performance of the system you run on.
+The overall ratios between configurations should still be roughly the same, however.
 
-# Analysis
-## Aggregating statistics
-The benchmark script dumps statistics for individual alias analysis passes to `statistics/<target>`.
-The processing of all these statistics `.log` files is dumped to `statistics-out/`.
+Precision numbers, file size numbers and the number of pointees should be almost identical,
+but may differ by a very small amount due to the open source benchmarks configuring themselves slightly differently on different systems.
 
-```sh
-just aggregate
-```
+## Performing custom experiments
+If you wish to perform other experiments, there are multiple options for customizing the process:
+ - Create your own `sources/sources.json` file containing compilation commands for
+   any C program, and pass it to the `./benchmark.py` script.
+   You may want to use the scripts in `sources/`, or just do it by hand for small programs.
+   
+ - Change timeouts and number of iterations at the top of `run.sh`.
+   
+ - You can modify the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
 
-This can also be done in a SLURM-job if desired:
+ - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.
+    - Use the flags `--AAAndersenAgnostic --print-andersen-analysis` to dump statistics.
+    - Use the flag `--print-aa-precision-evaluation` to do precision evaluation against LLVM's BasicAA.
+    - Use `-s .` to place the output statistics in the current folder.
+    - Set the environment variable `JLM_ANDERSEN_DUMP_SUBSET_GRAPH` to print the constraint graph to stdout in GraphViz dot format, before and after solving the constraint set.
 
-``` sh
-APPTAINER_CONTAINER="jlm-benchmark.sif" sbatch run-slurm-aggregate.sh
-```
-
-## Alternative: Extracting aggregated statistics
-The repository also contains aggregated statistics from a complete run. Extract them using
-
-``` sh
-just extract-aggregated
-```
-
-## Analysis scripts
-Inside the `analysis/` directory, there are some scripts for doing extra analysis and plotting graphs from the aggregated statistics. Run them all using:
-``` sh
-just analyze-all
-```
-
-The resulting plots are placed in `results/`
+ - The source code of the Anderen-style analysis is located in `jlm/jlm/llvm/opt/alias-analyses/`:
+  - `Andersen.{cpp,hpp}` converts program IR into constraint variables and constraints.
+  - `PointerObjectSet.{cpp,hpp}` contains the algorithms for solving constraint sets
+  - `AliasAnalysis.{cpp,hpp}` contains alias analyses, including the one using the PointsToGraph from Andersen.
+  - `PrecisionEvaluator.{cpp,hpp}` produces precision metrics from the different alias analyses
+ 
