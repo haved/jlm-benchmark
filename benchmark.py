@@ -138,20 +138,30 @@ def run_command_and_capture(command, env_vars=None):
 def move_stats_file(temp_dir, stats_output):
     # Move statisitcs to actual stats_dir, and change filename
     stats_files = []
-    other_files = []
 
     for fil in os.listdir(temp_dir):
         if fil.endswith("-statistics.log"):
             stats_files.append(fil)
-        else:
-            other_files.append(fil)
 
      # There should be exactly one such file. Move it to the final statistics output
     stats_file, = stats_files
     shutil.move(os.path.join(temp_dir, stats_file), stats_output)
 
+def move_tree_file(temp_dir, tree_output):
+    # Move statisitcs to actual stats_dir, and change filename
+    tree_files = []
+
+    for fil in os.listdir(temp_dir):
+        if fil.endswith("rvsdgTree-0.txt"):
+            stats_files.append(fil)
+
+     # There should be exactly one such file. Move it to the final statistics output
+    tree_file, = tree_files
+    shutil.move(os.path.join(temp_dir, tree_file), tree_output)
+
+def clean_temp_dir(temp_dir):
     # Remove all other files in the tmp folder, to prevent buildup
-    for fil in other_files:
+    for fil in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, fil))
 
 def ensure_folder_exists(path):
@@ -321,6 +331,7 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_dir,
     opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
     jlm_opt_out = options.get_build_dir(f"{full_name}{jlm_opt_suffix}-jlm-opt-out.ll")
     stats_output = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}.log")
+    tree_output = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}-rvsdgTree.txt")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -353,10 +364,12 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_dir,
                 run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
                             print_prefix=f"({task.index})", timeout=options.timeout)
                 move_stats_file(tmpdir, stats_output)
+                move_tree_file(tmpdir, tree_output)
+                clean_temp_dir(tmpdir)
 
         tasks.append(Task(name=f"jlm-opt {full_name}{jlm_opt_suffix}",
                           input_files=[opt_out],
-                          output_files=[jlm_opt_out, stats_output],
+                          output_files=[jlm_opt_out, stats_output, tree_output],
                           action=jlm_opt_action))
     else:
         jlm_opt_out = opt_out
@@ -551,8 +564,6 @@ def main():
                         help='The number of times each possible Andersen solver config should be tested. [0]')
     parser.add_argument('--exactConfiguration', metavar='K', action='store', dest='exact_configuration', default=None,
                         help='Picks exactly one configuration to use')
-    parser.add_argument('--skipPrecisionEvaluation', dest='skip_precision_evaluation', action='store_true',
-                        help='Skips doing analysis precision evaluation [False]')
     parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
                         help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
@@ -621,10 +632,6 @@ def main():
             "JLM_ANDERSEN_TEST_ALL_CONFIGS": str(args.configSweepIterations),
             "JLM_ANDERSEN_DOUBLE_CHECK": "YES"
         })
-    if args.skip_precision_evaluation:
-        env_vars.update({
-            "JLM_ANDERSEN_SKIP_CONSTRUCTING_PTG": "YES"
-        })
     if args.exact_configuration is not None:
         env_vars.update({
             "JLM_ANDERSEN_USE_EXACT_CONFIG": args.exact_configuration
@@ -639,9 +646,8 @@ def main():
         # bench.opt_flags = ["--passes=mem2reg"]
 
         # Configure the flags sent to jlm-opt here
-        bench.jlm_opt_flags = ["--AAAndersenAgnostic", "--print-andersen-analysis"]
-        if not args.skip_precision_evaluation:
-            bench.jlm_opt_flags.append("--print-aa-precision-evaluation")
+        bench.jlm_opt_flags = ["--AAAndersenRegionAware", # "--print-andersen-analysis",
+                               "--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes"]
 
 
     # If any tasks time out or fail, the script will have a non-zero return code

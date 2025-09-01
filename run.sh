@@ -11,22 +11,6 @@ set -eu
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
 PARALLEL_INVOCATIONS=8
 
-# Timeout in seconds given to the first invocations of jlm-opt for each C file
-# Invocations that time out are retried with a longer timeout and fewer repetitions
-TIMEOUT=40
-
-# When first attempting to analyze a C file, how many time should each configuration be used.
-# Higher numbers give more stable results, but increase likelihood of timing out
-CONFIG_COUNT_MANY=50
-
-# If the last attempt timed out, how many times should each configuration be used instead
-CONFIG_COUNT_FEW=1
-
-# When running jlm-opt for EP configurations, we still have a timeout
-TIMEOUT_MEDIUM_ANF=400
-# If some of the jlm-opt invocations using EP representation still time out,
-# we run one last time where weprioritize getting numbers for the EP+OVS+WL(LRF)+OCD configuration
-
 # Restore the artifact back to a clean state by using ./run.sh clean
 # If you have made any changes to sources.json, they are not restored
 if [[ "${1-}" == "clean" ]]; then
@@ -39,17 +23,12 @@ if [[ "${1-}" == "clean" ]]; then
     echo "Removing all result files from previous runs of jlm-opt"
     just purge
 
-    echo "Removing progress keeper file"
-    rm -rf .run.sh.progress
-
     exit 0
 fi
 
 echo "Building jlm-opt"
-# Build the jlm-opt binary, both using impicit pointees and explicit pointees (ANF)
+# Build the jlm-opt binary
 just build-release
-just build-release-anf
-
 
 # Prepare the source folder
 pushd sources
@@ -81,43 +60,5 @@ popd
 
 echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
 
-# This file is used to avoid re-running jlm-opt invocations that timed out last time
-touch .run.sh.progress
-
 # Try solving the constraint graph many times per config, but only try for a limited time per file
-if [[ $(< .run.sh.progress) -lt 1 ]]; then
-    just benchmark-release     "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY}"  || true
-    sleep 2
-    echo 1 > .run.sh.progress
-fi
-if [[ $(< .run.sh.progress) -lt 2 ]]; then
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT} --configSweepIterations=${CONFIG_COUNT_MANY} --skipPrecisionEvaluation"  || true
-    sleep 2
-    echo 2 > .run.sh.progress
-fi
-
-# Try again on files that timed out, but only try fewer times per configuration this time
-if [[ $(< .run.sh.progress) -lt 3 ]]; then
-    # For
-    just benchmark-release     "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --configSweepIterations=${CONFIG_COUNT_FEW}"
-    sleep 2
-    echo 3 > .run.sh.progress
-fi
-if [[ $(< .run.sh.progress) -lt 4 ]]; then
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --timeout=${TIMEOUT_MEDIUM_ANF} --configSweepIterations=${CONFIG_COUNT_FEW} --skipPrecisionEvaluation" || true
-    sleep 2
-    echo 4 > .run.sh.progress
-fi
-
-if [[ $(< .run.sh.progress) -lt 5 ]]; then
-    # Solve using one specific configuration to avoid taking forever
-    just benchmark-release-anf "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --exactConfiguration=35 --skipPrecisionEvaluation"
-    sleep 2
-    echo 5 > .run.sh.progress
-fi
-
-echo "Aggregating individual run statistics into tables"
-just aggregate
-
-echo "Analyzing the statistics tables to make the tables and figures from the paper"
-just analyze-all
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS}"
