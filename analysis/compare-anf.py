@@ -90,8 +90,8 @@ if best_config_sans_pip != BEST_CONFIG_SANS_PIP:
     print()
 
 if has_ep:
-    best_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.startswith("EP_")].idxmin()
-    if best_with_ep != BEST_CONFIG_WITH_EP:
+    best_config_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.startswith("EP_")].idxmin()
+    if best_config_with_ep != BEST_CONFIG_WITH_EP:
         print(f"WARNING: In the paper, the on average fastest EP config is {BEST_CONFIG_WITH_EP}, but in your results it is {best_config_with_ep}")
         print(f"The discrepency is hopefully small enough that this does not really matter:")
         print(f"{BEST_CONFIG_WITH_EP} has total runtime: {total_runtime_per_config[BEST_CONFIG_WITH_EP]/1e9:.5f} seconds")

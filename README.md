@@ -101,6 +101,8 @@ but may differ by a very small amount due to the open source benchmarks configur
 
 ## Performing custom experiments
 If you wish to perform other experiments, there are multiple options for customizing the process:
+ - Uncomment the variable `EXTRA_BENCH_OPTIONS` at the top of `run.sh` to specify a subset of benchmarks to be used.
+
  - Create your own `sources/sources.json` file containing compilation commands for
    any C program, and pass it to the `./benchmark.py` script.
    You may want to use the scripts in `sources/`, or just do it by hand for small programs.
@@ -111,7 +113,7 @@ If you wish to perform other experiments, there are multiple options for customi
 
  - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.
     - Use the flags `--AAAndersenAgnostic --print-andersen-analysis` to dump statistics.
-    - Use the flag `--print-aa-precision-evaluation` to do precision evaluation against LLVM's BasicAA.
+    - Add the flag `--print-aa-precision-evaluation` to also do precision evaluation against LLVM's BasicAA.
     - Use `-s .` to place the output statistics in the current folder.
     - Set the environment variable `JLM_ANDERSEN_DUMP_SUBSET_GRAPH` to print the constraint graph to stdout in GraphViz dot format, before and after solving the constraint set.
 
