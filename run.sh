@@ -11,6 +11,11 @@ set -eu
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
 PARALLEL_INVOCATIONS=8
 
+# If you wish to pass extra options to all the benchmarking invocations, uncomment this variable.
+# The example value causes benchmarking to only be performed on 505.mcf, 544.nab and 525.x264:
+# EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
+
+
 # Restore the artifact back to a clean state by using ./run.sh clean
 # If you have made any changes to sources.json, they are not restored
 if [[ "${1-}" == "clean" ]]; then
@@ -26,11 +31,21 @@ if [[ "${1-}" == "clean" ]]; then
     exit 0
 fi
 
-echo "Building jlm-opt"
+
+# Ensure Ctrl-C quits immediately, without starting the next command
+function sigint() {
+    echo "${0}: Aborted by user action (SIGINT)"
+    exit 1
+}
+trap sigint SIGINT
+
+
 # Build the jlm-opt binary
+echo "Building jlm-opt"
 just build-release
 
-# Prepare the source folder
+
+# Prepare the sources folder
 pushd sources
 echo "Extracting open source programs"
 just programs/extract-all-free
@@ -60,5 +75,4 @@ popd
 
 echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
 
-# Try solving the constraint graph many times per config, but only try for a limited time per file
-just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS}"
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-}"

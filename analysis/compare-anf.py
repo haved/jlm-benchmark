@@ -90,8 +90,8 @@ if best_config_sans_pip != BEST_CONFIG_SANS_PIP:
     print()
 
 if has_ep:
-    best_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.startswith("EP_")].idxmin()
-    if best_with_ep != BEST_CONFIG_WITH_EP:
+    best_config_with_ep = total_runtime_per_config[total_runtime_per_config.index.str.startswith("EP_")].idxmin()
+    if best_config_with_ep != BEST_CONFIG_WITH_EP:
         print(f"WARNING: In the paper, the on average fastest EP config is {BEST_CONFIG_WITH_EP}, but in your results it is {best_config_with_ep}")
         print(f"The discrepency is hopefully small enough that this does not really matter:")
         print(f"{BEST_CONFIG_WITH_EP} has total runtime: {total_runtime_per_config[BEST_CONFIG_WITH_EP]/1e9:.5f} seconds")
@@ -224,15 +224,21 @@ if has_ep:
     plt.xlabel("Files sorted by " + BEST_CONFIG_SANS_PIP_PRETTY + " solving time")
 
     plt.grid(zorder=0)
-    plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
-    lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
-    plt.gca().text(660, 4.2, s=f"$< {lim_1000:.0f}\\mu$s")
-    plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
-    lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
-    plt.gca().text(1600, 4.2, s=f"$< {lim_2000:.0f}\\mu$s")
-    plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
-    lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
-    plt.gca().text(2550, 4.2, s=f"$< {lim_3000:.0f}\\mu$s")
+
+    if len(total_time_ns) > 1000:
+        plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+        lim_1000 = total_time_ns["best_config_sans_pip"].iloc[1000]/1000
+        plt.gca().text(660, 4.2, s=f"$< {lim_1000:.0f}\\mu$s")
+
+    if len(total_time_ns) > 2000:
+        plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+        lim_2000 = total_time_ns["best_config_sans_pip"].iloc[2000]/1000
+        plt.gca().text(1600, 4.2, s=f"$< {lim_2000:.0f}\\mu$s")
+
+    if len(total_time_ns) > 3000:
+        plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+        lim_3000 = total_time_ns["best_config_sans_pip"].iloc[3000]/1000
+        plt.gca().text(2550, 4.2, s=f"$< {lim_3000:.0f}\\mu$s")
 
     plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
     plt.legend(loc='upper center')
@@ -257,15 +263,21 @@ plt.xlabel("Files sorted by " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY + " solving 
 plt.ylabel("Runtime ratio\n" + BEST_CONFIG_PRETTY + " / " + BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY)
 
 plt.grid(zorder=0)
-plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
-lim_1000 = total_time_ns["best_config_just_without_pip"].iloc[1000]/1000
-plt.gca().text(660, 0.05, s=f"$< {lim_1000:.0f}\\mu$s")
-plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
-lim_2000 = total_time_ns["best_config_just_without_pip"].iloc[2000]/1000
-plt.gca().text(1600, 0.05, s=f"$< {lim_2000:.0f}\\mu$s")
-plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
-lim_3000 = total_time_ns["best_config_just_without_pip"].iloc[3000]/1000
-plt.gca().text(2550, 0.05, s=f"$< {lim_3000:.0f}\\mu$s")
+
+if len(total_time_ns) > 1000:
+    plt.gca().axvline(1000, linewidth=1, zorder=3, color='#444')
+    lim_1000 = total_time_ns["best_config_just_without_pip"].iloc[1000]/1000
+    plt.gca().text(660, 0.05, s=f"$< {lim_1000:.0f}\\mu$s")
+
+if len(total_time_ns) > 2000:
+    plt.gca().axvline(2000, linewidth=1, zorder=3, color='#444')
+    lim_2000 = total_time_ns["best_config_just_without_pip"].iloc[2000]/1000
+    plt.gca().text(1600, 0.05, s=f"$< {lim_2000:.0f}\\mu$s")
+
+if len(total_time_ns) > 3000:
+    plt.gca().axvline(3000, linewidth=1, zorder=3, color='#444')
+    lim_3000 = total_time_ns["best_config_just_without_pip"].iloc[3000]/1000
+    plt.gca().text(2550, 0.05, s=f"$< {lim_3000:.0f}\\mu$s")
 
 plt.gca().axhline(1, linewidth=1, zorder=3, color='black')
 plt.legend()
@@ -284,16 +296,18 @@ speedup = total_time_ns["best_config_just_without_pip"] / total_time_ns["best_co
 print(f"Looking at files where {BEST_CONFIG_PRETTY} is slower than {BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY}")
 print(f"Number of files slower with {BEST_CONFIG_PRETTY}:", sum(slower_with_pip))
 print("Average slowdown:", slowdown[slower_with_pip].mean())
-print("Largest slowdown after 1000:", slowdown.iloc[1000:].max())
+if len(slowdown) > 1000:
+    print("Largest slowdown after 1000:", slowdown.iloc[1000:].max())
 
-slowdown_after_3000 = slowdown.iloc[3000:]
-print("Num slowdowns after 3000:", (slowdown_after_3000 > 0).sum())
-print("Average slowdown after 3000:", slowdown_after_3000[slowdown_after_3000 > 0].mean())
-print("Largest slowdown after 3000:", slowdown_after_3000.max())
+if len(slowdown) > 3000:
+    slowdown_after_3000 = slowdown.iloc[3000:]
+    print("Num slowdowns after 3000:", (slowdown_after_3000 > 0).sum())
+    print("Average slowdown after 3000:", slowdown_after_3000[slowdown_after_3000 > 0].mean())
+    print("Largest slowdown after 3000:", slowdown_after_3000.max())
 
-speedup_after_3000 = speedup.iloc[3000:]
-print("Num speedups after 3000:", (speedup_after_3000 > 1).sum())
-print("Average speedup after 3000:", speedup_after_3000[speedup_after_3000 > 1].mean())
+    speedup_after_3000 = speedup.iloc[3000:]
+    print("Num speedups after 3000:", (speedup_after_3000 > 1).sum())
+    print("Average speedup after 3000:", speedup_after_3000[speedup_after_3000 > 1].mean())
 
 patalogical = total_time_ns["best_config_just_without_pip"].idxmax()
 print(f"Slowest file with {BEST_CONFIG_JUST_WITHOUT_PIP_PRETTY}", patalogical)

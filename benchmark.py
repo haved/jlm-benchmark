@@ -649,7 +649,6 @@ def main():
         bench.jlm_opt_flags = ["--AAAndersenRegionAware", # "--print-andersen-analysis",
                                "--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes"]
 
-
     # If any tasks time out or fail, the script will have a non-zero return code
     return run_benchmarks(benchmarks,
                           env_vars=env_vars,

@@ -5,6 +5,7 @@ RUN apt-get update && \
     apt-get install -y \
     git wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn \
     lmod locales doxygen make ninja-build just g++ gfortran bear autoconf texinfo \
+    llvm-18-dev clang-18 clang-format-18 \
     \
     build-essential gcc-multilib gcc-mingw-w64 libasound2-dev libpulse-dev libdbus-1-dev \
     libfontconfig-dev libfreetype-dev libgnutls28-dev libgl-dev libunwind-dev \
@@ -23,14 +24,6 @@ RUN apt-get clean && \
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-
-# Install LLVM 18
-RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main && \
-    apt-get update && \
-    apt-get install -y llvm-18-dev clang-18 clang-format-18 && \
-    pipx install "lit~=18.0"
 
 RUN mkdir /artifact
 WORKDIR /artifact
