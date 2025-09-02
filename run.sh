@@ -32,7 +32,6 @@ TIMEOUT_MEDIUM_ANF=400
 # EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
 
 
-
 # Restore the artifact back to a clean state by using ./run.sh clean
 # If you have made any changes to sources.json, they are not restored
 if [[ "${1-}" == "clean" ]]; then
