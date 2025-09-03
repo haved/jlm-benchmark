@@ -9,11 +9,11 @@ set -eu
 # Lets multiple jlm-opt invocations run at once.
 # You should have a least have 4GB RAM and one physical core per invocation.
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
-PARALLEL_INVOCATIONS=8
+PARALLEL_INVOCATIONS=2
 
 # If you wish to pass extra options to all the benchmarking invocations, uncomment this variable.
-# The example value causes benchmarking to only be performed on 505.mcf, 544.nab and 525.x264:
-# EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
+EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
+#|507\\.cactuBSSN|538\\.imagick"'
 
 
 # Restore the artifact back to a clean state by using ./run.sh clean
@@ -42,7 +42,7 @@ trap sigint SIGINT
 
 # Build the jlm-opt binary
 echo "Building jlm-opt"
-just build-release
+just build-debug
 
 
 # Prepare the sources folder
@@ -75,4 +75,5 @@ popd
 
 echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
 
-just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-}"
+just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
+# just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/agnostic --statsdir statistics/agnostic"

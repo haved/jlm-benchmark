@@ -29,9 +29,18 @@ build-release:
     ./configure.sh --target release CXX={{JLM_CXX}}
     make jlm-opt -j`nproc`
 
+# Build the release and target of jlm-opt
+build-debug:
+    #!/usr/bin/bash -eu
+    cd {{JLM_PATH}}
+
+    echo "Building debug target"
+    ./configure.sh --target debug --enable-asserts CXX={{JLM_CXX}}
+    make jlm-opt -j`nproc`
+
 # Remove builds of jlm-opt
 clean-jlm-builds:
-    rm -rf {{JLM_PATH}}/build-release
+    rm -rf {{JLM_PATH}}/build-release {{JLM_PATH}}/build-debug
 
 # Flags passed to both benchmarking invocations
 common-flags := "--llvmbin " + llvm-bin
@@ -43,6 +52,15 @@ benchmark-release flags="":
                    --jlm-opt "{{JLM_PATH}}/build-release/jlm-opt" \
                    --builddir build/release \
                    --statsdir statistics/release \
+                   {{flags}}
+
+# Benchmark all C files with the debug target of jlm-opt
+benchmark-debug flags="":
+    mkdir -p build statistics
+    ./benchmark.py {{common-flags}} \
+                   --jlm-opt "{{JLM_PATH}}/build-debug/jlm-opt" \
+                   --builddir build/debug \
+                   --statsdir statistics/debug \
                    {{flags}}
 
 # Aggregate statistics from runs

@@ -16,6 +16,7 @@ import concurrent.futures
 import queue
 import json
 import functools
+import traceback
 
 class TaskTimeoutError(Exception):
     pass
@@ -143,9 +144,13 @@ def move_stats_file(temp_dir, stats_output):
         if fil.endswith("-statistics.log"):
             stats_files.append(fil)
 
-     # There should be exactly one such file. Move it to the final statistics output
-    stats_file, = stats_files
-    shutil.move(os.path.join(temp_dir, stats_file), stats_output)
+    if len(stats_files) > 1:
+        raise ValueError(f"Too many statistics files in {temp_dir}!")
+    elif len(stats_files) == 1:
+        shutil.move(os.path.join(temp_dir, stats_files[0]), stats_output)
+    else:
+        with open(stats_output, "w", encoding="utf-8") as fd:
+            pass # Just create the file
 
 def move_tree_file(temp_dir, tree_output):
     # Move statisitcs to actual stats_dir, and change filename
@@ -153,7 +158,7 @@ def move_tree_file(temp_dir, tree_output):
 
     for fil in os.listdir(temp_dir):
         if fil.endswith("rvsdgTree-0.txt"):
-            stats_files.append(fil)
+            tree_files.append(fil)
 
      # There should be exactly one such file. Move it to the final statistics output
     tree_file, = tree_files
@@ -257,6 +262,7 @@ def run_all_tasks(tasks, workers=1, dryrun=False):
                 return
             except Exception as e:
                 print(e)
+                traceback.print_exc()
                 tasks_failed.append(task)
                 skippable_out_files.update(task.output_files)
                 return
@@ -554,18 +560,13 @@ def main():
                         help=f'Specify the folder to put jlm-opt statistics in. [{Options.DEFAULT_STATS_DIR}]')
     parser.add_argument('--jlm-opt', dest='jlm_opt', action='store', default=Options.DEFAULT_JLM_OPT,
                         help=f'Override the jlm-opt binary used. [{Options.DEFAULT_JLM_OPT}]')
+    parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
+                        help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
     parser.add_argument('--filter', metavar='FILTER', dest='benchmark_filter', action='store', default=None,
                         help='Only include benchmarks whose name includes a match of the given regex')
     parser.add_argument('--list', dest='list_benchmarks', action='store_true',
                         help='List (filtered) benchmarks and exit')
-
-    parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
-                        help='The number of times each possible Andersen solver config should be tested. [0]')
-    parser.add_argument('--exactConfiguration', metavar='K', action='store', dest='exact_configuration', default=None,
-                        help='Picks exactly one configuration to use')
-    parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
-                        help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
     parser.add_argument('--offset', metavar='O', dest='offset', action='store', default="0",
                         help='Skip the first O tasks. [0]')
@@ -582,9 +583,20 @@ def main():
 
     parser.add_argument('-j', metavar='N', dest='workers', action='store', default='1',
                         help='Run up to N tasks in parallel when possible')
-
     parser.add_argument('--clean', dest='clean', action='store_true',
                         help='Remove the build and stats folders before running')
+
+    parser.add_argument('--configSweepIterations', metavar='N', action='store', default=0, type=int,
+                        help='The number of times each possible Andersen solver config should be tested. [0]')
+    parser.add_argument('--exactConfiguration', metavar='K', action='store', dest='exact_configuration', default=None,
+                        help='Picks exactly one configuration to use')
+
+    parser.add_argument('--agnosticModRef', action='store_true', dest='agnosticModRef',
+                        help='Uses agnostic memory state encoding')
+    parser.add_argument('--regionAwareModRef', action='store_true', dest='regionAwareModRef',
+                        help='Uses region aware memory state encoding')
+
+
     args = parser.parse_args()
 
     global options
@@ -646,8 +658,14 @@ def main():
         # bench.opt_flags = ["--passes=mem2reg"]
 
         # Configure the flags sent to jlm-opt here
-        bench.jlm_opt_flags = ["--AAAndersenRegionAware", # "--print-andersen-analysis",
-                               "--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes"]
+        bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-aa-precision-evaluation"] # "--print-andersen-analysis",
+
+        if args.agnosticModRef:
+            bench.jlm_opt_flags.append("--AAAndersenAgnostic")
+        if args.regionAwareModRef:
+            bench.jlm_opt_flags.append("--AAAndersenRegionAware")
+
+        bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes"])
 
     # If any tasks time out or fail, the script will have a non-zero return code
     return run_benchmarks(benchmarks,

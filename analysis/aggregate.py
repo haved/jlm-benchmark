@@ -31,7 +31,8 @@ PER_FILE_STATS_OPTIONAL = [
 ]
 
 PRECISION_EVALUATION_KEEP_PER_AA = [
-    "IsRemovingDuplicatePointers", "PrecisionEvaluationMode",
+    "LoadsConsideredClobbers", "DeduplicatingPointers",
+    # "PerFunctionOutputFile", "AliasingGraphOutputFile",
 
     # Counts total instances of each response type, no matter the precision evaluation mode
     "#TotalNoAlias", "#TotalMayAlias", "#TotalMustAlias",
@@ -82,10 +83,9 @@ def keep_file_stats(program, cfile, line_stats):
     return stats
 
 # Due to splitting workloads, the same cfile can have multiple statistics files
-def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas):
+def handle_statistics_file(stats_filename, cfile, file_datas):
     file_precision_stats = {}
     file_andersen_stats = None
-    file_config_rows = []
 
     program = cfile.split("+")[0]
 
@@ -98,9 +98,6 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
                 if file_andersen_stats is None:
                     file_andersen_stats = keep_file_stats(program, cfile, line_stats)
 
-                file_config_stats = file_andersen_stats.copy()
-                file_config_stats.update(line_stats)
-                file_config_rows.append(file_config_stats)
             elif statistic == "AliasAnalysisPrecisionEvaluation":
                 aaType = line_stats["PairwiseAliasAnalysisType"] + "-"
                 for col in PRECISION_EVALUATION_KEEP_PER_AA:
@@ -109,13 +106,6 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
 
             else:
                 print("Ignoring unknown statistic:", statistic)
-
-    # The first AndersenAnalysis statistic line is always the standard solver,
-    # so it can be skipped
-    if len(file_config_rows) >= 1:
-        file_config_rows = file_config_rows[1:]
-    else:
-        print(f"WARNING: Statistics file {stats_filename} contained no AndersenAnalysis at all")
 
     # Avoid confusion by only keeping the columns that are prefixed with AA name
     for col in PRECISION_EVALUATION_KEEP_PER_AA:
@@ -129,18 +119,9 @@ def handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
     if file_precision_stats is not None:
         file_datas[cfile].update(file_precision_stats)
 
-    if len(file_config_rows) > 0:
-        file_config_data = pd.DataFrame(file_config_rows)
-        file_config_data = file_config_data.groupby("Configuration").mean(numeric_only=True)
-
-        file_config_data.reset_index(inplace=True)
-        file_config_data["cfile"] = cfile
-        file_config_datas.append(file_config_data)
-
 def extract_statistics(stats_folder):
     """
-    Create one dataframe with one row for each cfile
-    and one dataframe with one row for each (cfile, configuration) combination.
+    Create one dataframe with one row for each cfile.
     @return file_data, file_config_data
     """
 
@@ -149,128 +130,62 @@ def extract_statistics(stats_folder):
 
     files = os.listdir(stats_folder)
     file_datas = {}
-    file_config_datas = []
 
     for filename in files:
         if "+" not in filename or not filename.endswith(".log"):
-            print(f"Ignoring file {filename}", file=sys.stderr)
             continue
 
         # remove .log suffix
         cfile = filename[:-4]
 
         stats_filename = os.path.join(stats_folder, filename)
-        handle_statistics_file(stats_filename, cfile, file_datas, file_config_datas)
+        handle_statistics_file(stats_filename, cfile, file_datas)
 
     # Skip files that did not actually have statistics
     file_datas = { cfile: data for cfile, data in file_datas.items() if "cfile" in data }
 
     if len(file_datas) == 0:
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
 
     file_datas = pd.DataFrame(file_datas.values()).set_index("cfile")
-    file_config_datas = pd.concat(file_config_datas)
-
-    # Check that no cfile has multiple occurances of the same configuration
-    # This could happen if a file has analyzed both regularly, and individually per config
-    num_cfile_config_pairs = file_config_datas.groupby(['cfile', 'Configuration']).size()
-    num_cfile_config_pairs = num_cfile_config_pairs[num_cfile_config_pairs > 1]
-    for cfile, config in num_cfile_config_pairs.index:
-        print(f"WARNING: Multiple files provide the following combination: ({cfile}, {config})")
-    if len(num_cfile_config_pairs) > 0:
-        print("NOTE: You should not run the same files both using and not using --jlmExactConfig")
-        file_config_data = file_config_data.groupby(["cfile", "Configuration"]).mean(numeric_only=True).reset_index()
 
     # Calculate a TotalTime column, using 0 where values are missing
-    with_nan0 = file_config_datas.fillna(0)
-    total_time = 0
-    if "OVSTimer[ns]" in with_nan0:
-        total_time += with_nan0["OVSTimer[ns]"]
-    if "OfflineNormTimer[ns]" in with_nan0:
-        total_time += with_nan0["OfflineNormTimer[ns]"]
-    if "ConstraintSolvingWorklistTimer[ns]" in with_nan0:
-        total_time += with_nan0["ConstraintSolvingWorklistTimer[ns]"]
-    if "ConstraintSolvingNaiveTimer[ns]" in with_nan0:
-        total_time += with_nan0["ConstraintSolvingNaiveTimer[ns]"]
-    if "ConstraintSolvingWavePropagationTimer[ns]" in with_nan0:
-        total_time += with_nan0["ConstraintSolvingWavePropagationTimer[ns]"]
-    if "ConstraintSolvingDeepPropagationTimer[ns]" in with_nan0:
-        total_time += with_nan0["ConstraintSolvingDeepPropagationTimer[ns]"]
-    file_config_datas["TotalTime[ns]"] = total_time
+    #with_nan0 = file_config_datas.fillna(0)
+    #total_time = 0
+    #if "OVSTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["OVSTimer[ns]"]
+    #if "OfflineNormTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["OfflineNormTimer[ns]"]
+    #if "ConstraintSolvingWorklistTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["ConstraintSolvingWorklistTimer[ns]"]
+    #if "ConstraintSolvingNaiveTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["ConstraintSolvingNaiveTimer[ns]"]
+    #if "ConstraintSolvingWavePropagationTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["ConstraintSolvingWavePropagationTimer[ns]"]
+    #if "ConstraintSolvingDeepPropagationTimer[ns]" in with_nan0:
+    #    total_time += with_nan0["ConstraintSolvingDeepPropagationTimer[ns]"]
+    #file_config_datas["TotalTime[ns]"] = total_time
 
-    return file_datas, file_config_datas
+    return file_datas
 
 
-def extract_or_load(stats_in, file_data_out, file_config_data_out):
-    if os.path.exists(file_data_out) and os.path.exists(file_config_data_out):
+def extract_or_load(stats_in, file_data_out):
+    if os.path.exists(file_data_out):
         file_data = pd.read_csv(file_data_out)
-        file_config_data = pd.read_csv(file_config_data_out)
-    else:
-        file_data_release, file_config_data_release = extract_statistics(os.path.join(stats_in, "release"))
-        file_data_release_anf, file_config_data_release_anf = extract_statistics(os.path.join(stats_in, "release-anf"))
 
-        file_data = pd.concat([file_data_release.reset_index(), file_data_release_anf.reset_index()], axis="rows")
+    else:
+        file_data_raware = extract_statistics(os.path.join(stats_in, "raware"))
+
+        file_data = pd.concat([file_data_raware.reset_index()], axis="rows")
         file_data.drop_duplicates(subset="cfile", inplace=True)
         file_data.set_index("cfile", inplace=True)
 
-        if len(file_config_data_release) != 0:
-            file_config_data_release["Configuration"] = "IP_" + file_config_data_release["Configuration"]
-        if len(file_config_data_release_anf) != 0:
-            file_config_data_release_anf["Configuration"] = "EP_" + file_config_data_release_anf["Configuration"]
-
-        file_config_data = pd.concat([file_config_data_release, file_config_data_release_anf], axis="rows")
-
-        # Check that all cfiles have been tested with all configurations
-        configs_per_cfile = file_config_data.groupby("cfile")["Configuration"].nunique()
-        max_number_of_configs = configs_per_cfile.max()
-        print(f"C files have been solved with {max_number_of_configs} different configurations")
-
-        missing_configs = configs_per_cfile[configs_per_cfile != max_number_of_configs]
-        if len(missing_configs) != 0:
-            print(f"WARNING: {len(missing_configs)} cfiles been evaluated with fewer configs!")
-        if 0 < len(missing_configs) < 10:
-            print(missing_configs)
-
-        # Make sure all configurations agree on solution statistics that should be identical
-        for column in ["#PointsToRelations", "#PointsToExternalRelations", "#CanPointsEscaped", "#CantPointsEscaped"]:
-            num_different_counts = file_config_data.groupby("cfile")[column].nunique()
-            non_unique_cfiles = num_different_counts[num_different_counts > 1].index
-            for cfile in non_unique_cfiles:
-                print(f"ERROR: Different configurations have different values of {column} in {cfile}")
-            if len(non_unique_cfiles) > 0:
-                exit(1)
-
         file_data.to_csv(file_data_out)
-        file_config_data.to_csv(file_config_data_out, index=False)
 
-    return file_data, file_config_data
-
-
-def get_mean_time_per_config(file_config_data):
-    # Calculate the average time spent by each technique
-    # First filter away configurations that have not finished for every single file
-
-    cfiles_per_config = file_config_data.groupby("Configuration")["cfile"].nunique()
-    num_cfiles = file_config_data["cfile"].nunique()
-
-    configs_to_keep = cfiles_per_config[cfiles_per_config == num_cfiles].index
-    configs_to_discard = cfiles_per_config[cfiles_per_config != num_cfiles].index
-
-    if len(configs_to_discard):
-        print("The following Configurations are skipped, due to not being present for all cfiles:")
-        print(configs_to_discard)
-
-    print(f"mean_time_per_config contains {len(configs_to_keep)} Configurations")
-
-    mean_by_config = file_config_data.groupby("Configuration").mean(numeric_only=True)
-    mean_by_config = mean_by_config[mean_by_config.index.isin(configs_to_keep)]
-    total_time = mean_by_config["TotalTime[ns]"].sort_values()
-    return total_time
-
+    return file_data
 
 def main():
-    parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folders.'
-                                     'Mainly creates two aggregation files, plus some extra statistics files.')
+    parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folders.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', required=True,
                         help='The folder where release and release_anf with log files are located')
     parser.add_argument('--stats-out', dest='stats_out', action='store', required=True,
@@ -287,12 +202,9 @@ def main():
     def stats_out(filename=""):
         return os.path.join(args.stats_out, filename)
 
-    file_data, file_config_data = extract_or_load(args.stats_in,
-                                                  stats_out("file_data.csv"),
-                                                  stats_out("file_config_data.csv"))
+    file_data = extract_or_load(args.stats_in,
+                                stats_out("file_data.csv"))
 
-    mean_time_per_config = get_mean_time_per_config(file_config_data)
-    mean_time_per_config.to_csv(stats_out("mean_time_per_config.csv"))
 
 if __name__ == "__main__":
     main()

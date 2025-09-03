@@ -79,22 +79,21 @@ def plot(data, ylabel, savefig=None):
 
     and plots the MayAlias rate for each benchmark
     """
-    data.loc[data["AA"] == "LlvmAA", "AA"] = "BasicAA"
+    data.loc[data["AA"] == "LocalAA", "AA"] = "LocalAA"
     data.loc[data["AA"] == "PointsToGraphAA", "AA"] = "Andersen"
-    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LlvmAA)", "AA"] = "Andersen + BasicAA"
+    data.loc[data["AA"] == "ChainedAA(PointsToGraphAA,LocalAA)", "AA"] = "Andersen + LocalAA"
 
     colors = {
-        "local": "#CC9600",
-        "BasicAA": "#636EFA",
+        "LocalAA": "#636EFA",
         "Andersen": "#EF553B",
-        "Andersen + BasicAA": "#00CC96"
+        "Andersen + LocalAA": "#00CC96"
     }
 
     benchmarks = data["Benchmark"].unique()
     AAs = [
-        "BasicAA",
+        "LocalAA",
         "Andersen",
-        "Andersen + BasicAA"
+        "Andersen + LocalAA"
         ]
 
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -168,12 +167,12 @@ def main():
 
     file_data = pd.read_csv(os.path.join(args.stats, "file_data.csv"), index_col=0)
 
-    print("PrecisionEvaluationMode:", file_data["LlvmAA-PrecisionEvaluationMode"].unique())
-    print("IsRemovingDuplicatePointers:", file_data["LlvmAA-IsRemovingDuplicatePointers"].unique())
+    print("LoadsConsideredClobbers:", file_data["LocalAA-LoadsConsideredClobbers"].unique())
+    print("DeduplicatingPointers:", file_data["LocalAA-DeduplicatingPointers"].unique())
 
     print_average_points_to_external_info(file_data)
 
-    aas = ["LlvmAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LlvmAA)"]
+    aas = ["LocalAA", "PointsToGraphAA", "ChainedAA(PointsToGraphAA,LocalAA)"]
 
     # Contains may alias rates, per benchmark and per AA, as numbers between 0 and 100
     may_alias_rates = []
