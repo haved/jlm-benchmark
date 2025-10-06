@@ -43,6 +43,7 @@ trap sigint SIGINT
 # Build the jlm-opt binary
 echo "Building jlm-opt"
 just build-debug
+just build-release
 
 
 # Prepare the sources folder
@@ -75,5 +76,7 @@ popd
 
 echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
 
-just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
+# just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
 # just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/agnostic --statsdir statistics/agnostic"
+
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --filter=gcc --builddir build/release --statsdir statistics/release"
