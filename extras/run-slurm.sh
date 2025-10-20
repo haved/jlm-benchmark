@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --partition=CPUQ
 #SBATCH --account=share-ie-idi
-#SBATCH --job-name=jlm-andersen-spec
+#SBATCH --job-name=jlm-benchmark
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=16
 #SBATCH --cpus-per-task=1
@@ -13,7 +13,7 @@
 #SBATCH -o slurm-log/output.%a.out # STDOUT
 set -euo pipefail
 
-SELF=./run-slurm.sh
+SELF=./extras/run-slurm.sh
 
 if [ -z ${APPTAINER_NAME+x} ]; then
     # re-execute this script in an apptainer
@@ -26,21 +26,34 @@ if [ -f .env ]; then
     source .env
 fi
 
-./benchmark.py \
-    --offset=$((SLURM_ARRAY_TASK_ID * 16)) --limit=16 \
-    --llvmbin "$(llvm-config-18 --bindir)" \
-    --builddir build/release \
-    --statsdir statistics/release \
-    --jlm-opt "$JLM_PATH/build-release/jlm-opt" \
-    --configSweepIterations 50 \
-    --timeout 86000 \
-    -j 8 || true
+COMMON_BENCH_OPTIONS="--offset=$((SLURM_ARRAY_TASK_ID * 16)) --limit=16 \
+    --llvmbin $(llvm-config-18 --bindir) \
+    --jlm-opt $JLM_PATH/build-release/jlm-opt \
+    --builddir build/raware \
+    -j8"
 
-./benchmark.py \
-    --offset=$((SLURM_ARRAY_TASK_ID * 16)) --limit=16 \
-    --llvmbin "$(llvm-config-18 --bindir)" \
-    --builddir build/release-anf \
-    --statsdir statistics/release-anf \
-    --jlm-opt "$JLM_PATH/build-release-anf/jlm-opt" \
-    --configSweepIterations 50 \
-    -j 8
+set +e
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-all-tricks
+./benchmark.py ${COMMON_BENCH_OPTIONS} --useMem2reg --statsdir statistics/m2r
+
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-no-tricks
+
+unset JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-only-dead-alloca-blocklist
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+
+unset JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-only-non-reentrant-alloca-blocklist
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+
+unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-only-operation-size-blocking
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+
+unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
+./benchmark.py ${COMMON_BENCH_OPTIONS} --regionAwareModRef --statsdir statistics/raware-only-constant-memory-blocking
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1

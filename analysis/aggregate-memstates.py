@@ -22,13 +22,33 @@ def get_memory_node_counts(suffix):
         "#MaxNonEscapedMemoryState" + suffix,
     ]
 
-# For each statistic, this dict contains values to keep
+def map_optimization_statistic(original_name):
+    if original_name == "Time[ns]":
+        return "OptimizationTime[ns]"
+    elif original_name in ["#RvsdgNodesBefore", "#RvsdgNodesAfter"]:
+        return original_name + "Sequence"
+    return "TransformationPass-" + original_name
+
+# For each statistic, this dict contains which values to keep
 # If the entry is a tuple (name, rename), the statistic called `name` will be kept, but be called `rename`
-KEEP_METRICS = {
+# If the entry is a function, it takes the old name and provides the new name, or None to discard
+METRICS_MAPPING = {
     "AndersenAnalysis": [
         "#RvsdgNodes",
         "#PointsToGraphAllocaNodes", "#PointsToGraphMallocNodes", "#PointsToGraphDeltaNodes", "#PointsToGraphImportNodes", "#PointsToGraphLambdaNodes",
-        "#PointsToGraphMemoryNodes", "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes", ("AnalysisTimer[ns]", "AndersenAnalysisTimer[ns]")
+        "#PointsToGraphMemoryNodes", "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes", ("AnalysisTimer[ns]", "AndersenAnalysisTimer[ns]"),
+        ("SetAndConstraintBuildingTimer[ns]", "AndersenSetBuildingTimer[ns]"), ("OVSTimer[ns]", "AndersenOVSTimer[ns]"),
+        ("ConstraintSolvingWorklistTimer[ns]", "AndersenWorklistTimer[ns]"), "PointsToGraphConstructionTimer[ns]",
+    ],
+    "RegionAwareModRefSummarizer": [
+        "#NonReentrantAllocas",
+        "CallGraphTimer[ns]",
+        "AllocasDeadInSccsTimer[ns]",
+        "SimpleAllocasSetTimer[ns]",
+        "NonReentrantAllocaSetsTimer[ns]",
+        "CreateExternalModRefSetTimer[ns]",
+        "AnnotationTimer[ns]",
+        "SolvingTimer[ns]"
     ],
     "MemoryStateEncoder": [
         "#IntraProceduralRegions",
@@ -39,42 +59,91 @@ KEEP_METRICS = {
         *get_memory_node_counts("sThroughStore"),
         "#CallEntryMergeOperations",
         *get_memory_node_counts("sIntoCallEntryMerge"),
-        ("Time[ns]", "MemoryStateEncodinTime[ns]")
+        ("Time[ns]", "MemoryStateEncodingTime[ns]")
+    ],
+    "InterProceduralGraphToRvsdg": [
+        ("Time[ns]", "RvsdgConstructionTime[ns]")
+    ],
+    "RVSDGOPTIMIZATION": map_optimization_statistic,
+    "RVSDGDESTRUCTION": [
+        ("Time[ns]", "RvsdgDestructionTime[ns]")
     ]
 }
 
-# Populate a direct mapping from (statistic, metric) to new metric name
-KEEP_MAP = {}
-for stat, metrics in KEEP_METRICS.items():
-    for metric in metrics:
-        if isinstance(metric, tuple):
-            name, rename = metric
-            KEEP_MAP[(stat, name)] = rename
-        else:
-            KEEP_MAP[(stat, metric)] = metric
+def read_rvsdg_tree(path, prefix):
+    data = {
+        "NumAllocaNodes": 0,
+        "NumStoreNodes": 0,
+        "NumLoadNodes": 0,
+        "NumMemoryStateTypeArguments": 0
+    }
+    with open(path, encoding='utf-8') as fd:
+        for line in fd:
+            if "Region" not in line:
+                continue
+            for part in line.split(" ")[1:]:
+                stat, value = part.split(":")
+                if stat in data:
+                    data[stat] = data[stat] + int(value)
+
+    return { f"{prefix}{key}": value for key, value in data.items() }
+
+def get_metric_name(statistic, original_name):
+    if statistic not in METRICS_MAPPING:
+        return None
+
+    mapping = METRICS_MAPPING[statistic]
+
+    if callable(mapping):
+        return mapping(original_name)
+
+    for entry in mapping:
+        if isinstance(entry, tuple):
+            old, new = entry
+            if original_name == old:
+                return new
+        elif original_name == entry:
+            return entry
+
+    return None
 
 def extract_file_data(folder):
     file_datas = []
 
-    for fil in os.listdir(folder):
+    files = os.listdir(folder)
+
+    for fil in files:
         if not fil.endswith(".log"):
             continue
 
         file_data = {}
-        file_data["cfile"] = fil[:-4]
+        cfile = fil[:-4]
+        file_data["cfile"] = cfile
 
         with open(os.path.join(folder, fil), "r", encoding="utf-8") as fd:
             for line in fd:
                 statistic, _, *parts = line.split(" ")
-                for part in parts:
-                    key, value = part.split(":")
-                    superkey = (statistic, key)
-                    if superkey in KEEP_MAP:
-                        try:
-                            file_data[KEEP_MAP[superkey]] = int(value)
-                        except:
-                            file_data[KEEP_MAP[superkey]] = value
 
+                for part in parts:
+                    original_name, value = part.split(":")
+
+                    metric_name = get_metric_name(statistic, original_name)
+                    if not metric_name:
+                        continue
+
+                    try:
+                        file_data[metric_name] = int(value)
+                    except:
+                        file_data[metric_name] = value
+
+        for fil2 in files:
+            if not fil2.startswith(cfile):
+                continue
+            if "rvsdgTree" not in fil2:
+                continue
+
+            num = fil2[:-4].split("-")[-1]
+            file_data.update(read_rvsdg_tree(os.path.join(folder, fil2), f"Tree{num}-"))
 
         file_datas.append(file_data)
 
@@ -89,117 +158,21 @@ def calculate_total_memory_states(file_data, suffix):
         file_data["#TotalLambdaState" + suffix] +
         file_data["#TotalExternalState" + suffix])
 
+def calculate_total_ramrs_time(file_data):
+    file_data["RegionAwareModRefSummarizerTime[ns]"] = (
+        file_data["CallGraphTimer[ns]"] +
+        file_data["AllocasDeadInSccsTimer[ns]"] +
+        file_data["SimpleAllocasSetTimer[ns]"] +
+        file_data["NonReentrantAllocaSetsTimer[ns]"] +
+        file_data["CreateExternalModRefSetTimer[ns]"] +
+        file_data["AnnotationTimer[ns]"] +
+        file_data["SolvingTimer[ns]"])
+
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
     file_data["Configuration"] = configuration
 
-    # Add calculated columns
-    calculate_total_memory_states(file_data, "Arguments")
-    calculate_total_memory_states(file_data, "sThroughLoad")
-    calculate_total_memory_states(file_data, "sThroughStore")
-    calculate_total_memory_states(file_data, "sIntoCallEntryMerge")
-
     return file_data
-
-
-def extract_column(data, column, configuration):
-    return data[data["Configuration"] == configuration].set_index("cfile")[column]
-
-def plot_ratio_between_configs(file_data, column, conf, baseline_conf, savefig=None):
-    data = pd.DataFrame({
-        conf: extract_column(file_data, column, conf),
-        baseline_conf: extract_column(file_data, column, baseline_conf)
-    })
-    data.sort_values(baseline_conf, ascending=True, inplace=True)
-
-    plt.figure(figsize=(7,3))
-
-    data["ratio"] = data[conf] / data[baseline_conf]
-    sns.scatterplot(x=range(len(data)), y=data["ratio"])
-
-    plt.title(column, fontsize=10)
-    plt.ylabel(f"{conf} / {baseline_conf}", fontsize=7)
-    plt.xlabel(f"Files sorted by {baseline_conf}", fontsize=7)
-
-    def xline(i):
-        plt.gca().axvline(i, linewidth=1, zorder=3, color='#444')
-        text = f"{data[baseline_conf].iloc[i]}"
-        plt.gca().text(i, 0.1, s=text)
-
-    for p in range(100, len(data), 100):
-        xline(p)
-
-    plt.tight_layout(pad=0.2)
-
-    if savefig is not None:
-        plt.savefig(savefig)
-    else:
-        plt.show()
-
-def plot_ratio_between_columns(file_data, configuration, column, baseline_column, savefig=None):
-    data = pd.DataFrame({
-        column: extract_column(file_data, column, configuration),
-        baseline_column: extract_column(file_data, baseline_column, configuration)
-    })
-    data.sort_values(baseline_column, ascending=True, inplace=True)
-
-    plt.figure(figsize=(7,3))
-
-    data["ratio"] = data[column] / data[baseline_column]
-    sns.scatterplot(x=range(len(data)), y=data["ratio"])
-
-    plt.title(configuration, fontsize=10)
-    plt.ylabel(f"{column} / {baseline_column}", fontsize=7)
-    plt.xlabel(f"Files sorted by {baseline_column}", fontsize=7)
-
-    def xline(i):
-        plt.gca().axvline(i, linewidth=1, zorder=3, color='#444')
-        text = f"{data[baseline_column].iloc[i]}"
-        plt.gca().text(i, 0.1, s=text)
-
-    for p in range(100, len(data), 100):
-        xline(p)
-
-    plt.tight_layout(pad=0.2)
-
-    if savefig is not None:
-        plt.savefig(savefig)
-    else:
-        plt.show()
-
-    # print(data.iloc[-10::]["ratio"])
-
-def plot_column(file_data, configuration, column, savefig=None):
-    data = pd.DataFrame({
-        column: extract_column(file_data, column, configuration)
-    })
-    data.sort_values(column, ascending=True, inplace=True)
-
-    plt.figure(figsize=(7,3))
-
-    sns.scatterplot(x=range(len(data)), y=data[column])
-
-    plt.title(configuration)
-    plt.ylabel(f"{column}")
-    plt.xlabel(f"Files sorted by {column}")
-
-    def xline(i):
-        plt.gca().axvline(i, linewidth=1, zorder=3, color='#444')
-        text = f"{data[column].iloc[i]}"
-        plt.gca().text(i, 0.1, s=text)
-
-    for p in range(100, len(data), 100):
-        xline(p)
-
-    plt.tight_layout(pad=0.2)
-
-    if savefig is not None:
-        plt.savefig(savefig)
-    else:
-        plt.show()
-
-    # print(data.iloc[-10::]["ratio"])
-
 
 def main():
     parser = argparse.ArgumentParser(description='Process raw statistics from the given folder.')
@@ -214,37 +187,27 @@ def main():
     def stats_out(filename=""):
         return os.path.join(args.stats_out, filename)
 
-    raware_curtailed_data = make_file_data(os.path.join(args.stats_in, "raware-curtailed"), "RegionAwareModRef-Curtailed")
-    raware_data = make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef")
-    # raware_extraOpts_data = make_file_data(os.path.join(args.stats_in, "raware-extraOpts"), "RegionAwareModRef-ExtraOpts")
-    #agnostic_data = make_file_data(os.path.join(args.stats_in, "agnostic"), "AgnosticModRef")
+    data = (
+        make_file_data(os.path.join(args.stats_in, "raware-extra-stats"), "RegionAwareModRef"),
+        #make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
+        #make_file_data(os.path.join(args.stats_in, "raware-sans-dead-alloca-blocklist"), "RegionAwareModRef-SansDeadAllocaBlocking"),
+        #make_file_data(os.path.join(args.stats_in, "raware-sans-non-reentrant-alloca-blocklist"), "RegionAwareModRef-SansNonReeentrantAllocaBlocking"),
+        #make_file_data(os.path.join(args.stats_in, "raware-sans-operation-size-blocking"), "RegionAwareModRef-SansOperationSizeBlocking"),
+        #make_file_data(os.path.join(args.stats_in, "raware-sans-constant-memory-blocking"), "RegionAwareModRef-SansConstantMemoryBlocking"),
+        #make_file_data(os.path.join(args.stats_in, "agnostic"), "AgnosticModRef"),
+        #make_file_data(os.path.join(args.stats_in, "m2r"), "Mem2Reg")
+    )
+    file_data = pd.concat(data)
 
-    file_data = pd.concat((raware_curtailed_data, raware_data))
+    calculate_total_memory_states(file_data, "Arguments")
+    calculate_total_memory_states(file_data, "sThroughLoad")
+    calculate_total_memory_states(file_data, "sThroughStore")
+    calculate_total_memory_states(file_data, "sIntoCallEntryMerge")
+    calculate_total_ramrs_time(file_data)
+
+    file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]
+
     file_data.to_csv(stats_out("memstate-file-data.csv"))
-
-    plot_ratio_between_configs(file_data, "#TotalMemoryStateArguments", "RegionAwareModRef", "RegionAwareModRef-Curtailed", savefig="results/memrefs-raware-vs-curtailed.pdf")
-
-    #plot_ratio_between_configs(file_data, "#TotalMemoryStateArguments", "RegionAwareModRef-ExtraOpts", "RegionAwareModRef-New", savefig="results/memrefs-extraOpts-vs-new.pdf")
-    #plot_ratio_between_configs(file_data, "#TotalLoads", "RegionAwareModRef-ExtraOpts", "RegionAwareModRef-New", savefig="results/memrefs-extraOpts-vs-new.pdf")
-    #plot_ratio_between_configs(file_data, "#TotalStores", "RegionAwareModRef-ExtraOpts", "RegionAwareModRef-New", savefig="results/memrefs-extraOpts-vs-new.pdf")
-
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalDeltaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-delta-ratio.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalAllocaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-alloca-ratio.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalLambdaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-lambda-ratio.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalImportStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-import-ratio.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalMallocStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-malloc-ratio.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef", "#TotalNonEscapedStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-nonescaped-ratio.pdf")
-
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalDeltaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-delta-ratio-curtailed.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalAllocaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-alloca-ratio-curtailed.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalLambdaStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-lambda-ratio-curtailed.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalImportStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-import-ratio-curtailed.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalMallocStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-malloc-ratio-curtailed.pdf")
-    plot_ratio_between_columns(file_data, "RegionAwareModRef-Curtailed", "#TotalNonEscapedStateArguments", "#TotalMemoryStateArguments", savefig="results/memstate-args-nonescaped-ratio-curtailed.pdf")
-
-    plot_column(file_data, "RegionAwareModRef-Curtailed", "#MaxMemoryStateArguments", savefig="results/memstate-args-max-curtailed.pdf")
-    plot_column(file_data, "RegionAwareModRef", "#MaxMemoryStateArguments", savefig="results/memstate-args-max-raware.pdf")
-    #plot_column(file_data, "RegionAwareModRef", "#MaxNonEscapedMemoryStatesThroughLoad", savefig="results/memstate-loads-max-nonescaped.pdf")
 
 if __name__ == "__main__":
     main()

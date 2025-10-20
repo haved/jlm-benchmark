@@ -9,12 +9,12 @@ set -eu
 # Lets multiple jlm-opt invocations run at once.
 # You should have a least have 4GB RAM and one physical core per invocation.
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
-PARALLEL_INVOCATIONS=2
+PARALLEL_INVOCATIONS=4
 
 # If you wish to pass extra options to all the benchmarking invocations, uncomment this variable.
-EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
-#|507\\.cactuBSSN|538\\.imagick"'
-
+# EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
+# |507\\.cactuBSSN|538\\.imagick"'
+EXTRA_BENCH_OPTIONS='--timeout 600'
 
 # Restore the artifact back to a clean state by using ./run.sh clean
 # If you have made any changes to sources.json, they are not restored
@@ -76,7 +76,33 @@ popd
 
 echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
 
-# just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
+set +e
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-all-tricks"
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --useMem2reg --builddir build/raware --statsdir statistics/m2r"
+
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-no-tricks"
+
+unset JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-dead-alloca-blocklist"
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+
+unset JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-non-reentrant-alloca-blocklist"
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+
+unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-operation-size-blocking"
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+
+unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-constant-memory-blocking"
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+
+# just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/raware --statsdir statistics/agnostic"
 # just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/agnostic --statsdir statistics/agnostic"
 
-just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --filter=gcc --builddir build/release --statsdir statistics/release"
+# just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} --filter=blender --builddir build/release --statsdir statistics/release"

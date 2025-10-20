@@ -101,7 +101,7 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
                 raise TaskTimeoutError()
 
             try:
-                line = qu.get(timeout=60)
+                line = qu.get(timeout=min(60, timeout))
                 read_lines += 1
             except queue.Empty:
                 if read_lines == 0:
@@ -136,33 +136,42 @@ def run_command_and_capture(command, env_vars=None):
     p = subprocess.run(command, env=env_vars, capture_output=True, text=True, check=True)
     return p.stdout, p.stderr
 
-def move_stats_file(temp_dir, stats_output):
-    # Move statisitcs to actual stats_dir, and change filename
-    stats_files = []
+def move_output_files(temp_dir, stats_output, other_outputs):
+    """
+    Moves files from temp_dir
+    Looks for a file called xxxxx-statistics.log, and moves it to stats_output
+    All other files with identical xxxx part are moved, given a name consiting of <other_outputs> + <suffix>
+    """
 
+    stats_files = []
+    other_files = []
     for fil in os.listdir(temp_dir):
         if fil.endswith("-statistics.log"):
             stats_files.append(fil)
+        else:
+            other_files.append(fil)
 
     if len(stats_files) > 1:
         raise ValueError(f"Too many statistics files in {temp_dir}!")
-    elif len(stats_files) == 1:
-        shutil.move(os.path.join(temp_dir, stats_files[0]), stats_output)
-    else:
-        with open(stats_output, "w", encoding="utf-8") as fd:
-            pass # Just create the file
+    elif len(stats_files) == 0:
+        # Create an empty statistics file
+        open(stats_output, "w", encoding="utf-8").close()
+        if len(other_files) > 0:
+            raise ValueError(f"No statistics.log file was produced, but other output files were!")
+        return
 
-def move_tree_file(temp_dir, tree_output):
-    # Move statisitcs to actual stats_dir, and change filename
-    tree_files = []
+    stats_file, = stats_files
+    # Move the statistics file
+    shutil.move(os.path.join(temp_dir, stats_file), stats_output)
 
-    for fil in os.listdir(temp_dir):
-        if fil.endswith("rvsdgTree-0.txt"):
-            tree_files.append(fil)
+    # Move all other files that have the same basename
+    basename = stats_file[:-len("-statistics.log")]
+    for other_file in other_files:
+        if not other_file.startswith(basename):
+            continue
+        suffix = other_file[len(basename):]
+        shutil.move(os.path.join(temp_dir, other_file), other_outputs + suffix)
 
-     # There should be exactly one such file. Move it to the final statistics output
-    tree_file, = tree_files
-    shutil.move(os.path.join(temp_dir, tree_file), tree_output)
 
 def clean_temp_dir(temp_dir):
     # Remove all other files in the tmp folder, to prevent buildup
@@ -338,7 +347,7 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_dir,
     opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
     jlm_opt_out = options.get_build_dir(f"{full_name}{jlm_opt_suffix}-jlm-opt-out.ll")
     stats_output = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}.log")
-    tree_output = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}-rvsdgTree.txt")
+    other_outputs = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -370,13 +379,12 @@ def compile_file(tasks, full_name, workdir, cfile, extra_clang_flags, stats_dir,
                 jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
                 run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
                             print_prefix=f"({task.index})", timeout=options.timeout)
-                move_stats_file(tmpdir, stats_output)
-                move_tree_file(tmpdir, tree_output)
+                move_output_files(tmpdir, stats_output, other_outputs)
                 clean_temp_dir(tmpdir)
 
         tasks.append(Task(name=f"jlm-opt {full_name}{jlm_opt_suffix}",
                           input_files=[opt_out],
-                          output_files=[jlm_opt_out, stats_output, tree_output],
+                          output_files=[jlm_opt_out, stats_output],
                           action=jlm_opt_action))
     else:
         jlm_opt_out = opt_out
@@ -723,6 +731,8 @@ def main():
                         help='Uses agnostic memory state encoding')
     parser.add_argument('--regionAwareModRef', action='store_true', dest='regionAwareModRef',
                         help='Uses region aware memory state encoding')
+    parser.add_argument('--useMem2reg', action='store_true', dest='useMem2reg',
+                        help='Uses LLVM opt\'s mem2reg pass')
 
 
     args = parser.parse_args()
@@ -788,15 +798,26 @@ def main():
         # Configure the flags sent to jlm-opt here
         bench.jlm_opt_flags = ["--print-andersen-analysis"] # , "--print-aa-precision-evaluation"] # "--print-andersen-analysis",
 
+        bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes"])
+
         if args.agnosticModRef:
             bench.jlm_opt_flags.extend(["--AAAndersenAgnostic", "--print-agnostic-mod-ref-summarization", "--print-basicencoder-encoding"])
-        if args.regionAwareModRef:
+
+        if args.regionAwareModRef or args.useMem2reg:
             bench.jlm_opt_flags.extend(["--AAAndersenRegionAware", "--print-mod-ref-summarization", "--print-basicencoder-encoding"])
 
-        bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes"])
+        if args.useMem2reg:
+            bench.opt_flags = ["-passes=mem2reg"]
+
+        bench.jlm_opt_flags.append("--RvsdgTreePrinter")
+
+        bench.jlm_opt_flags.extend(["--LoadChainSeparation", "--InvariantValueRedirection", "--NodeReduction", "--CommonNodeElimination", "--DeadNodeElimination"])
+        bench.jlm_opt_flags.extend(["--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization"])
+
+        bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
         # Disable linking
-        bench.linker_arguments = None
+        bench.clang_link_flags = None
 
     # If any tasks time out or fail, the script will have a non-zero return code
     return run_benchmarks(benchmarks,

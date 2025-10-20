@@ -66,12 +66,13 @@ benchmark-debug flags="":
 # Aggregate statistics from runs
 aggregate:
     mkdir -p statistics-out
-    ./analysis/aggregate.py --clean --stats-in statistics --stats-out statistics-out
+    ./analysis/aggregate-memstates.py --stats-in statistics --stats-out statistics-out
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
+    ./analysis/compare-memstates.py --stats statistics-out --out results
     #./analysis/plot-file-sizes.py --stats statistics-out --out results
     #./analysis/compare-anf.py --stats statistics-out --out results | tee results/compare-anf.log
     #./analysis/calculate-precision.py --stats statistics-out --out results | tee results/calculate-precision.log
