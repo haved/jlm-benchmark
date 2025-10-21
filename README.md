@@ -1,4 +1,4 @@
-# Artifact for PIP paper
+# jlm benchmarking repository
 
 ## Setup
 If you have a copy of SPEC2017, place it inside the `sources/programs/` folder.
@@ -13,7 +13,41 @@ The artifact assumes you have at least 8 physical cores, and 32 GB of RAM.
 If you have more, then you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
 to make evaluation go faster. The default is 8.
 
-## Running
+## Running without docker
+If you install all dependencies mentioned in the `Dockerfile`, you can run without docker.
+However, some dependencies may be located in different locations on your system.
+To ensure building the benchmarks will still work, you can configure and build all benchmarks from scratch and trace the C compiler invocations using
+``` sh
+./run.sh create-sources-json
+```
+
+Doing this requires having your own copy of `cpu2017.tar.xz` in `sources/programs/`.
+
+This will create a new `sources/sources.json` file, which contains the C compiler invocations involved in building each benchmark program.
+
+If you prefer Apptainer over docker, there is an Apptainer definition file in the `extras/` folder that is equivalent to the `Dockerfile`.
+It can be used without re-creating `sources.json`.
+
+### Running across SLURM nodes
+First make sure the release build of `jlm-opt` has been built.
+
+```sh
+apptainer exec jlm-benchmark.sif just build-release
+```
+
+Make sure you delete any old statistics
+```sh
+apptainer exec jlm-benchmark.sif just purge
+rm -rf slurm-log
+```
+
+Then run `extras/run-slurm.sh` like so:
+```sh
+mkdir -p build statistics
+APPTAINER_CONTAINER=jlm-benchmark.sif sbatch extras/run-slurm.sh
+```
+
+## Running with Docker
 The easiest way to run this artifact is using the provided `Dockerfile`.
 
 Build a docker image with all the needed dependencies using
@@ -53,52 +87,3 @@ If you wish to reset all progress made by the script and start from scratch, you
 docker run -it --mount type=bind,source="$(pwd)",target=/artifact pip-2026-image ./run.sh clean
 ```
 This will remove all builds of `jlm-opt`, all extracted benchmarks, and any results from previous runs.
-
-### Running without docker
-If you install all dependencies mentioned in the `Dockerfile`, you can also run without docker.
-However, some dependencies may be located in different locations on your system.
-To ensure building the benchmarks will still work, you can configure and build all benchmarks from scratch and trace the C compiler invocations using
-``` sh
-./run.sh create-sources-json
-```
-
-Doing this requires having your own copy of `cpu2017.tar.xz` in `sources/programs/`.
-
-This will create a new `sources/sources.json` file, which contains the C compiler invocations involved in building each benchmark program.
-
-If you prefer Apptainer over docker, there is an Apptainer definition file in the `extras/` folder that is equivalent to the `Dockerfile`.
-It can be used without re-creating `sources.json`.
-
-### Running across SLURM nodes
-First make sure the release build of `jlm-opt` has been built.
-
-```sh
-apptainer exec jlm-benchmark.sif just build-release
-```
-
-Make sure you delete any old statistics
-```sh
-apptainer exec jlm-benchmark.sif just purge
-rm -rf slurm-log
-```
-
-Then run `extras/run-slurm.sh` like so:
-```sh
-mkdir -p build statistics
-APPTAINER_CONTAINER=jlm-benchmark.sif sbatch extras/run-slurm.sh
-```
-
-## Performing custom experiments
-If you wish to perform other experiments, there are multiple options for customizing the process:
- - Create your own `sources/sources.json` file containing compilation commands for
-   any C program, and pass it to the `./benchmark.py` script.
-   You may want to use the scripts in `sources/`, or just do it by hand for small programs.
-   
- - Change timeouts and number of iterations at the top of `run.sh`.
-   
- - You can modify the `./benchmark.py` script to add extra flags to `clang`, `opt` and/or `jlm-opt`.
-
- - You can use the `jlm-opt` binary under `jlm/build-release/jlm-opt` directly on any LLVM IR file made with LLVM 18.
-    - Use the flags `--AAAndersenAgnostic --print-andersen-analysis` to dump statistics.
-    - Use the flag `--print-aa-precision-evaluation` to do precision evaluation against LLVM's BasicAA.
-    - Use `-s .` to place the output statistics in the current folder.
