@@ -79,6 +79,7 @@ apptainer exec jlm-benchmark.sif just build-release
 Make sure you delete any old statistics
 ```sh
 apptainer exec jlm-benchmark.sif just purge
+rm -rf slurm-log
 ```
 
 Then run `extras/run-slurm.sh` like so:
