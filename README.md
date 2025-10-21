@@ -13,6 +13,12 @@ The artifact assumes you have at least 8 physical cores, and 32 GB of RAM.
 If you have more, then you can modify the `PARALLEL_INVOCATIONS` variable at the top of `run.sh`,
 to make evaluation go faster. The default is 8.
 
+## Specifying other jlm directory
+Create a file `.env` containing the alternative path, e.g.:
+```
+JLM_PATH=../jlm
+```
+
 ## Running without docker
 If you install all dependencies mentioned in the `Dockerfile`, you can run without docker.
 However, some dependencies may be located in different locations on your system.
@@ -29,21 +35,25 @@ If you prefer Apptainer over docker, there is an Apptainer definition file in th
 It can be used without re-creating `sources.json`.
 
 ### Running across SLURM nodes
-First make sure the release build of `jlm-opt` has been built.
-
-```sh
-apptainer exec jlm-benchmark.sif just build-release
+We use apptainer, so build the image first
+``` sh
+apptainer build --fakeroot jlm-benchmark.sif extras/jlm-benchmark.def
 ```
 
-Make sure you delete any old statistics
+Make sure you delete any old statistics and logs.
 ```sh
 apptainer exec jlm-benchmark.sif just purge
 rm -rf slurm-log
 ```
 
+Then make sure sources are extracted, `jlm-opt` has been built, and `statistics` and `build` folders are ready. 
+This can be done by executing:
+``` sh
+apptainer exec jlm-benchmark.sif ./run.sh dry-run
+```
+
 Then run `extras/run-slurm.sh` like so:
 ```sh
-mkdir -p build statistics
 APPTAINER_CONTAINER=jlm-benchmark.sif sbatch extras/run-slurm.sh
 ```
 

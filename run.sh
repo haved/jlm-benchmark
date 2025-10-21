@@ -31,6 +31,10 @@ if [[ "${1-}" == "clean" ]]; then
     exit 0
 fi
 
+if [[ "${1-}" == "dry-run" ]]; then
+    echo "Setting --dry-run flag"
+    EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --dry-run"
+fi
 
 # Ensure Ctrl-C quits immediately, without starting the next command
 function sigint() {
