@@ -1,5 +1,7 @@
 FROM ubuntu:24.04
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # Install packages needed to build jlm-opt, and packages needed for the benchmarks
 RUN apt-get update && \
     apt-get install -y \

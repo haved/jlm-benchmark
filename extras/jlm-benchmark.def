@@ -14,12 +14,17 @@ From: ubuntu:24.04
 
     apt update
     apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn \
-                   lmod locales doxygen make ninja-build just g++ gfortran bear autoconf texinfo \
-                   llvm-18-dev clang-18 clang-format-18 \
+                   lmod locales doxygen make ninja-build valgrind verilator just g++ gfortran bear autoconf texinfo \
+                   llvm-18-dev clang-18 clang-format-18 libmlir-18-dev mlir-18-tools \
                    $BENCHMARK_DEPENDENCIES
     locale-gen en_US.UTF-8
     update-locale
 
+    # Set up symlinks for libMLIR.so
+    ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/
+    ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/libMLIR.so
+
+    # Install lit using pipx
     pipx install "lit~=18.0"
 
     # Cleanup to reduce image size
