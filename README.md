@@ -40,20 +40,25 @@ We use apptainer, so build the image first
 apptainer build --fakeroot jlm-benchmark.sif extras/jlm-benchmark.def
 ```
 
+Then make sure sources are extracted using:
+``` sh
+apptainer exec jlm-benchmark.sif ./run.sh dry-run
+```
+
+Make sure you have built `jlm-opt` using:
+``` sh
+apptainer exec jlm-benchmark.sif just build-release
+```
+
 Make sure you delete any old statistics and logs.
 ```sh
 apptainer exec jlm-benchmark.sif just purge
 rm -rf slurm-log
 ```
 
-Then make sure sources are extracted, `jlm-opt` has been built, and `statistics` and `build` folders are ready. 
-This can be done by executing:
-``` sh
-apptainer exec jlm-benchmark.sif ./run.sh dry-run
-```
-
 Then run `extras/run-slurm.sh` like so:
 ```sh
+mkdir -p statistics build
 APPTAINER_CONTAINER=jlm-benchmark.sif sbatch extras/run-slurm.sh
 ```
 

@@ -101,7 +101,7 @@ def run_command(args, cwd=None, env_vars=None, *, verbose=0, print_prefix="", ti
                 raise TaskTimeoutError()
 
             try:
-                line = qu.get(timeout=min(60, timeout))
+                line = qu.get(timeout=min(60, timeout if timeout else 60))
                 read_lines += 1
             except queue.Empty:
                 if read_lines == 0:
