@@ -20,7 +20,7 @@ if [ -z ${APPTAINER_NAME+x} ]; then
     exec apptainer exec "$APPTAINER_CONTAINER" "$SELF" "$@"
 fi
 
-# Default JLM_PATH, but let the .env file override it
+# Set a default JLM_PATH, but let the .env file override it
 JLM_PATH="jlm"
 if [ -f .env ]; then
     source .env

@@ -12,8 +12,8 @@ JLM_CXX := env_var_or_default("JLM_CXX", "c++")
 default:
     @just --list
 
-# Clone jlm
-pull-jlm:
+# Clone jlm into the JLM_PATH if it does not already exist
+clone-jlm:
     #!/usr/bin/bash -eu
     if [[ ! -d {{JLM_PATH}} ]]; then
       echo "{{JLM_PATH}} not found, cloning from git!"

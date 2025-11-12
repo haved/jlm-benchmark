@@ -548,6 +548,10 @@ class Benchmark:
         for i, cfile in enumerate(self.cfiles):
             full_name = self.get_full_cfile_name(cfile)
 
+            # TODO: RAM skip
+            if "makesrna_intern_rna_nodetree_gen.c" in full_name:
+                continue
+
             # Skipping running jlm-opt if there is an allowlist and we are not on it
             jlm_opt_flags = self.jlm_opt_flags
             if self.jlm_opt_allowlist is not None and i not in self.jlm_opt_allowlist:
@@ -811,7 +815,7 @@ def main():
 
         bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
-        bench.jlm_opt_flags.extend(["--LoadChainSeparation", "--InvariantValueRedirection", "--NodeReduction", "--CommonNodeElimination", "--DeadNodeElimination"])
+        bench.jlm_opt_flags.extend(["--InvariantValueRedirection", "--NodeReduction", "--CommonNodeElimination", "--DeadNodeElimination"])
         bench.jlm_opt_flags.extend(["--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization"])
 
         bench.jlm_opt_flags.append("--RvsdgTreePrinter")

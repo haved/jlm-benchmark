@@ -11,15 +11,9 @@ import re
 
 def get_memory_node_counts(suffix):
     return [
-        "#TotalAllocaState" + suffix,
-        "#TotalMallocState" + suffix,
-        "#TotalDeltaState" + suffix,
-        "#TotalImportState" + suffix,
-        "#TotalLambdaState" + suffix,
-        "#TotalExternalState" + suffix,
-        "#TotalNonEscapedState" + suffix,
-        "#MaxMemoryState" + suffix,
-        "#MaxNonEscapedMemoryState" + suffix,
+        "#TotalMemoryNodes" + suffix,
+        "#TotalIntervals" + suffix,
+        "#MaxIntervals" + suffix
     ]
 
 def map_optimization_statistic(original_name):
@@ -27,6 +21,7 @@ def map_optimization_statistic(original_name):
         return "OptimizationTime[ns]"
     elif original_name in ["#RvsdgNodesBefore", "#RvsdgNodesAfter"]:
         return original_name + "Sequence"
+
     return "TransformationPass-" + original_name
 
 # For each statistic, this dict contains which values to keep
@@ -36,19 +31,23 @@ METRICS_MAPPING = {
     "AndersenAnalysis": [
         "#RvsdgNodes",
         "#PointsToGraphAllocaNodes", "#PointsToGraphMallocNodes", "#PointsToGraphDeltaNodes", "#PointsToGraphImportNodes", "#PointsToGraphLambdaNodes",
-        "#PointsToGraphMemoryNodes", "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes", ("AnalysisTimer[ns]", "AndersenAnalysisTimer[ns]"),
+        "#PointsToGraphMemoryNodes", "#PointsToGraphRegisterNodes", "#PointsToGraphEscapedNodes", "#PointsToGraphNodes", "#PointsToGraphEdges",
+        ("AnalysisTimer[ns]", "AndersenAnalysisTimer[ns]"),
         ("SetAndConstraintBuildingTimer[ns]", "AndersenSetBuildingTimer[ns]"), ("OVSTimer[ns]", "AndersenOVSTimer[ns]"),
         ("ConstraintSolvingWorklistTimer[ns]", "AndersenWorklistTimer[ns]"), "PointsToGraphConstructionTimer[ns]",
     ],
     "RegionAwareModRefSummarizer": [
+        "#SimpleAllocas",
         "#NonReentrantAllocas",
         "CallGraphTimer[ns]",
         "AllocasDeadInSccsTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "NonReentrantAllocaSetsTimer[ns]",
-        "CreateExternalModRefSetTimer[ns]",
+        "CreateExternalModRefNodeTimer[ns]",
         "AnnotationTimer[ns]",
-        "SolvingTimer[ns]"
+        "SolvingTimer[ns]",
+        "CreateMemoryNodeOrderingTimer[ns]",
+        "CreateModRefSummaryTimer[ns]",
     ],
     "MemoryStateEncoder": [
         "#IntraProceduralRegions",
@@ -59,6 +58,9 @@ METRICS_MAPPING = {
         *get_memory_node_counts("sThroughStore"),
         "#CallEntryMergeOperations",
         *get_memory_node_counts("sIntoCallEntryMerge"),
+        "#ModRefSetOperations",
+        "#TotalModRefSetIntervals",
+        "#TotalLiveIntervals",
         ("Time[ns]", "MemoryStateEncodingTime[ns]")
     ],
     "InterProceduralGraphToRvsdg": [
@@ -149,24 +151,17 @@ def extract_file_data(folder):
 
     return pd.DataFrame(file_datas)
 
-def calculate_total_memory_states(file_data, suffix):
-    file_data["#TotalMemoryState" + suffix] = (
-        file_data["#TotalAllocaState" + suffix] +
-        file_data["#TotalMallocState" + suffix] +
-        file_data["#TotalDeltaState" + suffix] +
-        file_data["#TotalImportState" + suffix] +
-        file_data["#TotalLambdaState" + suffix] +
-        file_data["#TotalExternalState" + suffix])
-
 def calculate_total_ramrs_time(file_data):
     file_data["RegionAwareModRefSummarizerTime[ns]"] = (
         file_data["CallGraphTimer[ns]"] +
         file_data["AllocasDeadInSccsTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
         file_data["NonReentrantAllocaSetsTimer[ns]"] +
-        file_data["CreateExternalModRefSetTimer[ns]"] +
+        file_data["CreateExternalModRefNodeTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
-        file_data["SolvingTimer[ns]"])
+        file_data["SolvingTimer[ns]"] +
+        file_data["CreateMemoryNodeOrderingTimer[ns]"] +
+        file_data["CreateModRefSummaryTimer[ns]"])
 
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
@@ -188,7 +183,8 @@ def main():
         return os.path.join(args.stats_out, filename)
 
     data = (
-        make_file_data(os.path.join(args.stats_in, "raware-extra-stats"), "RegionAwareModRef"),
+        make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
+        #make_file_data(os.path.join(args.stats_in, "raware-no-tricks-new-cne"), "RegionAwareModRef-NoTricks-NewCNE"),
         #make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
         #make_file_data(os.path.join(args.stats_in, "raware-sans-dead-alloca-blocklist"), "RegionAwareModRef-SansDeadAllocaBlocking"),
         #make_file_data(os.path.join(args.stats_in, "raware-sans-non-reentrant-alloca-blocklist"), "RegionAwareModRef-SansNonReeentrantAllocaBlocking"),
@@ -199,10 +195,6 @@ def main():
     )
     file_data = pd.concat(data)
 
-    calculate_total_memory_states(file_data, "Arguments")
-    calculate_total_memory_states(file_data, "sThroughLoad")
-    calculate_total_memory_states(file_data, "sThroughStore")
-    calculate_total_memory_states(file_data, "sIntoCallEntryMerge")
     calculate_total_ramrs_time(file_data)
 
     file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]

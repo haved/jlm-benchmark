@@ -118,6 +118,32 @@ def plot_scatter(file_data, configuration, x_axis, y_axis, savefig=None, plotly=
 
     plt.title(configuration)
     plt.xlabel(x_axis)
+    plt.ylabel(y_axis)
+
+    plt.tight_layout(pad=0.2)
+
+    if savefig is not None:
+        plt.savefig(savefig)
+    else:
+        plt.show()
+
+def plot_scatter_between_configs(file_data, column, x_axis, y_axis, savefig=None, plotly=False):
+    data_x = file_data[file_data["Configuration"] == x_axis].set_index("cfile")[column]
+    data_y = file_data[file_data["Configuration"] == y_axis].set_index("cfile")[column]
+
+    data = pd.DataFrame({x_axis: data_x, y_axis: data_y}).reset_index()
+
+    if plotly:
+        fig = px.scatter(data, x=x_axis, y=y_axis, title=column, hover_data=['cfile'])
+        fig.show()
+        return
+
+    plt.figure(figsize=(7,3))
+
+    sns.scatterplot(data, x=x_axis, y=y_axis)
+
+    plt.title(column)
+    plt.xlabel(x_axis)
     plt.xlabel(y_axis)
 
     plt.tight_layout(pad=0.2)
@@ -259,11 +285,10 @@ def main():
     file_data["AndersenAnalysisTimer[us]"] = file_data["AndersenAnalysisTimer[ns]"] / 1000
     file_data["RegionAwareModRefSummarizerTime[us]"] = file_data["RegionAwareModRefSummarizerTime[ns]"] / 1000
     file_data["MemoryStateEncodingTime[us]"] = file_data["MemoryStateEncodingTime[ns]"] / 1000
-    file_data["LoadChainSeparation[us]"] = file_data["TransformationPass-003-LoadChainSeparation[ns]"] / 1000
-    file_data["InvariantValueRedirection[us]"] = file_data["TransformationPass-004-InvariantValueRedirection[ns]"] / 1000
-    file_data["NodeReduction[us]"] = file_data["TransformationPass-005-NodeReduction[ns]"] / 1000
-    file_data["CommonNodeElimination[us]"] = file_data["TransformationPass-006-CommonNodeElimination[ns]"] / 1000
-    file_data["DeadNodeElimination[us]"] = file_data["TransformationPass-007-DeadNodeElimination[ns]"] / 1000
+    file_data["InvariantValueRedirection[us]"] = file_data["TransformationPass-003-InvariantValueRedirection-Timer[ns]"] / 1000
+    file_data["NodeReduction[us]"] = file_data["TransformationPass-004-NodeReduction-Timer[ns]"] / 1000
+    file_data["CommonNodeElimination[us]"] = file_data["TransformationPass-005-CommonNodeElimination-Timer[ns]"] / 1000
+    file_data["DeadNodeElimination[us]"] = file_data["TransformationPass-006-DeadNodeElimination-Timer[ns]"] / 1000
     file_data["RvsdgDestructionTime[us]"] = file_data["RvsdgDestructionTime[ns]"] / 1000
 
     passes = [
@@ -271,7 +296,6 @@ def main():
         "AndersenAnalysisTimer[us]",
         "RegionAwareModRefSummarizerTime[us]",
         "MemoryStateEncodingTime[us]",
-        "LoadChainSeparation[us]",
         "InvariantValueRedirection[us]",
         "NodeReduction[us]",
         "CommonNodeElimination[us]",
@@ -281,23 +305,43 @@ def main():
 
     table_quartiles_per_column(file_data, "RegionAwareModRef", passes)
 
-    raware_steps = ["CallGraphTimer[ns]",
-                    "AllocasDeadInSccsTimer[ns]",
-                    "SimpleAllocasSetTimer[ns]",
-                    "NonReentrantAllocaSetsTimer[ns]",
-                    "CreateExternalModRefSetTimer[ns]",
-                    "AnnotationTimer[ns]",
-                    "SolvingTimer[ns]"]
+    raware_steps = [
+        "CallGraphTimer[ns]",
+        "AllocasDeadInSccsTimer[ns]",
+        "SimpleAllocasSetTimer[ns]",
+        "NonReentrantAllocaSetsTimer[ns]",
+        "CreateExternalModRefNodeTimer[ns]",
+        "AnnotationTimer[ns]",
+        "SolvingTimer[ns]",
+        "CreateMemoryNodeOrderingTimer[ns]",
+        "CreateModRefSummaryTimer[ns]",
+        ]
     table_quartiles_per_column(file_data, "RegionAwareModRef", raware_steps)
 
     andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
     table_quartiles_per_column(file_data, "RegionAwareModRef", andersen_steps)
 
-    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
-    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)
-    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="CommonNodeElimination[us]", savefig=result("cne-time-vs-size.pdf"), plotly=plotly)
+    file_data["MeanLiveIntervals"] = file_data["#TotalLiveIntervals"] / file_data["#ModRefSetOperations"]
+    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MeanLiveIntervals", plotly=plotly)
 
-    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodesBeforeSequence", y_axis="#RvsdgNodesAfterSequence", savefig=result("size-before-vs-after.pdf"), plotly=plotly)
+    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="#ModRefSetOperations", plotly=plotly)
+
+    file_data["MeanModRefSetIntervals"] = file_data["#TotalModRefSetIntervals"] / file_data["#ModRefSetOperations"]
+    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MeanModRefSetIntervals", plotly=plotly)
+
+    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
+    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)
+
+    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodesBeforeSequence", y_axis="#RvsdgNodesAfterSequence", savefig=result("size-before-vs-after.pdf"), plotly=plotly)
+
+    # Time it takes to make Non reentrant alloca sets, against size of PtG
+    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#PointsToGraphEdges", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
+    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#PointsToGraphAllocaNodes", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
+    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#NonReentrantAllocas", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
+
+    #file_data["#RelevantOperations"] = file_data["#IntraProceduralRegions"] + file_data["#LoadOperations"] + file_data["#StoreOperations"] + file_data["#CallEntryMergeOperations"]
+    #for step in ramrs_steps:
+    #    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RelevantOperations", y_axis=step, plotly=True)
 
     #table_quartiles_per_configuration(file_data, raware_configurations, "MemoryStateEncodingTime[ns]")
     #table_quartiles_per_configuration(file_data, raware_configurations, "RegionAwareModRefSummarizerTime[ns]")

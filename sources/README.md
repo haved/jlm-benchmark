@@ -17,6 +17,9 @@ They are licenced as follows:
 Full license documents for these programs can be found inside their respective archives.
 They can all be found in the `programs/` folder.
 
+### Polybench
+ - TODO
+
 ### SPEC 2017 benchmarks
 We use the following benchmarks from SPEC2017:
  - 500.perlbench
@@ -62,20 +65,24 @@ just programs/extract-redist2017
 just prorams/extract-cpu2017
 ```
 
-### Tracing build commands
+### Creating sources.json for your machine
 The file `sources-raw.json` contains all the compiler invocations used to build the programs,
 created by tracing complete builds of the target programs.
 The SPEC2017 traces were created from the `make.out` log files,
 while the open source programs were traced using the `bear` utility.
 
-If you are not running on Ubuntu, or using the provided Docker image, the build commands might not work on your system.
+If you are not using the provided Docker image, the build commands might not work on your system.
 You can perform fresh builds and trace your own build commands, if you have provided a copy of `cpu2017.tar.xz`.
+You need to have `llvm-config-18` in your PATH, as well as a lot of dependencies for the free benchmarks.
+See `../Dockerfile` for list of suggestions.
 
-In the current directory, run:
+From the root of the repository, create fresh sources json files using:
+
 ``` sh
-just build-all-benchmarks
-just create-sources-json
+./run.sh create-sources-json
+
+# To create the original docker-based sources.json, run in the docker image
+docker run -it --mount type=bind,source="$(pwd)",target=/benchmark jlm-benchmark-image ./run.sh create-sources-json
 ```
 
-Note that you need to have `llvm-config-18` in your PATH, as well as a lot of dependencies for the free benchmarks.
-See `../Dockerfile` for list of suggestions.
+
