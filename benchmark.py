@@ -804,6 +804,8 @@ def main():
 
         bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes"])
 
+        bench.jlm_opt_flags.extend(["--InvariantValueRedirection", "--CommonNodeElimination", "--DeadNodeElimination", "--RvsdgTreePrinter"])
+
         if args.agnosticModRef:
             bench.jlm_opt_flags.extend(["--AAAndersenAgnostic", "--print-agnostic-mod-ref-summarization", "--print-basicencoder-encoding"])
 

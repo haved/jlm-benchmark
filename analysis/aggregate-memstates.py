@@ -11,9 +11,18 @@ import re
 
 def get_memory_node_counts(suffix):
     return [
-        "#TotalMemoryNodes" + suffix,
-        "#TotalIntervals" + suffix,
-        "#MaxIntervals" + suffix
+        "#TotalAllocaState" + suffix,
+        "#TotalMallocState" + suffix,
+        "#TotalDeltaState" + suffix,
+        "#TotalImportState" + suffix,
+        "#TotalLambdaState" + suffix,
+        "#TotalExternalState" + suffix,
+        "#TotalNonEscapedState" + suffix,
+        "#MaxMemoryState" + suffix,
+        "#MaxNonEscapedMemoryState" + suffix,
+        #"#TotalMemoryNodes" + suffix,
+        #"#TotalIntervals" + suffix,
+        #"#MaxIntervals" + suffix
     ]
 
 def map_optimization_statistic(original_name):
@@ -43,11 +52,11 @@ METRICS_MAPPING = {
         "AllocasDeadInSccsTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "NonReentrantAllocaSetsTimer[ns]",
-        "CreateExternalModRefNodeTimer[ns]",
+        "CreateExternalModRefSetTimer[ns]", # Node
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
-        "CreateMemoryNodeOrderingTimer[ns]",
-        "CreateModRefSummaryTimer[ns]",
+        #"CreateMemoryNodeOrderingTimer[ns]",
+        #"CreateModRefSummaryTimer[ns]",
     ],
     "MemoryStateEncoder": [
         "#IntraProceduralRegions",
@@ -157,11 +166,9 @@ def calculate_total_ramrs_time(file_data):
         file_data["AllocasDeadInSccsTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
         file_data["NonReentrantAllocaSetsTimer[ns]"] +
-        file_data["CreateExternalModRefNodeTimer[ns]"] +
+        file_data["CreateExternalModRefSetTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
-        file_data["SolvingTimer[ns]"] +
-        file_data["CreateMemoryNodeOrderingTimer[ns]"] +
-        file_data["CreateModRefSummaryTimer[ns]"])
+        file_data["SolvingTimer[ns]"])
 
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
@@ -184,20 +191,35 @@ def main():
 
     data = (
         make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
-        #make_file_data(os.path.join(args.stats_in, "raware-no-tricks-new-cne"), "RegionAwareModRef-NoTricks-NewCNE"),
-        #make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
-        #make_file_data(os.path.join(args.stats_in, "raware-sans-dead-alloca-blocklist"), "RegionAwareModRef-SansDeadAllocaBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-sans-non-reentrant-alloca-blocklist"), "RegionAwareModRef-SansNonReeentrantAllocaBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-sans-operation-size-blocking"), "RegionAwareModRef-SansOperationSizeBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-sans-constant-memory-blocking"), "RegionAwareModRef-SansConstantMemoryBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "agnostic"), "AgnosticModRef"),
-        #make_file_data(os.path.join(args.stats_in, "m2r"), "Mem2Reg")
+        make_file_data(os.path.join(args.stats_in, "raware-no-tricks"), "RegionAwareModRef-NoTricks"),
+        make_file_data(os.path.join(args.stats_in, "raware-only-dead-alloca-blocklist"), "RegionAwareModRef-OnlyDeadAllocaBlocking"),
+        make_file_data(os.path.join(args.stats_in, "raware-only-non-reentrant-alloca-blocklist"), "RegionAwareModRef-OnlyNonReeentrantAllocaBlocking"),
+        make_file_data(os.path.join(args.stats_in, "raware-only-operation-size-blocking"), "RegionAwareModRef-OnlyOperationSizeBlocking"),
+        make_file_data(os.path.join(args.stats_in, "raware-only-constant-memory-blocking"), "RegionAwareModRef-OnlyConstantMemoryBlocking"),
+        make_file_data(os.path.join(args.stats_in, "agnostic"), "AgnosticModRef"),
+        make_file_data(os.path.join(args.stats_in, "m2r"), "Mem2Reg")
     )
     file_data = pd.concat(data)
 
     calculate_total_ramrs_time(file_data)
 
     file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]
+
+    def add_total_memory_state_column(suffix):
+        file_data["#TotalMemoryState" + suffix] = (
+            file_data["#TotalAllocaState" + suffix] +
+            file_data["#TotalMallocState" + suffix] +
+            file_data["#TotalDeltaState" + suffix] +
+            file_data["#TotalImportState" + suffix] +
+            file_data["#TotalLambdaState" + suffix] +
+            file_data["#TotalExternalState" + suffix]
+        )
+
+    add_total_memory_state_column("Arguments")
+    add_total_memory_state_column("sThroughLoad")
+    add_total_memory_state_column("sThroughStore")
+    add_total_memory_state_column("sIntoCallEntryMerge")
+
 
     file_data.to_csv(stats_out("memstate-file-data.csv"))
 

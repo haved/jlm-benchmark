@@ -9,6 +9,7 @@ import re
 
 PROGRAM_FOLDER = "programs"
 SPEC2017_FOLDER = f"{PROGRAM_FOLDER}/cpu2017/benchspec/CPU"
+POLYBENCH_FOLDER = f"{PROGRAM_FOLDER}/polybench-c-4.2.1-beta"
 
 # The script should be run from the sources folder
 SCRIPT_ROOT = os.getcwd()
@@ -16,7 +17,44 @@ SCRIPT_ROOT = os.getcwd()
 C_COMPILERS = ["clang", "clang18", "gcc", "jlc", "cc"]
 LINKERS = ["clang", "clang18", "clang++", "clang++18", "gcc", "jlc", "cc"]
 
+# Compilation commands for SPEC are extracted from the buildXXX/make.out log file
 SPEC_PROGRAMS = ["500.perlbench", "502.gcc", "505.mcf", "507.cactuBSSN", "525.x264", "526.blender", "538.imagick", "557.xz", "544.nab"]
+
+# Compilation commands for Polybench are created manually according to the pattern given in their README
+POLYBENCH_PROGRAMS = {
+    "polybench-correlation": "datamining/correlation/correlation.c",
+    "polybench-covariance": "datamining/covariance/covariance.c",
+    "polybench-2mm": "linear-algebra/kernels/2mm/2mm.c",
+    "polybench-3mm": "linear-algebra/kernels/3mm/3mm.c",
+    "polybench-atax": "linear-algebra/kernels/atax/atax.c",
+    "polybench-bicg": "linear-algebra/kernels/bicg/bicg.c",
+    "polybench-doitgen": "linear-algebra/kernels/doitgen/doitgen.c",
+    "polybench-mvt": "linear-algebra/kernels/mvt/mvt.c",
+    "polybench-gemm": "linear-algebra/blas/gemm/gemm.c",
+    "polybench-gemver": "linear-algebra/blas/gemver/gemver.c",
+    "polybench-gesummv": "linear-algebra/blas/gesummv/gesummv.c",
+    "polybench-symm": "linear-algebra/blas/symm/symm.c",
+    "polybench-syr2k": "linear-algebra/blas/syr2k/syr2k.c",
+    "polybench-syrk": "linear-algebra/blas/syrk/syrk.c",
+    "polybench-trmm": "linear-algebra/blas/trmm/trmm.c",
+    "polybench-cholesky": "linear-algebra/solvers/cholesky/cholesky.c",
+    "polybench-durbin": "linear-algebra/solvers/durbin/durbin.c",
+    "polybench-gramschmidt": "linear-algebra/solvers/gramschmidt/gramschmidt.c",
+    "polybench-lu": "linear-algebra/solvers/lu/lu.c",
+    "polybench-ludcmp": "linear-algebra/solvers/ludcmp/ludcmp.c",
+    "polybench-trisolv": "linear-algebra/solvers/trisolv/trisolv.c",
+    "polybench-deriche": "medley/deriche/deriche.c",
+    "polybench-floyd-warshall": "medley/floyd-warshall/floyd-warshall.c",
+    "polybench-nussinov": "medley/nussinov/nussinov.c",
+    "polybench-adi": "stencils/adi/adi.c",
+    "polybench-fdtd-2d": "stencils/fdtd-2d/fdtd-2d.c",
+    "polybench-heat-3d": "stencils/heat-3d/heat-3d.c",
+    "polybench-jacobi-1d": "stencils/jacobi-1d/jacobi-1d.c",
+    "polybench-jacobi-2d": "stencils/jacobi-2d/jacobi-2d.c",
+    "polybench-seidel-2d": "stencils/seidel-2d/seidel-2d.c",
+}
+
+# Compilation commands to build these programs are extracted from compile_commands.json
 OTHER_PROGRAMS = ["emacs-29.4", "ghostscript-10.04.0", "gdb-15.2", "sendmail-8.18.1"]
 
 def make_relative_to(path, base):
@@ -84,7 +122,7 @@ class Program:
         :param folder: the folder in which the program is, relative to SCRIPT_ROOT
         :param cfiles: a list of CFile objects representing compiling C files into object files
         :param linker_wordir: the working dir of the linking command
-        :param ofiles: a list of linked of object file paths, all relative to linker_workdir
+        :param ofiles: a list of linked object file paths, all relative to linker_workdir
         :param elffile: the name of the elf output, relative to linker_workdir
         :param linker_arguments: extra arguments given to the linker
         """
@@ -226,6 +264,42 @@ def program_from_spec(spec_program):
     return program_from_spec_make(make_out_file)
 
 # =====================================================================
+#     Functions for creating build commands for polybench
+# =====================================================================
+def program_from_polybench(program, main_cfile):
+    # All polybench builds are done relative to the root of polybench
+    workdir=POLYBENCH_FOLDER
+
+    # The directory containing e.g. atax.c and atax.h
+    program_dir=os.path.dirname(main_cfile)
+
+    # Invent a fake build folder, since we never actually build polybench here
+    builddir=os.path.join(workdir, "build")
+
+    cfiles = []
+    ofiles = []
+
+    def add_cfile(cfile):
+        # relative to builddir
+        ofile = cfile[:-2] + ".o"
+        ofiles.append(ofile)
+
+        ofile_relative_to_workdir = os.path.join("build", ofile)
+        cfiles.append(CFile(working_dir=workdir, cfile=cfile, ofile=ofile_relative_to_workdir,
+                            arguments=["-I", "utilities", "-I", program_dir, "-DPOLYBENCH_TIME", "-DPOLYBENCH_DUMP_ARRAYS"]))
+
+    add_cfile(main_cfile),
+    add_cfile("utilities/polybench.c")
+
+    # Relative to builddir
+    elffile = main_cfile[:-2] # Remove .c
+
+    program = Program(folder=workdir, cfiles=cfiles, linker_workdir=builddir,
+                      ofiles=ofiles, elffile=elffile, linker_arguments=[])
+
+    return program
+
+# =====================================================================
 #      Creates a program using compile_commands.json
 # =====================================================================
 def program_from_folder(folder):
@@ -312,6 +386,14 @@ def main():
             continue
         print(f"Trying to index program {program}")
         program_object = program_from_spec(program)
+        if program_object is not None:
+            programs[program] = program_object
+
+    for program, cfile in POLYBENCH_PROGRAMS.items():
+        if should_skip(program):
+            continue
+        print(f"Trying to index program {program}")
+        program_object = program_from_polybench(program, cfile)
         if program_object is not None:
             programs[program] = program_object
 

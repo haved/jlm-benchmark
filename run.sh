@@ -15,6 +15,7 @@ PARALLEL_INVOCATIONS=8
 # EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
 # |507\\.cactuBSSN|538\\.imagick"'
 # EXTRA_BENCH_OPTIONS='--timeout 600'
+EXTRA_BENCH_OPTIONS='--filter="polybench"'
 
 # Restore the artifact back to a clean state by using ./run.sh clean
 # If you have made any changes to sources.json, they are not restored
@@ -85,26 +86,26 @@ set +e
 just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
 just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --useMem2reg --builddir build/raware --statsdir statistics/m2r"
 
-#export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
-#export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
-#export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
-#export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-no-tricks"
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-no-tricks"
 
-#unset JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-dead-alloca-blocklist"
-#export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
+unset JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-dead-alloca-blocklist"
+export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
 
-#unset JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-non-reentrant-alloca-blocklist"
-#export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
+unset JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-non-reentrant-alloca-blocklist"
+export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1
 
-#unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-operation-size-blocking"
-#export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-operation-size-blocking"
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
 
-#unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-constant-memory-blocking"
-#export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware-only-constant-memory-blocking"
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
 
-#just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/raware --statsdir statistics/agnostic"
+just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --agnosticModRef --builddir build/raware --statsdir statistics/agnostic"

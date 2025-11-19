@@ -12,6 +12,7 @@ _default:
 build-all-benchmarks:
     just programs/build-all-free
     just programs/build-cpu2017
+    # Polybench is not built, as we are able to create compilation commands by hand
 
 # After all benchmarks have been built and traced, create sources-raw.json
 create-sources-raw-json:
