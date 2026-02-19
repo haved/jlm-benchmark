@@ -284,37 +284,12 @@ def main():
                              "RegionAwareModRef-OnlyOperationSizeBlocking",
                              "RegionAwareModRef-OnlyConstantMemoryBlocking",
                              "RegionAwareModRef-NoTricks"]
+    #passes = [
+    #    "RvsdgConstructionTime[us]",
+    #    "RvsdgDestructionTime[us]",
+    #]
 
-
-    file_data["RvsdgConstructionTime[us]"] = file_data["RvsdgConstructionTime[ns]"] / 1000
-    file_data["1stInvariantValueRedirection[us]"] = file_data["TransformationPass-001-InvariantValueRedirection-Timer[ns]"] / 1000
-    file_data["1stCommonNodeElimination[us]"] = file_data["TransformationPass-002-CommonNodeElimination-Timer[ns]"] / 1000
-    file_data["1stDeadNodeElimination[us]"] = file_data["TransformationPass-003-DeadNodeElimination-Timer[ns]"] / 1000
-    file_data["AndersenAnalysisTimer[us]"] = file_data["AndersenAnalysisTimer[ns]"] / 1000
-    file_data["RegionAwareModRefSummarizerTime[us]"] = file_data["RegionAwareModRefSummarizerTime[ns]"] / 1000
-    file_data["MemoryStateEncodingTime[us]"] = file_data["MemoryStateEncodingTime[ns]"] / 1000
-    file_data["2ndInvariantValueRedirection[us]"] = file_data["TransformationPass-007-InvariantValueRedirection-Timer[ns]"] / 1000
-    file_data["2ndNodeReduction[us]"] = file_data["TransformationPass-008-NodeReduction-Timer[ns]"] / 1000
-    file_data["2ndCommonNodeElimination[us]"] = file_data["TransformationPass-009-CommonNodeElimination-Timer[ns]"] / 1000
-    file_data["2ndDeadNodeElimination[us]"] = file_data["TransformationPass-010-DeadNodeElimination-Timer[ns]"] / 1000
-    file_data["RvsdgDestructionTime[us]"] = file_data["RvsdgDestructionTime[ns]"] / 1000
-
-    passes = [
-        "RvsdgConstructionTime[us]",
-        "1stInvariantValueRedirection[us]",
-        "1stCommonNodeElimination[us]",
-        "1stDeadNodeElimination[us]",
-        "AndersenAnalysisTimer[us]",
-        "RegionAwareModRefSummarizerTime[us]",
-        "MemoryStateEncodingTime[us]",
-        "2ndInvariantValueRedirection[us]",
-        "2ndNodeReduction[us]",
-        "2ndCommonNodeElimination[us]",
-        "2ndDeadNodeElimination[us]",
-        "RvsdgDestructionTime[us]",
-    ]
-
-    table_quartiles_per_column(file_data, "RegionAwareModRef", passes)
+    #table_quartiles_per_column(file_data, "RegionAwareModRef", passes)
 
     raware_steps = [
         "CallGraphTimer[ns]",
@@ -346,29 +321,35 @@ def main():
 
     table_quartiles_per_configuration(file_data, raware_configurations, "MemoryStateEncodingTime[ns]")
     table_quartiles_per_configuration(file_data, raware_configurations, "RegionAwareModRefSummarizerTime[ns]")
+    table_quartiles_per_configuration(file_data, raware_configurations, "StoreValueForwardingTime[ns]")
 
     print()
 
-    table_quartiles_per_configuration(file_data, raware_configurations, "#TotalMemoryStateArguments")
-    file_data["AverageMemoryStateArguments"] = file_data["#TotalMemoryStateArguments"] / file_data["#IntraProceduralRegions"]
-    table_quartiles_per_configuration(file_data, raware_configurations, "AverageMemoryStateArguments")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "#TotalMemoryStateArguments")
+    #file_data["AverageMemoryStateArguments"] = file_data["#TotalMemoryStateArguments"] / file_data["#IntraProceduralRegions"]
+    #table_quartiles_per_configuration(file_data, raware_configurations, "AverageMemoryStateArguments")
 
-    file_data["ReentrantAllocaRatio"] = 1 - file_data["#NonReentrantAllocas"] / file_data["#PointsToGraphAllocaNodes"]
-    table_quartiles_per_configuration(file_data, ["RegionAwareModRef", "Mem2Reg"], "ReentrantAllocaRatio", fmt="{:.4f}")
+    #file_data["ReentrantAllocaRatio"] = 1 - file_data["#NonReentrantAllocas"] / file_data["#PointsToGraphAllocaNodes"]
+    #table_quartiles_per_configuration(file_data, ["RegionAwareModRef", "Mem2Reg"], "ReentrantAllocaRatio", fmt="{:.4f}")
 
     print()
 
-    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes"])
-    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes"])
-    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes"])
+    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes", "Tree4-NumAllocaNodes"])
+    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
+    table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
 
     table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes"])
     table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes"])
     table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes"])
 
-    table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes"])
-    table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes"])
-    table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes"])
+    print()
+
+    table_quartiles_per_column(file_data, "RegionAwareModRef", ["#TotalLoads", "#LoadsForwarded"])
+    table_quartiles_per_column(file_data, "Mem2Reg", ["#TotalLoads", "#LoadsForwarded"])
+
+    #table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes"])
+    #table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes"])
+    #table_quartiles_per_column(file_data, "AgnosticModRef", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes"])
 
     #table_quartiles_per_configuration(file_data, ["RegionAwareModRef", "Mem2Reg"], "#RvsdgNodes")
 

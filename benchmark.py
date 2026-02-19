@@ -799,12 +799,18 @@ def main():
         # Uncomment the below line to run opt on each LLVM IR file before passing it to jlm-opt
         # bench.opt_flags = ["--passes=mem2reg"]
 
+        if args.useMem2reg:
+            bench.opt_flags = ["-passes=mem2reg"]
+
         # Configure the flags sent to jlm-opt here
-        bench.jlm_opt_flags = ["--print-andersen-analysis"] # , "--print-aa-precision-evaluation"] # "--print-andersen-analysis",
+        bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-store-value-forwarding", "--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization"]
+        bench.jlm_opt_flags.append("--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes")# , "--print-aa-precision-evaluation"]
 
-        bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes"])
+        bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
-        bench.jlm_opt_flags.extend(["--InvariantValueRedirection", "--CommonNodeElimination", "--DeadNodeElimination", "--RvsdgTreePrinter"])
+        bench.jlm_opt_flags.extend(["--PredicateCorrelation", "--LoopUnswitching", "--CommonNodeElimination", "--InvariantValueRedirection", "--DeadNodeElimination"])
+
+        bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
         if args.agnosticModRef:
             bench.jlm_opt_flags.extend(["--AAAndersenAgnostic", "--print-agnostic-mod-ref-summarization", "--print-basicencoder-encoding"])
@@ -812,13 +818,13 @@ def main():
         if args.regionAwareModRef or args.useMem2reg:
             bench.jlm_opt_flags.extend(["--AAAndersenRegionAware", "--print-mod-ref-summarization", "--print-basicencoder-encoding"])
 
-        if args.useMem2reg:
-            bench.opt_flags = ["-passes=mem2reg"]
+        bench.jlm_opt_flags.append("--RvsdgTreePrinter")
+
+        bench.jlm_opt_flags.append("--StoreValueForwarding")
 
         bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
-        bench.jlm_opt_flags.extend(["--InvariantValueRedirection", "--NodeReduction", "--CommonNodeElimination", "--DeadNodeElimination"])
-        bench.jlm_opt_flags.extend(["--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization"])
+        bench.jlm_opt_flags.extend(["--LoadChainSeparation", "--CommonNodeElimination", "--InvariantValueRedirection", "--NodeReduction", "--DeadNodeElimination"])
 
         bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 

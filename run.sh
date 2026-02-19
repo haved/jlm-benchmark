@@ -9,7 +9,7 @@ set -eu
 # Run multiple jlm-opt invocations at once during benchmarking
 # You should probably have a least have 4GB RAM and one physical core per invocation.
 # Default: 8, to run on a machine with 8 physical cores and 32 GB of RAM.
-PARALLEL_INVOCATIONS=8
+PARALLEL_INVOCATIONS=1
 
 # If you wish to pass extra options to all the benchmarking invocations, uncomment this variable.
 # EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264"'
@@ -71,8 +71,8 @@ just clone-jlm
 
 # Build the jlm-opt binary
 echo "Building jlm-opt"
-just build-debug
 just build-release
+just build-debug
 
 # Ensure Ctrl-C quits immediately, without starting the next command
 function sigint() {
@@ -81,10 +81,16 @@ function sigint() {
 }
 trap sigint SIGINT
 
-echo "Starting benchmarking of jlm-opt on all files in ${SOURCES_JSON}"
+echo "Starting benchmarking of jlm-opt"
 set +e
+
+#just benchmark-debug "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/debug-raware --statsdir statistics/debug-raware"
+#exit 0
+
 just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/raware --statsdir statistics/raware"
+
 just benchmark-release "--sources=$SOURCES_JSON -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --useMem2reg --builddir build/raware --statsdir statistics/m2r"
+exit 0
 
 export JLM_DISABLE_DEAD_ALLOCA_BLOCKLIST=1
 export JLM_DISABLE_NON_REENTRANT_ALLOCA_BLOCKLIST=1

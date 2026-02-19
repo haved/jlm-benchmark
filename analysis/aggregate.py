@@ -187,7 +187,7 @@ def extract_or_load(stats_in, file_data_out):
 def main():
     parser = argparse.ArgumentParser(description='Process raw benchmark statistics from the given folders.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', required=True,
-                        help='The folder where release and release_anf with log files are located')
+                        help='The folder where statistics directories with log files are located')
     parser.add_argument('--stats-out', dest='stats_out', action='store', required=True,
                         help='Folder where aggregated statistics files should be placed')
     parser.add_argument('--clean', dest='clean', action='store_true',
