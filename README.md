@@ -28,7 +28,7 @@ Inside `run.sh` you can modify the variable `EXTRA_BENCH_OPTIONS` to pass argume
 Here you can specify things like filters on which benchmarks to include, or timeouts for `jlm-opt` invocations.
 
 When running your own experiments, you should add new command line arguments inside `benchmark.py`,
-and then trigger them from `run.py`, either using `EXTRA_BENCH_OPTIONS`, or by passing them in directly.
+and then trigger them from `run.sh`, either using `EXTRA_BENCH_OPTIONS`, or by manually changing the invocations at the bottom of the file.
 
 ## Running with Docker
 The easiest way to run the benchmarks is using the provided `Dockerfile`.
@@ -58,11 +58,11 @@ The `run.sh` script does the following:
    
    - Extract the subset of SPEC2017 that is available in `redistributed_sources/`.
    
- - Clones the jlm compiler
+ - Clones the jlm compiler (if not already cloned)
    
  - Builds the jlm compiler
    
- - Starts the actual benchmarking
+ - Runs the benchmarking
 
 ## Restarting benchmarking
 If the `run.sh` script is for some reason aborted, it can be restarted and resume roughly where it left off.
