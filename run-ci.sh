@@ -10,7 +10,9 @@ else
   PARALLEL_INVOCATIONS=`nproc`
 fi
 
-EXTRA_BENCH_OPTIONS=''
+JLM_OPT=""
+EXTRA_BENCH_OPTIONS=""
+LLVM_BIN=""
 
 EXTRACT_ALL=true
 EXTRACT_SPEC=false
@@ -26,6 +28,10 @@ function usage()
 	echo ""
 	echo "  --parallel #THREADS   The number of threads to run in parallel."
 	echo "                        Default=[${PARALLEL_INVOCATIONS}]"
+	echo "  --jlm-opt             Path to the jlm-opt binary."
+	echo "                        Default=[${JLM_OPT}]"
+	echo "  --llvm-bin            Path to the llvm binary directory."
+	echo "                        Default=[${LLVM_BIN}]"
 	echo "  --polybench           Compile polybench."
 	echo "  --spec                Extract and compile SPEC."
 	echo "  --emacs               Extract and compile emacs."
@@ -48,6 +54,16 @@ while [[ "$#" -ge 1 ]] ; do
 		--parallel)
 			shift
 			PARALLEL_INVOCATIONS=$1
+			shift
+			;;
+		--jlm-opt)
+			shift
+			JLM_OPT=$(readlink -m "$1")
+			shift
+			;;
+		--llvm-bin)
+			shift
+			LLVM_BIN=$(readlink -m "$1")
 			shift
 			;;
 		--polybench)
@@ -131,8 +147,8 @@ trap sigint SIGINT
 echo "Starting benchmarking of jlm-opt"
 set +e
 
-JLM_OPTIMIZATIONS="--FunctionInlining --PredicateCorrelation --LoopUnswitching --CommonNodeElimination --InvariantValueRedirection --DeadNodeElimination --AAAndersenRegionAware --StoreValueForwarding --LoadChainSeparation --CommonNodeElimination --InvariantValueRedirection --NodeReduction --DeadNodeElimination"
-
-just benchmark-release "--jlm-opt ${JLM_OPT} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} ${JLM_OPTIMIZATIONS} --builddir build/ci --statsdir statistics/ci"
+mkdir -p build statistics
+echo "./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
+./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
 
 exit 0
