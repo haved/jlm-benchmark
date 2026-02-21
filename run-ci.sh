@@ -3,17 +3,29 @@ set -eu
 
 # This script is used for unpacking benchmarks and compiling benchmarks using jlm-opt.
 
-# Execute benchmarks in parallel by default
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  PARALLEL_INVOCATIONS=`sysctl -n hw.ncpu`
+# Check if llvm-config of correct version exists in the PATH
+# and if found set the LLVM_BIN to llvm's bindir
+LLVM_VERSION=18
+LLVM_CONFIG_BIN=llvm-config-${LLVM_VERSION}
+if command -v ${LLVM_CONFIG_BIN} &> /dev/null
+then
+	LLVM_BIN=$(${LLVM_CONFIG_BIN} --bindir)
 else
-  PARALLEL_INVOCATIONS=`nproc`
+	LLVM_BIN=""
 fi
 
-JLM_OPT=""
-EXTRA_BENCH_OPTIONS=""
-LLVM_BIN=""
+# Check if we can find jlm-opt
+if command -v ../../build/jlm-opt &> /dev/null
+then
+	JLM_OPT=../../build/jlm-opt
+else
+	JLM_OPT=""
+fi
 
+# Used for exucting only specific benchmarks
+EXTRA_BENCH_OPTIONS=""
+
+# Used to determine which benchmarks to extract
 EXTRACT_ALL=true
 EXTRACT_SPEC=false
 EXTRACT_EMACS=false
@@ -21,6 +33,13 @@ EXTRACT_GHOSTSCRIPT=false
 EXTRACT_GDB=false
 EXTRACT_SENDMAIL=false
 SOURCES_JSON=""
+
+# Execute benchmarks in parallel by default
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  PARALLEL_INVOCATIONS=`sysctl -n hw.ncpu`
+else
+  PARALLEL_INVOCATIONS=`nproc`
+fi
 
 function usage()
 {
@@ -72,7 +91,55 @@ while [[ "$#" -ge 1 ]] ; do
 			shift
 			;;
 		--spec)
-			EXTRA_BENCH_OPTIONS='--filter="505\\.mcf|544\\.nab|525\\.x264|507\\.cactuBSSN|538\\.imagick"'
+			EXTRA_BENCH_OPTIONS='--filter="500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--perlbench)
+			EXTRA_BENCH_OPTIONS='--filter="500\\.perlbench"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--gcc)
+			EXTRA_BENCH_OPTIONS='--filter="502\\.gcc"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--cactuBSSN)
+			EXTRA_BENCH_OPTIONS='--filter="507\\.cactuBSSN"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--x264)
+			EXTRA_BENCH_OPTIONS='--filter="525\\.x264"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--blender)
+			EXTRA_BENCH_OPTIONS='--filter="526\\.blender"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--imagick)
+			EXTRA_BENCH_OPTIONS='--filter="538\\.imagick"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--nab)
+			EXTRA_BENCH_OPTIONS='--filter="544\\.nab"'
+			EXTRACT_SPEC=true
+			EXTRACT_ALL=false
+			shift
+			;;
+		--xz)
+			EXTRA_BENCH_OPTIONS='--filter="557\\.xz"'
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
