@@ -22,7 +22,7 @@ else
 	JLM_OPT=""
 fi
 
-# Used for exucting only specific benchmarks
+# Used for executing only specific benchmarks
 EXTRA_BENCH_OPTIONS=""
 
 # Used to determine which benchmarks to extract
@@ -86,84 +86,84 @@ while [[ "$#" -ge 1 ]] ; do
 			shift
 			;;
 		--polybench)
-			EXTRA_BENCH_OPTIONS='--filter="polybench"'
+			EXTRA_BENCH_OPTIONS="--filter=polybench"
 			EXTRACT_ALL=false
 			shift
 			;;
 		--spec)
-			EXTRA_BENCH_OPTIONS='--filter="500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"'
+			EXTRA_BENCH_OPTIONS="--filter=500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--perlbench)
-			EXTRA_BENCH_OPTIONS='--filter="500\\.perlbench"'
+			EXTRA_BENCH_OPTIONS="--filter=500\\.perlbench"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--gcc)
-			EXTRA_BENCH_OPTIONS='--filter="502\\.gcc"'
+			EXTRA_BENCH_OPTIONS="--filter=502\\.gcc"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--cactuBSSN)
-			EXTRA_BENCH_OPTIONS='--filter="507\\.cactuBSSN"'
+			EXTRA_BENCH_OPTIONS="--filter=507\\.cactuBSSN"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--x264)
-			EXTRA_BENCH_OPTIONS='--filter="525\\.x264"'
+			EXTRA_BENCH_OPTIONS="--filter=525\\.x264"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--blender)
-			EXTRA_BENCH_OPTIONS='--filter="526\\.blender"'
+			EXTRA_BENCH_OPTIONS="--filter=526\\.blender"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--imagick)
-			EXTRA_BENCH_OPTIONS='--filter="538\\.imagick"'
+			EXTRA_BENCH_OPTIONS="--filter=538\\.imagick"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--nab)
-			EXTRA_BENCH_OPTIONS='--filter="544\\.nab"'
+			EXTRA_BENCH_OPTIONS="--filter=544\\.nab"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--xz)
-			EXTRA_BENCH_OPTIONS='--filter="557\\.xz"'
+			EXTRA_BENCH_OPTIONS="--filter=557\\.xz"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--emacs)
-			EXTRA_BENCH_OPTIONS='--filter="emacs"'
+			EXTRA_BENCH_OPTIONS="--filter=emacs"
 			EXTRACT_EMACS=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--ghostscript)
-			EXTRA_BENCH_OPTIONS='--filter="ghostscript"'
+			EXTRA_BENCH_OPTIONS="--filter=ghostscript"
 			EXTRACT_GHOSTSCRIPT=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--gdb)
-			EXTRA_BENCH_OPTIONS='--filter="gdb"'
+			EXTRA_BENCH_OPTIONS="--filter=gdb"
 			EXTRACT_GDB=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--sendmail)
-			EXTRA_BENCH_OPTIONS='--filter="sendmail"'
+			EXTRA_BENCH_OPTIONS="--filter=sendmail"
 			EXTRACT_SENDMAIL=true
 			EXTRACT_ALL=false
 			shift
