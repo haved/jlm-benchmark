@@ -26,13 +26,16 @@ fi
 EXTRA_BENCH_OPTIONS=""
 
 # Used to determine which benchmarks to extract
+FILTER_BENCHMARK=""
 EXTRACT_ALL=true
 EXTRACT_SPEC=false
 EXTRACT_EMACS=false
 EXTRACT_GHOSTSCRIPT=false
 EXTRACT_GDB=false
 EXTRACT_SENDMAIL=false
-SOURCES_JSON=""
+
+# Sources to be compiled
+SOURCES_JSON="sources/sources-redist2017.json"
 
 # Parameters for deciding what the scripts should perform
 BUILD_JLM=false
@@ -57,6 +60,7 @@ function usage()
 	echo "  --llvm-bin            Path to the llvm binary directory."
 	echo "                        Default=[${LLVM_BIN}]"
 	echo "  --build-jlm           Clone the jlm repository and build debug and release."
+	echo "  --full-spec           Use the full version of SPEC."
 	echo "  --dry-run             Do all setup except actually compiling benchmarks."
 	echo "  --create-json         Build selected benchmarks to re-create sources.json."
 	echo "  --polybench           Compile polybench."
@@ -97,6 +101,10 @@ while [[ "$#" -ge 1 ]] ; do
 			BUILD_JLM=true
 			shift
 			;;
+		--full-spec)
+			FULL_SPEC=true
+			shift
+			;;
 		--dry-run)
 			DRY_RUN=true
 			shift
@@ -106,84 +114,84 @@ while [[ "$#" -ge 1 ]] ; do
 			shift
 			;;
 		--polybench)
-			EXTRA_BENCH_OPTIONS="--filter=polybench"
+			FILTER_BENCHMARK="--filter=polybench"
 			EXTRACT_ALL=false
 			shift
 			;;
 		--spec)
-			EXTRA_BENCH_OPTIONS="--filter=500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"
+			FILTER_BENCHMARK="--filter=500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--perlbench)
-			EXTRA_BENCH_OPTIONS="--filter=500\\.perlbench"
+			FILTER_BENCHMARK="--filter=500\\.perlbench"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--gcc)
-			EXTRA_BENCH_OPTIONS="--filter=502\\.gcc"
+			FILTER_BENCHMARK="--filter=502\\.gcc"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--cactuBSSN)
-			EXTRA_BENCH_OPTIONS="--filter=507\\.cactuBSSN"
+			FILTER_BENCHMARK="--filter=507\\.cactuBSSN"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--x264)
-			EXTRA_BENCH_OPTIONS="--filter=525\\.x264"
+			FILTER_BENCHMARK="--filter=525\\.x264"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--blender)
-			EXTRA_BENCH_OPTIONS="--filter=526\\.blender"
+			FILTER_BENCHMARK="--filter=526\\.blender"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--imagick)
-			EXTRA_BENCH_OPTIONS="--filter=538\\.imagick"
+			FILTER_BENCHMARK="--filter=538\\.imagick"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--nab)
-			EXTRA_BENCH_OPTIONS="--filter=544\\.nab"
+			FILTER_BENCHMARK="--filter=544\\.nab"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--xz)
-			EXTRA_BENCH_OPTIONS="--filter=557\\.xz"
+			FILTER_BENCHMARK="--filter=557\\.xz"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--emacs)
-			EXTRA_BENCH_OPTIONS="--filter=emacs"
+			FILTER_BENCHMARK="--filter=emacs"
 			EXTRACT_EMACS=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--ghostscript)
-			EXTRA_BENCH_OPTIONS="--filter=ghostscript"
+			FILTER_BENCHMARK="--filter=ghostscript"
 			EXTRACT_GHOSTSCRIPT=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--gdb)
-			EXTRA_BENCH_OPTIONS="--filter=gdb"
+			FILTER_BENCHMARK="--filter=gdb"
 			EXTRACT_GDB=true
 			EXTRACT_ALL=false
 			shift
 			;;
 		--sendmail)
-			EXTRA_BENCH_OPTIONS="--filter=sendmail"
+			FILTER_BENCHMARK="--filter=sendmail"
 			EXTRACT_SENDMAIL=true
 			EXTRACT_ALL=false
 			shift
@@ -198,9 +206,13 @@ done
 # Prepare the benchmarks
 pushd sources
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_SPEC} = true ]; then
-	echo "Extracting SPEC redistributable sources."
-	just programs/extract-redist2017
-	SOURCES_JSON="sources/sources-redist2017.json"
+	echo "Extracting SPEC ."
+	if [ ${FULL_SPEC} ]; then
+		just programs/extract-cpu2017
+		SOURCES_JSON="sources/sources.json"
+	else
+		just programs/extract-redist2017
+	fi
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_EMACS} = true ]; then
@@ -257,8 +269,10 @@ if [ ${DRY_RUN} = true ]; then
 	EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --dry-run"
 fi
 
+EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} ${FILTER_BENCHMARK}"
+
 mkdir -p build statistics
-echo "./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
-./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
+echo "./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
+./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
 
 exit 0
