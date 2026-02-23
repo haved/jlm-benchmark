@@ -34,6 +34,11 @@ EXTRACT_GDB=false
 EXTRACT_SENDMAIL=false
 SOURCES_JSON=""
 
+# Parameters for deciding what the scripts should perform
+BUILD_JLM=false
+DRY_RUN=false
+CREATE_JSON=false
+
 # Execute benchmarks in parallel by default
 if [[ "$OSTYPE" == "darwin"* ]]; then
   PARALLEL_INVOCATIONS=`sysctl -n hw.ncpu`
@@ -51,6 +56,9 @@ function usage()
 	echo "                        Default=[${JLM_OPT}]"
 	echo "  --llvm-bin            Path to the llvm binary directory."
 	echo "                        Default=[${LLVM_BIN}]"
+	echo "  --build-jlm           Clone the jlm repository and build debug and release."
+	echo "  --dry-run             Do all setup except actually compiling benchmarks."
+	echo "  --create-json         Build selected benchmarks to re-create sources.json."
 	echo "  --polybench           Compile polybench."
 	echo "  --spec                Extract and compile SPEC."
 	echo "  --emacs               Extract and compile emacs."
@@ -83,6 +91,18 @@ while [[ "$#" -ge 1 ]] ; do
 		--llvm-bin)
 			shift
 			LLVM_BIN=$(readlink -m "$1")
+			shift
+			;;
+		--build-jlm)
+			BUILD_JLM=true
+			shift
+			;;
+		--dry-run)
+			DRY_RUN=true
+			shift
+			;;
+		--create-json)
+			CREATE_JSON=true
 			shift
 			;;
 		--polybench)
@@ -202,7 +222,26 @@ if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_SENDMAIL} = true ]; then
 	echo "Extracting gbd sources."
 	just programs/extract-sendmail
 fi
+
+# Instead of benchmarking jlm-opt, the user has requested to build all benchmarks to re-create sources.json
+if [[ ${CREATE_JSON} = true ]]; then
+    echo "Performing full builds of all benchmarks, and tracing compilation commands"
+    just build-all-benchmarks
+
+    echo " - Creating sources.json and sources-redist2017.json"
+    just create-sources-json
+
+    exit 0
+fi
 popd
+
+# Build the jlm-opt binary
+if [[ ${BUILD_JLM} = true ]]; then
+	echo "Building jlm-opt"
+	just clone-jlm
+	just build-release
+	just build-debug
+fi
 
 # Ensure Ctrl-C quits immediately, without starting the next command
 function sigint() {
@@ -213,6 +252,10 @@ trap sigint SIGINT
 
 echo "Starting benchmarking of jlm-opt"
 set +e
+
+if [ ${DRY_RUN} = true ]; then
+	EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --dry-run"
+fi
 
 mkdir -p build statistics
 echo "./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=sources/sources-redist2017.json -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
