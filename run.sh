@@ -17,7 +17,7 @@ fi
 # Check if we can find jlm-opt
 if command -v ../../build/jlm-opt &> /dev/null
 then
-	JLM_OPT=../../build/jlm-opt
+	JLM_OPT="--jlm-opt ../../build/jlm-opt"
 else
 	JLM_OPT=""
 fi
@@ -69,13 +69,15 @@ function usage()
 	echo "  --ghostscript         Extract and compile ghostscript."
 	echo "  --gdb                 Extract and compile gdb."
 	echo "  --sendmail            Extract and compile sendmail."
-	echo "  --clean               Delete extracted sources and build files."
+	echo "  --clean               Delete extracted sources and build files including jlm."
 	echo "  --help                Prints this message and stops."
 }
 
 while [[ "$#" -ge 1 ]] ; do
 	case "$1" in
 		--clean)
+			echo "Deleting jlm-opt builds"
+			just clean-jlm-builds
 			echo "Deleting extracted sources"
 			just sources/programs/clean-all
 			echo "Removing all result files from previous runs of jlm-opt"
@@ -89,7 +91,7 @@ while [[ "$#" -ge 1 ]] ; do
 			;;
 		--jlm-opt)
 			shift
-			JLM_OPT=$(readlink -m "$1")
+			JLM_OPT="--jlm-opt $(readlink -m "$1")"
 			shift
 			;;
 		--llvm-bin)
@@ -208,6 +210,10 @@ pushd sources
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_SPEC} = true ]; then
 	echo "Extracting SPEC ."
 	if [ ${FULL_SPEC} ]; then
+		if [ ! -f programs/cpu2017.tar.xz ]; then
+			echo "Not able to find 'programs/cpu2017.tar.xz'".
+			exit 1
+		fi
 		just programs/extract-cpu2017
 		SOURCES_JSON="sources/sources.json"
 	else
@@ -272,7 +278,7 @@ fi
 EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} ${FILTER_BENCHMARK}"
 
 mkdir -p build statistics
-echo "./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
-./benchmark.py --jlm-opt ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
+echo "./benchmark.py ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci"
+./benchmark.py ${JLM_OPT} --llvmbin ${LLVM_BIN} --sources=${SOURCES_JSON} -j${PARALLEL_INVOCATIONS} ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
 
 exit 0
