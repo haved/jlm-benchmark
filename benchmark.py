@@ -852,7 +852,7 @@ def main():
     if args.list_benchmarks:
         print(f"{len(benchmarks)} benchmarks:")
         for bench in benchmarks:
-            print(f"  {bench.name:<20} {len(bench.cfiles):4d} C files")
+            print(f"  {bench.name:<20} {len(bench.srcfiles):4d} C files")
         sys.exit(0)
 
     offset = int(args.offset)
