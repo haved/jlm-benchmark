@@ -16,3 +16,9 @@ apt-get install -y \
     libxaw7-dev xaw3dg-dev libgtk-3-dev libglib2.0-dev libtree-sitter-dev \
     libgif-dev libxpm-dev libjpeg-dev libtiff-dev libgnutls28-dev \
     libmpfr-dev libxxhash-dev gawk flex bison
+
+# MLIR is only necessary if building with the MLIR dialect or HLS enabled
+apt-get install -y libmlir-18-dev mlir-18-tools
+# Set up symlinks for libMLIR.so
+ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/
+ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/libMLIR.so

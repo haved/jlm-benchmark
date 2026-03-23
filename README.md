@@ -77,7 +77,7 @@ This will remove all extracted benchmarks, and any results from previous runs.
 
 ## Running without docker
 If you install all dependencies listed in `apt-install-dependencies.sh`, you can run without docker.
-However, some dependencies may be located in different locations if you are not running Ubuntu 24.
+However, some dependencies may be located in different locations if you are not running on Ubuntu 24.
 This will affect the compilation commands, so the file `sources/sources.json` will need to be re-made.
 See [[sources/README.md]] for details.
 
