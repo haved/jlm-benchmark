@@ -10,12 +10,12 @@ From: ubuntu:24.04
                             libxkbcommon-dev libxkbregistry-dev \
                             libxaw7-dev xaw3dg-dev libgtk-3-dev libglib2.0-dev libtree-sitter-dev \
                             libgif-dev libxpm-dev libjpeg-dev libtiff-dev libgnutls28-dev \
-                            libmpfr-dev libxxhash-dev gawk flex bison"
+                            libmpfr-dev libxxhash-dev gawk flex bison unzip"
 
     apt update
     apt install -y git wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn \
                    lmod locales doxygen make ninja-build valgrind verilator just g++ gfortran bear autoconf texinfo \
-                   llvm-18-dev clang-18 clang-format-18 libmlir-18-dev mlir-18-tools \
+                   llvm-18-dev clang-18 clang-format-18 libmlir-18-dev mlir-18-tools libgtest-dev \
                    $BENCHMARK_DEPENDENCIES
     locale-gen en_US.UTF-8
     update-locale

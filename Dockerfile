@@ -16,7 +16,7 @@ RUN apt-get update && \
     libxkbcommon-dev libxkbregistry-dev \
     libxaw7-dev xaw3dg-dev libgtk-3-dev libglib2.0-dev libtree-sitter-dev \
     libgif-dev libxpm-dev libjpeg-dev libtiff-dev libgnutls28-dev \
-    libmpfr-dev libxxhash-dev gawk flex bison
+    libmpfr-dev libxxhash-dev gawk flex bison unzip
 
 # Clean apt and setup locale
 RUN apt-get clean && \

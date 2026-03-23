@@ -9,4 +9,4 @@ sudo apt-get install \
     libxkbcommon-dev libxkbregistry-dev \
     libxaw7-dev xaw3dg-dev libgtk-3-dev libglib2.0-dev libtree-sitter-dev \
     libgif-dev libxpm-dev libjpeg-dev libtiff-dev libgnutls28-dev \
-    libmpfr-dev libxxhash-dev gawk flex bison bear just
+    libmpfr-dev libxxhash-dev gawk flex bison unzip bear just
