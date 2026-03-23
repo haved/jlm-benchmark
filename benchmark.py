@@ -881,7 +881,7 @@ def main():
     if not success:
         return 1
 
-    # If all tasks finished sucessfully and validation is requested, perform it
+    # If all tasks finished successfully and validation is requested, perform it
     if args.do_validation:
         success = run_validation(benchmarks,
                                  dryrun=dryrun)
