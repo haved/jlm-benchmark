@@ -309544,7 +309544,7 @@
         "working_dir": "programs/emacs-29.4/src",
         "srcfile": "gtkutil.c",
         "ofile": "gtkutil.o",
-        "kind": "C",
+        "kind": "C-nonjlm",
         "arguments": [
           "-Demacs",
           "-I.",
@@ -309648,7 +309648,7 @@
         "working_dir": "programs/emacs-29.4/src",
         "srcfile": "emacsgtkfixed.c",
         "ofile": "emacsgtkfixed.o",
-        "kind": "C",
+        "kind": "C-nonjlm",
         "arguments": [
           "-Demacs",
           "-I.",
@@ -405287,7 +405287,7 @@
         "working_dir": "programs/gdb-15.2/libbacktrace",
         "srcfile": "fileline.c",
         "ofile": ".libs/fileline.o",
-        "kind": "C",
+        "kind": "C-nonjlm",
         "arguments": [
           "-DHAVE_CONFIG_H",
           "-I.",
