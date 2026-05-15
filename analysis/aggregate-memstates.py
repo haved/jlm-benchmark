@@ -38,6 +38,12 @@ def map_optimization_statistic(original_name):
 # If the entry is a tuple (name, rename), the statistic called `name` will be kept, but be called `rename`
 # If the entry is a function, it takes the old name and provides the new name, or None to discard
 METRICS_MAPPING = {
+    "AggregateAllocaSplitting": [
+        "#AggregateAllocaNodes",
+        "#AggregateStructAllocaNodes",
+        "#SplitableAggregateAllocaNodes",
+        "AggregateAllocaSplittingTime[ns]"
+    ],
     "AndersenAnalysis": [
         "#RvsdgNodes",
         "#PointsToGraphAllocaNodes", "#PointsToGraphMallocNodes", "#PointsToGraphDeltaNodes", "#PointsToGraphImportNodes", "#PointsToGraphLambdaNodes",
@@ -85,6 +91,9 @@ METRICS_MAPPING = {
     "StoreValueForwarding": [
         "#TotalLoads",
         "#LoadsForwarded",
+        "#NoAliasAnalysisQueries",
+        "#MayAliasAnalysisQueries",
+        "#MustAliasAnalysisQueries",
         ("TracingTime[ns]", "SvfTracingTime[ns]"),
         ("ForwardingTime[ns]", "SvfForwardingTime[ns]"),
         ("Time[ns]", "StoreValueForwardingTime[ns]")
@@ -220,22 +229,9 @@ def main():
     def stats_out(filename=""):
         return os.path.join(args.stats_out, filename)
 
-    data = (
-        make_file_data(os.path.join(args.stats_in, "raware"), "RegionAwareModRef"),
-        make_file_data(os.path.join(args.stats_in, "raware-Os"), "Os"),
-        make_file_data(os.path.join(args.stats_in, "raware-O3"), "O3"),
-        make_file_data(os.path.join(args.stats_in, "m2r"), "Mem2Reg"),
-        #make_file_data(os.path.join(args.stats_in, "raware-nocompress"), "RegionAwareModRef-NoCompression"),
-        #make_file_data(os.path.join(args.stats_in, "m2r"), "Mem2Reg"),
-        # make_file_data(os.path.join(args.stats_in, "ci"), "RegionAwareModRef"),
-        #make_file_data(os.path.join(args.stats_in, "debug-raware"), "RegionAwareModRef"),
-        #make_file_data(os.path.join(args.stats_in, "raware-no-tricks"), "RegionAwareModRef-NoTricks"),
-        #make_file_data(os.path.join(args.stats_in, "raware-only-dead-alloca-blocklist"), "RegionAwareModRef-OnlyDeadAllocaBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-only-non-reentrant-alloca-blocklist"), "RegionAwareModRef-OnlyNonReeentrantAllocaBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-only-operation-size-blocking"), "RegionAwareModRef-OnlyOperationSizeBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "raware-only-constant-memory-blocking"), "RegionAwareModRef-OnlyConstantMemoryBlocking"),
-        #make_file_data(os.path.join(args.stats_in, "agnostic"), "AgnosticModRef"),
-    )
+    folders = os.listdir(args.stats_in)
+    folders.sort()
+    data = [make_file_data(os.path.join(args.stats_in, folder), folder) for folder in folders]
     file_data = pd.concat(data)
 
     calculate_total_ramrs_time(file_data)

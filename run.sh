@@ -43,6 +43,10 @@ BUILD_JLM=false
 DRY_RUN=false
 CREATE_JSON=false
 
+# If running in CI, perform a standard benchmark to test that everything is working.
+# This makes it easier to keep the CI up to date with the main branch of this repository.
+RUNNING_IN_CI=false
+
 function usage()
 {
 	echo "Usage: ./run.sh [OPTION]"
@@ -58,6 +62,7 @@ function usage()
 	echo "  --full-spec           Use the full version of SPEC instead of redist2017. Requires cpu2017.tar.xz."
 	echo "  --dry-run             Do all setup except actually compiling benchmarks."
 	echo "  --do-validation       Execute validation scripts after compiling benchmarks."
+    echo "  --ci                  Perform a benchmark run suitable for CI and exit with its status code."
 	echo ""
 	echo "  Optional filters:     (or none to select all)"
 	echo "    --spec              Compile SPEC (redist or full)."
@@ -68,9 +73,10 @@ function usage()
 	echo "    --polybench         Compile Polybench."
 	echo "    --embench           Compile Embench IoT."
 	echo ""
-	echo "  --create-json         Build all benchmarks to re-create sources.json. Implies --full-spec"
-	echo "  --clean               Delete extracted sources and build files."
-	echo "  --help                Prints this message and stops."
+    echo "  Alternative tasks:"
+	echo "    --create-json       Build all benchmarks to re-create sources.json. Implies --full-spec"
+	echo "    --clean             Delete extracted sources and build files and exit."
+	echo "    --help              Print this message and exit."
 }
 
 while [[ "$#" -ge 1 ]] ; do
@@ -106,6 +112,10 @@ while [[ "$#" -ge 1 ]] ; do
 		    EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --do-validation"
 			shift
 			;;
+        --ci)
+            RUNNING_IN_CI=true
+            shift
+            ;;
 		--spec)
 			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"
 			EXTRACT_SPEC=true
@@ -311,38 +321,109 @@ trap sigint SIGINT
 echo "Starting benchmarking of jlm-opt"
 mkdir -p build statistics
 
-# Enable echoing commands to print the final benchmark.py invocation
+# Enable echoing commands to print the benchmark.py invocations
 set -x
-#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} --regionAwareModRef --builddir build/ci --statsdir statistics/ci
 
-./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+# When running in CI we want a standard invocation that rarely changes,
+# with an exit code indicating success or failure
+if [ ${RUNNING_IN_CI} = true ]; then
+    ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" --sources="${SOURCES_JSON}" \
+        -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+        --regionAwareModRef --builddir build/ci --statsdir statistics/ci
+    exit $?
+fi
+
+# The benchmarking invocations below change frequently
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --builddir build/raware --statsdir statistics/raware \
+	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware \
 	|| true
 
-./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --useOs --builddir build/raware-Os --statsdir statistics/raware-Os \
+	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware-aggressive-localaa \
 	|| true
 
-./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --useO3 --builddir build/raware-O3 --statsdir statistics/raware-O3 \
+	--optMem2reg --regionAwareModRef --builddir build/mem2reg --statsdir statistics/mem2reg-raware \
 	|| true
 
-./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --useMem2reg --builddir build/m2r --statsdir statistics/m2r \
+	--optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware \
 	|| true
 
-#JLM_DISABLE_EXTERN_COMPRESSION=1 ./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--builddir build/jlm --statsdir statistics/jlm \
+	|| true
+
+JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--builddir build/jlm --statsdir statistics/jlm-aggressive-localaa \
+	|| true
+
+JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--builddir build/jlm --statsdir statistics/jlm-ptgaa \
+	|| true
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware \
+	|| true
+
+JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggressive-localaa \
+	|| true
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os \
+	|| true
+
+JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-aggressive-localaa \
+	|| true
+
+JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-ptgaa \
+	|| true
+
+#./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
 #	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --builddir build/raware --statsdir statistics/raware-nocompress \
+#	--clangOs --optOs --builddir build/clang-Os-opt-Os --statsdir statistics/clang-Os-opt-Os \
 #	|| true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
 #	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --useMem2reg --builddir build/raware --statsdir statistics/m2r
+#	--regionAwareModRef --optOs --builddir build/opt-Os --statsdir statistics/opt-Os \
+#	|| true
+
+#./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--regionAwareModRef --optPreGvn --builddir build/opt-preGvn --statsdir statistics/opt-preGvn \
+#	|| true
+
+#./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--regionAwareModRef --optWithGvn --builddir build/opt-withGvn --statsdir statistics/opt-withGvn \
+#	|| true
+
+#./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3 \
+#	|| true
+
+#./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--regionAwareModRef --optMem2reg --builddir build/opt-m2r --statsdir statistics/opt-m2r \
+#	|| true
 
 # Finally run some data aggregation
 just aggregate

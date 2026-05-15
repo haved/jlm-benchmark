@@ -863,16 +863,24 @@ def main():
     parser.add_argument('--do-validation', dest='do_validation', action='store_true',
                         help='Run validation scripts after compiling and linking')
 
+    parser.add_argument('--aggregateAllocaSplitting', action='store_true', dest='aggregateAllocaSplitting',
+                        help='Perform aggregate alloca splitting early in the jlm-opt pipeline')
     parser.add_argument('--agnosticModRef', action='store_true', dest='agnosticModRef',
                         help='Uses agnostic memory state encoding')
     parser.add_argument('--regionAwareModRef', action='store_true', dest='regionAwareModRef',
                         help='Uses region aware memory state encoding')
-    parser.add_argument('--useMem2reg', action='store_true', dest='useMem2reg',
-                        help='Uses LLVM opt\'s mem2reg pass')
-    parser.add_argument('--useOs', action='store_true', dest='useOs',
+    parser.add_argument('--clangOs', action='store_true', dest='clangOs',
                         help='Uses clang\'s Os')
-    parser.add_argument('--useO3', action='store_true', dest='useO3',
+    parser.add_argument('--clangO3', action='store_true', dest='clangO3',
                         help='Uses clang\'s O3')
+    parser.add_argument('--optMem2reg', action='store_true', dest='optMem2reg',
+                        help='Uses LLVM opt\'s mem2reg pass')
+    parser.add_argument('--optSroa', action='store_true', dest='optSroa',
+                        help='Uses LLVM opt\'s sroa pass')
+    parser.add_argument('--optOs', action='store_true', dest='optOs',
+                        help='Uses LLVM opt to replicate clang -Os')
+    parser.add_argument('--aggressiveOpt', action='store_true', dest='aggressive_opt',
+                        help='Make GVN try harder')
 
 
     args = parser.parse_args()
@@ -956,18 +964,75 @@ def configure_benchmark(bench, args):
     """
 
     # The top one leads to no tbaa info, while the bottom one includes it
-    bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
-    #bench.extra_clang_flags = ["-O2", "-Xclang", "-disable-llvm-passes"]
+    #bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
+    bench.extra_clang_flags = ["-Os", "-Xclang", "-disable-llvm-passes"]
 
-    if args.useOs:
-        bench.extra_clang_flags = ["-Os", "-fno-vectorize", "-fno-slp-vectorize"]
-    elif args.useO3:
-        bench.extra_clang_flags = ["-O3", "-fno-vectorize", "-fno-slp-vectorize"]
-    elif args.useMem2reg:
-        bench.opt_flags = ["-passes=mem2reg"]
+    if args.clangOs:
+        bench.extra_clang_flags = ["-Os"]
+    elif args.clangO3:
+        bench.extra_clang_flags = ["-O3"]
+
+    # Even when clang does not perform optimizations, these options attach attributes
+    bench.extra_clang_flags.extend(["-fno-vectorize", "-fno-slp-vectorize", "-fno-inline"])
 
     # Don't use multiple at once!
-    assert args.useOs + args.useO3 + args.useMem2reg <= 1
+    assert args.clangOs + args.clangO3 <= 1
+
+    if args.optMem2reg:
+        bench.opt_flags = ["-passes=mem2reg"]
+    if args.optSroa:
+        bench.opt_flags = ["-passes=sroa<modify-cfg>"]
+    elif args.optOs:
+        #bench.opt_flags = ["-passes=default<Os>"]
+        bench.opt_flags = ["-passes=" + \
+                           "annotation2metadata,forceattrs,declare-to-assign,inferattrs,coro-early," + \
+                           "function<eager-inv>(lower-expect," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;no-switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "sroa<modify-cfg>,early-cse<>),openmp-opt,ipsccp,called-value-propagation,globalopt," + \
+                           "function<eager-inv>(mem2reg,instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>)," + \
+                           "always-inline,require<globals-aa>,function(invalidate<aa>),require<profile-summary>," + \
+                           "cgscc(devirt<4>(inline,function-attrs<skip-non-recursive-function-attrs>," + \
+                           "function<eager-inv;no-rerun>(sroa<modify-cfg>,early-cse<memssa>,speculative-execution<only-if-divergent-target>,jump-threading,correlated-propagation," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>,aggressive-instcombine,tailcallelim," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "reassociate,constraint-elimination," + \
+                           "loop-mssa(loop-instsimplify,loop-simplifycfg,licm<no-allowspeculation>,loop-rotate<header-duplication;no-prepare-for-lto>,licm<allowspeculation>,simple-loop-unswitch<no-nontrivial;trivial>)," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>,loop(loop-idiom,indvars,loop-deletion,loop-unroll-full)," + \
+                           "sroa<modify-cfg>,vector-combine,mldst-motion<no-split-footer-bb>," + \
+                           "gvn<>,sccp,bdce,instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>,jump-threading,correlated-propagation,adce,memcpyopt,dse,move-auto-init," + \
+                           "loop-mssa(licm<allowspeculation>),coro-elide," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;hoist-common-insts;sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>),function-attrs,function(require<should-not-run-function-passes>),coro-split))," + \
+                           "deadargelim,coro-cleanup,globalopt,globaldce,elim-avail-extern,rpo-function-attrs,recompute-globalsaa," + \
+                           "function<eager-inv>(float2int,lower-constant-intrinsics,loop(loop-rotate<header-duplication;no-prepare-for-lto>,loop-deletion)," + \
+                           "loop-distribute,inject-tli-mappings,loop-vectorize<no-interleave-forced-only;vectorize-forced-only;>,infer-alignment,loop-load-elim," + \
+                           "instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>," + \
+                           "simplifycfg<bonus-inst-threshold=1;forward-switch-cond;switch-range-to-icmp;switch-to-lookup;no-keep-loops;hoist-common-insts;sink-common-insts;speculate-blocks;simplify-cond-branch>," + \
+                           "vector-combine,instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>,loop-unroll<O2>,transform-warning," + \
+                           "sroa<preserve-cfg>,infer-alignment,instcombine<max-iterations=1;no-use-loop-info;no-verify-fixpoint>,loop-mssa(licm<allowspeculation>)," + \
+                           "alignment-from-assumptions,loop-sink,instsimplify,div-rem-pairs,tailcallelim," + \
+                           "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>)," + \
+                           "globaldce,constmerge,cg-profile,rel-lookup-table-converter,function(annotation-remarks)"]
+
+    if args.aggressive_opt:
+        bench.opt_flags += [
+            # In MemoryDependenceAnalysis.cpp
+            "--memdep-block-scan-limit", "10000", # Default: 100
+            "--memdep-block-number-limit", "10000", # Default: 200
+
+            # In GVN.cpp:
+            "--enable-gvn-memoryssa", # Default: false
+            "--gvn-max-num-deps=10000", # Default: 100
+            "--gvn-max-block-speculations=60000", # Default: 600
+            "--gvn-max-num-visited-insts=10000", # Default: 100
+            "--gvn-max-num-insns=10000", # Default: 100]
+
+            # In EarlyCSE.cpp
+            "--earlycse-mssa-optimization-cap=50000", # Default: 500
+            ]
 
     # Configure the flags sent to jlm-opt here
     bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-store-value-forwarding", "--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization", "--print-dne-stat"]
@@ -976,12 +1041,18 @@ def configure_benchmark(bench, args):
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     bench.jlm_opt_flags.extend([
-                                #"--FunctionInlining", # We do not allow clang to inline, so it would be unfair
-                                "--PredicateCorrelation",
-                                #"--LoopUnswitching",
-                                "--CommonNodeElimination",
-                                "--InvariantValueRedirection",
-                                "--DeadNodeElimination"])
+        #"--FunctionInlining", # We do not allow clang to inline, so it would be unfair
+        "--PredicateCorrelation",
+        #"--LoopUnswitching",
+    ])
+
+    if args.aggregateAllocaSplitting:
+        bench.jlm_opt_flags.extend(["--AggregateAllocaSplitting", "--print-aggregate-alloca-splitting"])
+
+    bench.jlm_opt_flags.extend([
+        "--CommonNodeElimination",
+        "--InvariantValueRedirection",
+        "--DeadNodeElimination"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 

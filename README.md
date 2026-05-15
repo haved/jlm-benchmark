@@ -15,9 +15,14 @@ If you have a copy of SPEC2017, you can place it inside the `sources/programs/` 
 It should be a file called `cpu2017.tar.xz` containing files like `install.sh`.
 With it in place, you can pass `--full-spec` to the `./run.sh` script.
 
+## Configuring the benchmarking
+
+The `./run.sh` script takes options to filter which benchmark programs it compiles. See `--help`.
+
 To check if the programs were compiled correctly, you can pass `--do-validation` to run some simple checks.
 
-## Configuring the benchmarking
+The `./run.sh` script can change frequently as different configurations are being tested.
+To execute benchmarks with a "standard" configuration, add the `--ci` flag.
 
 ### Path to jlm
 By default the `run.sh` script assumes that `jlm-opt` is located at `jlm/build-release/jlm-opt`.
@@ -52,7 +57,7 @@ sudo cpupower frequency-set --min 3GHz --max 3GHz --governor performance
 
 Then mount the current directory and run the script `./run.sh` inside a Docker container using
 ``` sh
-docker run -it --mount type=bind,source="$(pwd)",target=/benchmark jlm-benchmark-image ./run.sh --build-jlm
+docker run -u $(id -u):$(id -g) -it --mount type=bind,source="$(pwd)",target=/benchmark jlm-benchmark-image ./run.sh --build-jlm --ci
 ```
 
 The resulting container does the following:
@@ -64,14 +69,14 @@ The resulting container does the following:
    
  - Builds the jlm compiler
    
- - Runs the benchmarking
+ - Runs the benchmarking with 
 
 ## Restarting benchmarking
 If the `run.sh` script is for some reason aborted, it can be restarted and resume roughly where it left off.
 
 If you wish to reset all progress made by the script and start from scratch, you can pass `--clean` to the run script like so:
 ``` sh
-docker run -it --mount type=bind,source="$(pwd)",target=/benchmark jlm-benchmark-image ./run.sh --clean
+docker run -u $(id -u):$(id -g) -it --mount type=bind,source="$(pwd)",target=/benchmark jlm-benchmark-image ./run.sh --clean
 ```
 This will remove all extracted benchmarks, and any results from previous runs.
 

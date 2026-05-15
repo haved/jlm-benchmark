@@ -310,22 +310,18 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
     file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
-    raware_configurations = ["RegionAwareModRef",
-                             "Os",
-                             "O3",
-                             "Mem2Reg"]
-                             #, "RegionAwareModRef-NoCompression"
-                             #"RegionAwareModRef-OnlyDeadAllocaBlocking",
-                             #"RegionAwareModRef-OnlyNonReeentrantAllocaBlocking",
-                             #"RegionAwareModRef-OnlyOperationSizeBlocking",
-                             #"RegionAwareModRef-OnlyConstantMemoryBlocking",
-                             #"RegionAwareModRef-NoTricks"]
-    #passes = [
-    #    "RvsdgConstructionTime[us]",
-    #    "RvsdgDestructionTime[us]",
-    #]
-
-    #table_quartiles_per_column(file_data, "RegionAwareModRef", passes)
+    raware_configurations = ["raware",
+                             "mem2reg-raware",
+                             "sroa-raware",
+                             #"aggregatesplit-raware",
+                             #"jlm",
+                             #"jlm-aggressive-localaa",
+                             #"jlm-ptgaa",
+                             "clang-Os-raware",
+                             #"clang-Os",
+                             #"clang-Os-aggressive-localaa",
+                             #"clang-Os-ptgaa",
+                             ]
 
     raware_steps = [
         "CallGraphTimer[ns]",
@@ -340,7 +336,7 @@ def main():
     table_quartiles_per_column(file_data, "RegionAwareModRef", raware_steps)
 
     andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
-    table_quartiles_per_column(file_data, "RegionAwareModRef", andersen_steps)
+    table_quartiles_per_column(file_data, "jlm", andersen_steps)
 
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)
@@ -369,6 +365,9 @@ def main():
     table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
     table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
     table_quartiles_per_configuration(file_data, raware_configurations, "#LoadsForwarded")
+    table_quartiles_per_configuration(file_data, raware_configurations, "#NoAliasAnalysisQueries")
+    table_quartiles_per_configuration(file_data, raware_configurations, "#MayAliasAnalysisQueries")
+    table_quartiles_per_configuration(file_data, raware_configurations, "#MustAliasAnalysisQueries")
 
     # comp_data = file_data[file_data["Configuration"] == "RegionAwareModRef"].copy()
     # comp_data["kept"]= comp_data["#LocalModRefKept"] + comp_data["#ExtModRefKept"]
@@ -399,6 +398,16 @@ def main():
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
 
+    print("Files where clang -Os Tree0 does better than sroa-raware Tree4")
+    clangOs = file_data[file_data["Configuration"] == "clang-Os-raware"].set_index("cfile")
+    sroaRaware = file_data[file_data["Configuration"] == "sroa-raware"].set_index("cfile")
+
+    result_df = sroaRaware.copy()
+    result_df["MoreLoads"] = sroaRaware["Tree4-NumLoadNodes"] - clangOs["Tree0-NumLoadNodes"]
+    result_df["MoreStores"] = sroaRaware["Tree4-NumStoreNodes"] - clangOs["Tree0-NumStoreNodes"]
+    result_df["MoreAllocas"] = (sroaRaware["Tree4-NumAllocaNodes"] - sroaRaware["Tree4-NumAggregateAllocaNodes"]) - (clangOs["Tree0-NumAllocaNodes"] - clangOs["Tree0-NumAggregateAllocaNodes"])
+    result_df.to_csv("statistics-out/sroa-vs-clangOs.csv")
+
     print()
 
     print("Total number of files:", file_data["cfile"].nunique())
@@ -416,17 +425,34 @@ def main():
         print_less_equal_more("AllThree", less_loads&less_stores&less_allocas, equal_loads&equal_stores&equal_allocas, more_loads&more_stores&more_allocas)
         print()
 
-    compare("RegionAwareModRef", "Tree4", "O3", "Tree0")
     #compare("RegionAwareModRef", "Tree0", "O3", "Tree0")
-    compare("O3", "Tree4", "O3", "Tree0")
+    #compare("O", "Tree4", "O3", "Tree0")
 
-    compare("RegionAwareModRef", "Tree4", "Os", "Tree0")
+    print("Difference between doing MSE")
+    compare("raware", "Tree4", "jlm", "Tree4")
+    compare("clang-Os-raware", "Tree4", "clang-Os", "Tree4")
+
+    print("Improving on clang -Os with MSE")
+    compare("clang-Os-raware", "Tree4", "clang-Os-raware", "Tree0")
+
+    print("Improving on clang -Os with nothing")
+    compare("clang-Os", "Tree4", "clang-Os", "Tree0")
+
+    print("Improvement from making LocalAA aggressive")
+    compare("clang-Os-aggressive-localaa", "Tree4", "clang-Os", "Tree4")
+
+    print("Improvement from adding PtGAA")
+    compare("clang-Os-ptgaa", "Tree4", "clang-Os", "Tree4")
+
+    print("PtGAA vs MSE")
+    compare("clang-Os-ptgaa", "Tree4", "clang-Os-raware", "Tree4")
+
+    #compare("opt-m2r", "Tree0", "opt-Os", "Tree0")
+    #compare("jlm", "Tree4", "opt-Os", "Tree0")
+
+    #compare("RegionAwareModRef", "Tree4", "Os", "Tree0")
     #compare("RegionAwareModRef", "Tree0", "Os", "Tree0")
-    compare("Os", "Tree4", "Os", "Tree0")
-
-
-
-    print()
+    #compare("Os", "Tree4", "Os", "Tree0")
 
     #table_quartiles_per_column(file_data, "RegionAwareModRef", ["#TotalLoads", "#LoadsForwarded"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["#TotalLoads", "#LoadsForwarded"])
