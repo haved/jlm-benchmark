@@ -3,7 +3,7 @@
 apt-get update
 apt-get install -y \
     wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn python3-plotly \
-    just bear make ninja-build g++ gfortran autoconf texinfo \
+    just bear make ninja-build g++ gfortran autoconf texinfo cmake \
     llvm-18-dev clang-18 clang-format-18 libgtest-dev \
     lmod locales doxygen unzip git \
     \
@@ -22,3 +22,6 @@ apt-get install -y libmlir-18-dev mlir-18-tools
 # Set up symlinks for libMLIR.so
 ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/
 ln -s /usr/lib/llvm-18/lib/libMLIR.so.18* /usr/lib/x86_64-linux-gnu/libMLIR.so
+
+# Install lit for running the llvm-test-suite
+pipx install "lit~=18.0"

@@ -12,22 +12,22 @@ _default:
 export CC := `llvm-config-18 --bindir` / "clang"
 export CFLAGS := "-std=c17 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE"
 
-########################### Emacs 29.4 ##############################
+########################### Emacs 30.2 ##############################
 download-emacs:
-    [ -f emacs-29.4.tar.gz ] || \
-        wget https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz
+    [ -f emacs-30.2.tar.gz ] || \
+        wget https://ftpmirror.gnu.org/emacs/emacs-30.2.tar.gz
 
 extract-emacs: download-emacs
     #!/usr/bin/bash
 
     # Skip extracting if it is already extracted
-    if [[ -d emacs-29.4 ]]; then
+    if [[ -d emacs-30.2 ]]; then
        exit 0
     fi
 
-    tar xzf emacs-29.4.tar.gz
+    tar xzf emacs-30.2.tar.gz
     # emacs requires a full build to create needed config files
-    cd emacs-29.4 && ./configure && bear intercept -- make -j12
+    cd emacs-30.2 && ./configure && bear intercept -- make -j12
 
 build-emacs: extract-emacs
 # Do nothing here as extracting emacs already builds it
@@ -132,7 +132,7 @@ build-all-free: build-emacs build-ghostscript build-gdb build-sendmail
 
 # Removes all unpacked free C benchmarks, but does not delete downloads
 clean-all-free:
-    rm -rf emacs-29.4 ghostscript-10.04.0 gdb-15.2 sendmail-8.18.1
+    rm -rf emacs-30.2 ghostscript-10.04.0 gdb-15.2 sendmail-8.18.1
 
 
 ############################ Polybench ##############################

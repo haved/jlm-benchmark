@@ -12,18 +12,20 @@ import json
 
 def get_memory_node_counts(suffix):
     return [
+        "#TotalRefOnlyState" + suffix,
+        "#TotalModRefState" + suffix,
+
         "#TotalAllocaState" + suffix,
         "#TotalMallocState" + suffix,
         "#TotalDeltaState" + suffix,
         "#TotalImportState" + suffix,
         "#TotalLambdaState" + suffix,
-        "#TotalExternalState" + suffix,
+        "#TotalExternalNodeState" + suffix,
+
         "#TotalNonEscapedState" + suffix,
+
         "#MaxMemoryState" + suffix,
         "#MaxNonEscapedMemoryState" + suffix,
-        #"#TotalMemoryNodes" + suffix,
-        #"#TotalIntervals" + suffix,
-        #"#MaxIntervals" + suffix
     ]
 
 def map_optimization_statistic(original_name):
@@ -55,19 +57,16 @@ METRICS_MAPPING = {
     "RegionAwareModRefSummarizer": [
         "#SimpleAllocas",
         "#NonReentrantAllocas",
-        "#ExtModRefSets",
-        "#ExtModRefCompressed",
-        "#ExtModRefKept",
-        "#LocalModRefSets",
-        "#LocalModRefKept",
+        "#ReadOnlyMemoryNodesDetected",
+
         "CallGraphTimer[ns]",
         "AllocasDeadInSccsTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "NonReentrantAllocaSetsTimer[ns]",
-        "CreateExternalModRefSetTimer[ns]", # Node
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
-        "ExternalCompactionTimer[ns]"
+        "ReadOnlyDetectionTimer[ns]",
+        "ModRefSetMaterializationTimer[ns]"
         #"CreateMemoryNodeOrderingTimer[ns]",
         #"CreateModRefSummaryTimer[ns]",
     ],
@@ -91,9 +90,12 @@ METRICS_MAPPING = {
     "StoreValueForwarding": [
         "#TotalLoads",
         "#LoadsForwarded",
-        "#NoAliasAnalysisQueries",
-        "#MayAliasAnalysisQueries",
-        "#MustAliasAnalysisQueries",
+        "#NoAliasStore",
+        "#MayAliasStore",
+        "#MustAliasStore",
+        "#NoAliasLoad",
+        "#MayAliasLoad",
+        "#MustAliasLoad",
         ("TracingTime[ns]", "SvfTracingTime[ns]"),
         ("ForwardingTime[ns]", "SvfForwardingTime[ns]"),
         ("Time[ns]", "StoreValueForwardingTime[ns]")
@@ -205,10 +207,10 @@ def calculate_total_ramrs_time(file_data):
         file_data["AllocasDeadInSccsTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
         file_data["NonReentrantAllocaSetsTimer[ns]"] +
-        file_data["CreateExternalModRefSetTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
         file_data["SolvingTimer[ns]"] +
-        file_data["ExternalCompactionTimer[ns]"])
+        file_data["ReadOnlyDetectionTimer[ns]"] +
+        file_data["ModRefSetMaterializationTimer[ns]"])
 
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
@@ -239,14 +241,7 @@ def main():
     file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]
 
     def add_total_memory_state_column(suffix):
-        file_data["#TotalMemoryState" + suffix] = (
-            file_data["#TotalAllocaState" + suffix] +
-            file_data["#TotalMallocState" + suffix] +
-            file_data["#TotalDeltaState" + suffix] +
-            file_data["#TotalImportState" + suffix] +
-            file_data["#TotalLambdaState" + suffix] +
-            file_data["#TotalExternalState" + suffix]
-        )
+        file_data["#TotalMemoryState" + suffix] = file_data["#TotalRefOnlyState" + suffix] + file_data["#TotalModRefState" + suffix]
 
     add_total_memory_state_column("Arguments")
     add_total_memory_state_column("sThroughLoad")

@@ -34,6 +34,7 @@ class Options:
         self.clang_link = os.path.join(llvm_bindir, "clang++")
         self.opt = os.path.join(llvm_bindir, "opt")
         self.llvm_link = os.path.join(llvm_bindir, "llvm-link")
+        self.llc = os.path.join(llvm_bindir, "llc")
 
         self.fortran_compiler = fortran_compiler
 
@@ -414,11 +415,13 @@ def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_va
     return objectfile_out
 
 def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
-                      env_vars=None, llvm_link_flags=None, opt_flags=None, jlm_opt_flags=None, clang_link_output=None, clang_link_workdir=None, clang_link_flags=None):
+                      env_vars=None, llvm_link_flags=None, opt_flags=None, jlm_opt_flags=None, llc_flags=None, clang_link_output=None, clang_link_workdir=None, clang_link_flags=None):
     """
-    Links together the given files. The files can be LLVM IR files or object files.
-    opt and jlm-opt can only be used if llvm-link is enabled.
-    If llvm-link is not enabled, the final clang command will be given all the input files.
+    Links together the given files. The files can be LLVM IR files and/or object files.
+    If llvm_link_flags are given, all LLVM IR is linked together first.
+    opt and jlm-opt can only be used on such a linked LLVM IR file.
+    If llc_flags are given, all LLVM IR is compiled to machine code by llc.
+    Finally, clang++ is used to link together all files and external libraries.
 
     :param tasks: the list of tasks to append commands to
     :param full_name: should be a valid filename, unique to the program
@@ -429,6 +432,7 @@ def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
     :param llvm_link_flags: if not None, llvm-link is run with the given flags
     :param opt_flags: if not None, opt is run with the given flags
     :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
+    :param llc_flags: if not None, llc is run on LLVM IR files to create object files
     :param clang_link_output: the path of the final linked binary
     :param clang_link_workdir: the directory to run the final clang linking command from
     :param clang_link_flags: if not None, clang is used to create a binary
@@ -484,18 +488,37 @@ def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
         # Without llvm-link, opt and jlm-opt can not be used
         assert opt_flags is None and jlm_opt_flags is None
 
-    if clang_link_output is not None:
-        if clang_link_workdir is None:
-            clang_link_workdir = "."
-        if clang_link_flags is None:
-            clang_link_flags = []
-        clang_link_workdir = os.path.abspath(clang_link_workdir)
+    # If we are not linking together the binary, stop now
+    if clang_link_output is None:
+        return (llvm_link_out, opt_out, jlm_opt_out, None)
 
-        clang_command = [options.clang_link, *llfiles, *direct_ofiles, "-o", clang_link_output, *clang_link_flags]
-        tasks.append(Task(name=f"clang (link) {full_name}",
-                          input_files=[*llfiles, *direct_ofiles],
-                          output_files=[clang_link_output],
-                          action=lambda task: run_command(clang_command, cwd=clang_link_workdir, env_vars=combined_env_vars, timeout=options.timeout)))
+    # If llc flags are given, use it to replace all .ll files with object files
+    if llc_flags is not None:
+        for llfile in llfiles:
+            basename = os.path.basename(llfile)
+            ofile = options.get_build_dir(f"{basename}.o")
+            llc_command = [options.llc, llfile, "--relocation-model=static", "-filetype=obj", "-o", ofile, *llc_flags]
+            tasks.append(Task(name=f"llc {basename}",
+                              input_files=[llfile],
+                              output_files=[ofile],
+                              action=lambda task,llc_command=llc_command: run_command(llc_command, env_vars=combined_env_vars, timeout=options.timeout)))
+            direct_ofiles.append(ofile)
+
+        # All llfiles have been replaced by direct ofiles
+        llfiles = []
+
+
+    if clang_link_workdir is None:
+        clang_link_workdir = "."
+    if clang_link_flags is None:
+        clang_link_flags = []
+    clang_link_workdir = os.path.abspath(clang_link_workdir)
+
+    clang_command = [options.clang_link, *llfiles, *direct_ofiles, "-o", clang_link_output, "-no-pie", *clang_link_flags]
+    tasks.append(Task(name=f"clang (link) {full_name}",
+                      input_files=[*llfiles, *direct_ofiles],
+                      output_files=[clang_link_output],
+                      action=lambda task: run_command(clang_command, cwd=clang_link_workdir, env_vars=combined_env_vars, timeout=options.timeout)))
 
     return (llvm_link_out, opt_out, jlm_opt_out, clang_link_output)
 
@@ -568,6 +591,11 @@ class Benchmark:
         self.linked_opt_flags = None
         # If set, the output of the above is passed to jlm-opt
         self.linked_jlm_opt_flags = None
+
+        # If set, LLVM IR files are compiled to machine code before linking
+        # This can be set both with and without using llvm-link
+        self.llc_flags = ["-O2"]
+
         # The final invocation of clang for linking, resulting in an executable
         if linker_output is not None:
             self.clang_link_output = options.get_build_dir(linker_output)
@@ -657,6 +685,7 @@ class Benchmark:
                           llvm_link_flags=self.llvm_link_flags,
                           opt_flags=self.linked_opt_flags,
                           jlm_opt_flags=self.linked_jlm_opt_flags,
+                          llc_flags=self.llc_flags,
                           clang_link_output=self.clang_link_output,
                           clang_link_workdir=self.clang_link_workdir,
                           clang_link_flags=self.clang_link_flags)
@@ -879,7 +908,9 @@ def main():
                         help='Uses LLVM opt\'s sroa pass')
     parser.add_argument('--optOs', action='store_true', dest='optOs',
                         help='Uses LLVM opt to replicate clang -Os')
-    parser.add_argument('--aggressiveOpt', action='store_true', dest='aggressive_opt',
+    parser.add_argument('--optSroaGvn', action='store_true', dest='optSroaGvn',
+                        help='Uses LLVM opt\'s sroa and gvn')
+    parser.add_argument('--aggressiveGvn', action='store_true', dest='aggressive_gvn',
                         help='Make GVN try harder')
 
 
@@ -980,8 +1011,10 @@ def configure_benchmark(bench, args):
 
     if args.optMem2reg:
         bench.opt_flags = ["-passes=mem2reg"]
-    if args.optSroa:
+    elif args.optSroa:
         bench.opt_flags = ["-passes=sroa<modify-cfg>"]
+    elif args.optSroaGvn:
+        bench.opt_flags = ["-passes=require<globals-aa>,function<eager-inv>(sroa<modify-cfg>,early-cse<>,gvn<>)"]
     elif args.optOs:
         #bench.opt_flags = ["-passes=default<Os>"]
         bench.opt_flags = ["-passes=" + \
@@ -1017,21 +1050,18 @@ def configure_benchmark(bench, args):
                            "simplifycfg<bonus-inst-threshold=1;no-forward-switch-cond;switch-range-to-icmp;no-switch-to-lookup;keep-loops;no-hoist-common-insts;no-sink-common-insts;speculate-blocks;simplify-cond-branch>)," + \
                            "globaldce,constmerge,cg-profile,rel-lookup-table-converter,function(annotation-remarks)"]
 
-    if args.aggressive_opt:
+    if args.aggressive_gvn:
         bench.opt_flags += [
             # In MemoryDependenceAnalysis.cpp
             "--memdep-block-scan-limit", "10000", # Default: 100
             "--memdep-block-number-limit", "10000", # Default: 200
 
             # In GVN.cpp:
-            "--enable-gvn-memoryssa", # Default: false
+            # "--enable-gvn-memoryssa", # Default: false
             "--gvn-max-num-deps=10000", # Default: 100
             "--gvn-max-block-speculations=60000", # Default: 600
             "--gvn-max-num-visited-insts=10000", # Default: 100
             "--gvn-max-num-insns=10000", # Default: 100]
-
-            # In EarlyCSE.cpp
-            "--earlycse-mssa-optimization-cap=50000", # Default: 500
             ]
 
     # Configure the flags sent to jlm-opt here
@@ -1078,7 +1108,7 @@ def configure_benchmark(bench, args):
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     # Uncomment to disable linking
-    # bench.clang_link_output = None
+    bench.clang_link_output = None
 
     # Uncomment to disable all use of jlm-opt
     # bench.jlm_opt_flags = None

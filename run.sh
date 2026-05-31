@@ -75,7 +75,9 @@ function usage()
 	echo ""
     echo "  Alternative tasks:"
 	echo "    --create-json       Build all benchmarks to re-create sources.json. Implies --full-spec"
-	echo "    --clean             Delete extracted sources and build files and exit."
+    echo "    --clean-runs        Remove build output and statistics from running benchmarks, and exit."
+	echo "    --clean-jlm         Remove the build(s) of jlm-opt, and exit."
+    echo "    --purge             Perform the above removals, remove all extracted benchmark programs, and exit."
 	echo "    --help              Print this message and exit."
 }
 
@@ -205,11 +207,21 @@ while [[ "$#" -ge 1 ]] ; do
 			EXTRACT_ALL=false
 			shift
 			;;
-		--clean)
+        --clean-runs)
+			echo "Removing build output, statistics and results from runs"
+            just clean-runs
+            exit 0
+			;;
+        --clean-jlm)
+			echo "Removing build of jlm-opt"
+            just clean-jlm-builds
+            exit 0
+			;;
+		--purge)
+            "$0" --clean-runs
+            "$0" --clean-jlm
 			echo "Deleting extracted sources"
 			just sources/programs/clean-all
-			echo "Removing all result files from previous runs of jlm-opt"
-			just purge
 			exit 0
 			;;
 		--create-json)
@@ -335,6 +347,16 @@ fi
 
 # The benchmarking invocations below change frequently
 
+# For testing with asserts (slow)
+#./benchmark.py --jlm-opt="../jlm/build-debug/jlm-opt" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --builddir build/jlm --statsdir statistics/raware-debug \
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--builddir build/jlm --statsdir statistics/jlm \
+	|| true
+
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
 	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware \
@@ -345,9 +367,14 @@ JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvm
 	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware-aggressive-localaa \
 	|| true
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--optMem2reg --regionAwareModRef --builddir build/mem2reg --statsdir statistics/mem2reg-raware \
+	--builddir build/jlm --statsdir statistics/ptgaa \
+	|| true
+
+JLM_ENABLE_SVF_PTGAA=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+	--builddir build/jlm --statsdir statistics/ptgaa-aggressive-localaa \
 	|| true
 
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
@@ -357,17 +384,12 @@ JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvm
 
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--builddir build/jlm --statsdir statistics/jlm \
+	--regionAwareModRef --optSroaGvn --builddir build/gvn --statsdir statistics/gvn-raware \
 	|| true
 
-JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--builddir build/jlm --statsdir statistics/jlm-aggressive-localaa \
-	|| true
-
-JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--builddir build/jlm --statsdir statistics/jlm-ptgaa \
+	--regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
 	|| true
 
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
@@ -375,25 +397,45 @@ JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_B
 	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware \
 	|| true
 
-JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggressive-localaa \
-	|| true
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--optSroaGvn --regionAwareModRef --builddir build/sroa-gvn --statsdir statistics/sroa-gvn-raware \
+#	|| true
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os \
-	|| true
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--optMem2reg --regionAwareModRef --builddir build/mem2reg --statsdir statistics/mem2reg-raware \
+#	|| true
 
-JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-aggressive-localaa \
-	|| true
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--builddir build/jlm --statsdir statistics/jlm-aggressive-localaa \
+#	|| true
 
-JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-ptgaa \
-	|| true
+#JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--builddir build/jlm --statsdir statistics/jlm-ptgaa \
+#	|| true
+
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggressive-localaa \
+#	|| true
+
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os \
+#	|| true
+
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-aggressive-localaa \
+#	|| true
+
+#JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-ptgaa \
+#	|| true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
 #	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \

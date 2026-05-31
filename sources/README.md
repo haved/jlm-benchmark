@@ -3,7 +3,7 @@ This folder contains the sources used for benchmarking.
 
 ### Open source benchmarks
 The open source benchmarks have been downloaded from
- - Emacs 29.4: `https://ftpmirror.gnu.org/emacs/emacs-29.4.tar.gz`
+ - Emacs 30.2: `https://ftpmirror.gnu.org/emacs/emacs-30.2.tar.gz`
  - Ghostscript 10.04.0: `https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz`
  - gdb 15.2: `https://ftp.gnu.org/gnu/gdb/gdb-15.2.tar.gz`
  - sendmail 8.18.1: `https://ftp.sendmail.org/sendmail.8.18.1.tar.gz`

@@ -8,7 +8,7 @@ EMACS_BINARY="$(readlink -f "$1")"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd "${SCRIPT_DIR}"
 
-export EMACSLOADPATH="${SCRIPT_DIR}/../../programs/emacs-29.4/lisp"
+export EMACSLOADPATH="${SCRIPT_DIR}/../../programs/emacs-30.2/lisp"
 
 echo "Running script.el"
 SCRIPT_OUTPUT=$("$EMACS_BINARY" -q --script script.el)

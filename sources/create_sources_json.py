@@ -82,7 +82,7 @@ REDIST2017_PROGRAMS = {
 # These programs are located directly in the PROGRAM_FOLDER
 # Compilation commands to build and link these programs are extracted from events.json
 OTHER_PROGRAMS = {
-    "emacs-29.4": {
+    "emacs-30.2": {
         "elffile": "/src/temacs.tmp$",
         "validator": f"{VALIDATOR_FOLDER}/emacs/validate.sh"
     },
@@ -183,10 +183,11 @@ IGNORED_OFILES = [
 # due to containing things like inline assembly and special intrinsics we do not currently support,
 # They get "kind": "C-nonjlm" in the output json
 NONJLM_C_FILES = [
-    "emacs-29.4/src/bytecode.c",
-    "emacs-29.4/src/json.c",
-    "emacs-29.4/src/gtkutil.c",
-    "emacs-29.4/src/emacsgtkfixed.c",
+    "emacs-30.2/lib/memset_explicit.c",
+    "emacs-30.2/src/bytecode.c",
+    "emacs-30.2/src/json.c",
+    "emacs-30.2/src/gtkutil.c",
+    "emacs-30.2/src/emacsgtkfixed.c",
     "gdb-15.2/libiberty/sha1.c",
     "gdb-15.2/libbacktrace/mmap.c",
     "gdb-15.2/libbacktrace/dwarf.c",
