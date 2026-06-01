@@ -332,10 +332,10 @@ def main():
         "ReadOnlyDetectionTimer[ns]",
         "ModRefSetMaterializationTimer[ns]",
     ]
-    table_quartiles_per_column(file_data, "RegionAwareModRef", raware_steps)
+    table_quartiles_per_column(file_data, "raware", raware_steps)
 
     andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
-    table_quartiles_per_column(file_data, "jlm", andersen_steps)
+    table_quartiles_per_column(file_data, "raware", andersen_steps)
 
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)
@@ -363,7 +363,7 @@ def main():
 
     table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
     table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
-    table_quartiles_per_configuration(file_data, raware_configurations, "#LoadsForwarded")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "#LoadsForwarded")
 
     #file_data["#AAQueriesStore"] = file_data["#NoAliasStore"] + file_data["#MayAliasStore"] + file_data["#MustAliasStore"]
     #file_data["#AAQueriesLoad"] = file_data["#NoAliasLoad"] + file_data["#MayAliasLoad"] + file_data["#MustAliasLoad"]
@@ -459,6 +459,9 @@ def main():
 
     print("SROA+Raware vs clang SROA+GVN")
     compare("sroa-raware", "Tree4", "gvn-raware", "Tree0")
+
+    print("SROA+GVN+Raware+SVF vs clang SROA+GVN")
+    compare("gvn-raware", "Tree4", "gvn-raware", "Tree0")
 
     print("Improvement from making LocalAA aggressive")
     compare("raware-aggressive-localaa", "Tree4", "raware", "Tree4")
