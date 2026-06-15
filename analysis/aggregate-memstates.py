@@ -60,15 +60,12 @@ METRICS_MAPPING = {
         "#ReadOnlyMemoryNodesDetected",
 
         "CallGraphTimer[ns]",
-        "AllocasDeadInSccsTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "NonReentrantAllocaSetsTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
         "ReadOnlyDetectionTimer[ns]",
         "ModRefSetMaterializationTimer[ns]"
-        #"CreateMemoryNodeOrderingTimer[ns]",
-        #"CreateModRefSummaryTimer[ns]",
     ],
     "MemoryStateEncoder": [
         "#IntraProceduralRegions",
@@ -88,8 +85,13 @@ METRICS_MAPPING = {
         ("Time[ns]", "RvsdgConstructionTime[ns]")
     ],
     "StoreValueForwarding": [
-        "#TotalLoads",
-        "#LoadsForwarded",
+        "#LoadsWithMemoryState",
+        "#ForwardedLoadsWithMemoryState",
+
+        "#LoadsWithoutMemoryState",
+        "#LoadsTracedToDeltaNode",
+        "#ForwardedLoadsWithoutMemoryState",
+
         "#NoAliasStore",
         "#MayAliasStore",
         "#MustAliasStore",
@@ -204,13 +206,13 @@ def extract_file_data(folder):
 def calculate_total_ramrs_time(file_data):
     file_data["RegionAwareModRefSummarizerTime[ns]"] = (
         file_data["CallGraphTimer[ns]"] +
-        file_data["AllocasDeadInSccsTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
         file_data["NonReentrantAllocaSetsTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
-        file_data["SolvingTimer[ns]"] +
-        file_data["ReadOnlyDetectionTimer[ns]"] +
-        file_data["ModRefSetMaterializationTimer[ns]"])
+        file_data["SolvingTimer[ns]"] # +
+        #file_data["ReadOnlyDetectionTimer[ns]"] +
+        #file_data["ModRefSetMaterializationTimer[ns]"]
+    )
 
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
@@ -240,13 +242,13 @@ def main():
 
     file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]
 
-    def add_total_memory_state_column(suffix):
-        file_data["#TotalMemoryState" + suffix] = file_data["#TotalRefOnlyState" + suffix] + file_data["#TotalModRefState" + suffix]
+    #def add_total_memory_state_column(suffix):
+    #    file_data["#TotalMemoryState" + suffix] = file_data["#TotalRefOnlyState" + suffix] + file_data["#TotalModRefState" + suffix]
 
-    add_total_memory_state_column("Arguments")
-    add_total_memory_state_column("sThroughLoad")
-    add_total_memory_state_column("sThroughStore")
-    add_total_memory_state_column("sIntoCallEntryMerge")
+    #add_total_memory_state_column("Arguments")
+    #add_total_memory_state_column("sThroughLoad")
+    #add_total_memory_state_column("sThroughStore")
+    #add_total_memory_state_column("sIntoCallEntryMerge")
 
 
     file_data.to_csv(stats_out("memstate-file-data.csv"))

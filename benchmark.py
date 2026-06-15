@@ -912,6 +912,14 @@ def main():
                         help='Uses LLVM opt\'s sroa and gvn')
     parser.add_argument('--aggressiveGvn', action='store_true', dest='aggressive_gvn',
                         help='Make GVN try harder')
+    parser.add_argument('--extraCneSvf', action='store_true', dest='extraCneSvf',
+                        help='Perform SVF twice, with CNE in between')
+    parser.add_argument('--extraExtra', action='store_true', dest='extraExtra',
+                        help='Perform SVF thrice, with CNE in between')
+    parser.add_argument('--skipNodeReduction', action='store_true', dest='skipNodeReduction',
+                        help='Skip running NodeReduction in jlm-opt')
+    parser.add_argument('--nodePushOut', action='store_true', dest='nodePushOut',
+                        help='Run NodePushOut in between SVF passes in jlm-opt')
 
 
     args = parser.parse_args()
@@ -1095,15 +1103,21 @@ def configure_benchmark(bench, args):
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     bench.jlm_opt_flags.append("--StoreValueForwarding")
+    # Make sure SVF gets close to its fixedpoint
+    for _ in range(3):
+        if args.nodePushOut:
+            bench.jlm_opt_flags.append("--NodePushOut")
+        bench.jlm_opt_flags.extend(["--CommonNodeElimination", "--StoreValueForwarding"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     bench.jlm_opt_flags.extend([
         #"--LoadChainSeparation",
         "--CommonNodeElimination",
-        "--InvariantValueRedirection",
-        "--NodeReduction",
-        "--DeadNodeElimination"])
+        "--InvariantValueRedirection"])
+    if not args.skipNodeReduction:
+        bench.jlm_opt_flags.append("--NodeReduction")
+    bench.jlm_opt_flags.extend(["--DeadNodeElimination"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 

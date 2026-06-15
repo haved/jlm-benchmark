@@ -310,27 +310,16 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
-    raware_configurations = ["jlm",
-                             "raware",
-                             "raware-aggressive-localaa",
-                             "ptgaa",
-                             "ptgaa-aggressive-localaa",
-                             "gvn-raware",
-                             "gvn-aggressive-raware",
-                             "sroa-raware",
-                             "clang-Os-raware",
-                             #"clang-Os-raware-noloadload",
-                             ]
+    raware_configurations = file_data["Configuration"].unique()
 
     raware_steps = [
         "CallGraphTimer[ns]",
-        "AllocasDeadInSccsTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "NonReentrantAllocaSetsTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
-        "ReadOnlyDetectionTimer[ns]",
-        "ModRefSetMaterializationTimer[ns]",
+        #"ReadOnlyDetectionTimer[ns]",
+        #"ModRefSetMaterializationTimer[ns]",
     ]
     table_quartiles_per_column(file_data, "raware", raware_steps)
 
@@ -389,6 +378,7 @@ def main():
     print()
 
     table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumLoadNodes")
+    table_quartiles_per_configuration(file_data, raware_configurations, "Tree3-NumLoadNodes")
     table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumLoadNodes")
     table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumStoreNodes")
     table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumStoreNodes")
@@ -402,40 +392,44 @@ def main():
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
 
-    print("Files where opt sroa-gvn Tree0 does better than sroa-raware Tree4")
-    clangOs = file_data[file_data["Configuration"] == "gvn-raware"].set_index("cfile")
-    sroaRaware = file_data[file_data["Configuration"] == "sroa-raware"].set_index("cfile")
 
-    result_df = sroaRaware.copy()
-    result_df["MoreLoads"] = sroaRaware["Tree4-NumLoadNodes"] - clangOs["Tree0-NumLoadNodes"]
-    result_df["MoreStores"] = sroaRaware["Tree4-NumStoreNodes"] - clangOs["Tree0-NumStoreNodes"]
-    result_df["MoreAllocas"] = sroaRaware["Tree4-NumAllocaNodes"] - clangOs["Tree0-NumAllocaNodes"]
-    result_df.to_csv("statistics-out/sroa-gvn-vs-sroa-raware.csv")
+    def study_differences(config_name, tree_name, baseline_config_name, baseline_tree_name, save_csv=None):
+        config_data = file_data[file_data["Configuration"] == config_name].set_index("cfile")
+        baseline_data = file_data[file_data["Configuration"] == baseline_config_name].set_index("cfile")
 
-    # Plot differences between number of loads, stores, allocas etc
-    def plot_difference(column_name, baseline_column, relative):
-        data = pd.DataFrame({"value": result_df[column_name], "baseline": clangOs[baseline_column]})
-        data["better"] = (data["value"] < 0).astype(int) + (data["value"] <= 0).astype(int)
-        data["relative"] = (data["value"] / data["baseline"]) + 1
-        data.sort_values(by="baseline", inplace=True)
+        full_title = f"{config_name} ({tree_name}) vs. {baseline_config_name} ({baseline_tree_name})"
 
-        data["cfile"] = data.index
-        data["x"] = range(len(data))
+        if save_csv is not None:
+            result_df = config_data.copy()
+            result_df["MoreLoads"] = config_data[f"{tree_name}-NumLoadNodes"] - baseline_data[f"{baseline_tree_name}-NumLoadNodes"]
+            result_df["MoreStores"] = config_data[f"{tree_name}-NumStoreNodes"] - baseline_data[f"{baseline_tree_name}-NumStoreNodes"]
+            result_df["MoreAlloca"] = config_data[f"{tree_name}-NumAllocaNodes"] - baseline_data[f"{baseline_tree_name}-NumAllocaNodes"]
+            result_df.to_csv(f"statistics-out/{save_csv}")
 
-        if relative:
-            fig = px.scatter(data, x="x", y="relative", color="better", hover_data=['cfile', 'baseline'], title=column_name + " Relative")
+        # Plot differences between number of loads, stores, allocas etc
+        def plot_difference(column_name):
+            data = pd.DataFrame({"config_value": config_data[f"{tree_name}-{column_name}"], "baseline": baseline_data[f"{baseline_tree_name}-{column_name}"]})
+            data["difference"] = data["config_value"] - data["baseline"]
+            data["relative"] = data["config_value"] / data["baseline"]
+            data["comparison"] = ((data["difference"] < 0).astype(int) + (data["difference"] <= 0).astype(int)).map({0: "worse", 1: "equal", 2:"better"})
+            data.sort_values(by="baseline", inplace=True)
+
+            data["cfile"] = data.index
+            data["x"] = range(len(data))
+
+            fig = px.scatter(data, x="x", y="relative", color="comparison", hover_data=['cfile', 'baseline', 'relative'], title=f"{full_title} {column_name} Relative")
             fig.add_hline(y=1)
-        else:
-            fig = px.scatter(data, x="x", y="value", color="better", hover_data=['cfile', 'baseline'], title=column_name + " Absolute")
-            fig.add_hline(y=0)
-        fig.show()
+            fig.show()
 
-    plot_difference("MoreLoads", "Tree0-NumLoadNodes", relative=False)
-    plot_difference("MoreLoads", "Tree0-NumLoadNodes", relative=True)
-    plot_difference("MoreStores", "Tree0-NumStoreNodes", relative=False)
-    plot_difference("MoreStores", "Tree0-NumStoreNodes", relative=True)
-    plot_difference("MoreAllocas", "Tree0-NumAllocaNodes", relative=False)
-    plot_difference("MoreAllocas", "Tree0-NumAllocaNodes", relative=True)
+            fig = px.scatter(data, x="x", y="difference", color="comparison", hover_data=['cfile', 'baseline', 'difference'], title=f"{full_title} {column_name} Absolute")
+            fig.add_hline(y=0)
+            fig.show()
+
+        plot_difference("NumLoadNodes")
+        #plot_difference("NumStoreNodes")
+        #plot_difference("NumAllocaNodes")
+
+    study_differences("raware-aggressive-localaa", "Tree4", "raware-aggressive-localaa-notracesext", "Tree4", "with-tracesext.csv")
 
     print()
 
@@ -457,14 +451,35 @@ def main():
     #compare("RegionAwareModRef", "Tree0", "O3", "Tree0")
     #compare("O", "Tree4", "O3", "Tree0")
 
+    print("SROA+Raware+AggLocalAA vs SROA+Raware+AggLocalAA without tracing sext/zext/trunc")
+    compare("sroa-raware-aggressive-localaa", "Tree4", "sroa-raware-aggressive-localaa-notracesext", "Tree4")
+
     print("SROA+Raware vs clang SROA+GVN")
     compare("sroa-raware", "Tree4", "gvn-raware", "Tree0")
+
+    print("SROA+Raware with aggressive LocalAA vs clang SROA+GVN")
+    compare("sroa-raware-aggressive-localaa", "Tree4", "gvn-raware", "Tree0")
+
+    print("SROA+Raware with aggressive LocalAA and NodePushOut vs without NodePushOut")
+    compare("sroa-raware-aggressive-localaa-node-push-out", "Tree4", "sroa-raware-aggressive-localaa", "Tree4")
+
+    print("SROA+Raware with aggressive LocalAA and NodePushOut vs clang SROA+GVN")
+    compare("sroa-raware-aggressive-localaa-node-push-out", "Tree4", "gvn-raware", "Tree0")
 
     print("SROA+GVN+Raware+SVF vs clang SROA+GVN")
     compare("gvn-raware", "Tree4", "gvn-raware", "Tree0")
 
     print("Improvement from making LocalAA aggressive")
     compare("raware-aggressive-localaa", "Tree4", "raware", "Tree4")
+
+    print("Improvement from making LocalAA aggressive (on top of SROA)")
+    compare("sroa-raware-aggressive-localaa", "Tree4", "sroa-raware", "Tree4")
+
+    print("clangOs+Raware+SVF vs clangOs")
+    compare("clang-Os-raware", "Tree4", "clang-Os-raware", "Tree0")
+
+    print("SROA+Raware with aggressive LocalAA vs clangOs")
+    compare("sroa-raware-aggressive-localaa", "Tree4", "clang-Os-raware", "Tree0")
 
     #print("Difference between doing MSE")
     #compare("raware", "Tree4", "jlm", "Tree4")
@@ -473,11 +488,11 @@ def main():
     #print("Improving on clang -Os with nothing")
     #compare("clang-Os", "Tree4", "clang-Os", "Tree0")
 
-    print("Improvement vs adding PtGAA")
-    compare("raware", "Tree4", "ptgaa", "Tree4")
+    #print("Improvement vs adding PtGAA")
+    #compare("raware", "Tree4", "ptgaa", "Tree4")
 
-    print("Improvement vs adding PtGAA with aggressive")
-    compare("raware", "Tree4", "ptgaa-aggressive-localaa", "Tree4")
+    #print("Improvement vs adding PtGAA with aggressive")
+    #compare("raware", "Tree4", "ptgaa-aggressive-localaa", "Tree4")
 
     #print("PtGAA vs MSE")
     #compare("clang-Os-ptgaa", "Tree4", "clang-Os-raware", "Tree4")
