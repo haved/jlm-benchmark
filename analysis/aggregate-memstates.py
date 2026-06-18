@@ -57,7 +57,16 @@ METRICS_MAPPING = {
     "RegionAwareModRefSummarizer": [
         "#SimpleAllocas",
         "#NonReentrantAllocas",
+        "#CallGraphSccs",
+        "#FunctionsCallingSetjmp",
         "#ReadOnlyMemoryNodesDetected",
+
+        "#ModRefSetsMaterialized",
+        "ModRefSetSizeBeforeMaterialization",
+        "ModRefSetSizeAfterFiltering",
+        "#ModRefSetsWithEffectOnExternal",
+        "#ModRefSetsCallingExternalFunction",
+        "ModRefSetSizeAfterMaterialization",
 
         "CallGraphTimer[ns]",
         "SimpleAllocasSetTimer[ns]",

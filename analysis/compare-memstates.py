@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import plotly.express as px
+import sys
 
 def extract_column(data, column, configuration):
     return data[data["Configuration"] == configuration].set_index("cfile")[column]
@@ -429,7 +430,8 @@ def main():
         #plot_difference("NumStoreNodes")
         #plot_difference("NumAllocaNodes")
 
-    study_differences("raware-aggressive-localaa", "Tree4", "raware-aggressive-localaa-notracesext", "Tree4", "with-tracesext.csv")
+    study_differences("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-no-callblocking", "Tree4")
+    # study_differences("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")
 
     print()
 
@@ -451,8 +453,23 @@ def main():
     #compare("RegionAwareModRef", "Tree0", "O3", "Tree0")
     #compare("O", "Tree4", "O3", "Tree0")
 
-    print("SROA+Raware+AggLocalAA vs SROA+Raware+AggLocalAA without tracing sext/zext/trunc")
-    compare("sroa-raware-aggressive-localaa", "Tree4", "sroa-raware-aggressive-localaa-notracesext", "Tree4")
+    print("SROA+Raware+AggLocalAA vs SROA+Raware+AggLocalAA without callblocking")
+    compare("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-no-callblocking", "Tree4")
+    sys.exit(0)
+
+    print("SROA+Raware+AggLocalAA+NodePushOut+RegionPred vs SROA+Raware+AggLocalAA+NodePushOut")
+    compare("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")
+
+    print("SROA+Raware+AggLocalAA+NodePushOut+RegionPred vs clang SROA+GVN")
+    compare("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "gvn-raware", "Tree0")
+
+    print("SROA+Raware+AggLocalAA+NodePushOut+RegionPred vs clang Os")
+    compare("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "clang-Os-raware-aggaa", "Tree0")
+
+    print("SROA+Raware+AggLocalAA+NodePushOut+RegionPred vs clang O3")
+    compare("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "clang-O3-raware-aggaa", "Tree0")
+
+    sys.exit(0)
 
     print("SROA+Raware vs clang SROA+GVN")
     compare("sroa-raware", "Tree4", "gvn-raware", "Tree0")

@@ -15,6 +15,8 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
+# Create a folder inside the image for mounting.
+# This folder is uncessesary if using distrobox, since it mounts everything in place
 RUN mkdir /benchmark
 WORKDIR /benchmark
 CMD ["/usr/bin/bash"]

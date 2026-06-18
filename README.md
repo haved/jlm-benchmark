@@ -66,15 +66,15 @@ and then trigger them from `run.sh`, either using `EXTRA_BENCH_OPTIONS`, or by m
 ## Restarting benchmarking
 If the `run.sh` script is for some reason aborted, it can be restarted and resume roughly where it left off.
 
-If you wish to reset all build progress, you can pass `--clean-runs` to the run script like so:
+If you wish to reset all build progress, you can give the `clean-runs` task to the run script like so:
 ``` sh
-./run.sh --clean-runs
+./run.sh clean-runs
 ```
 This will remove all build output, statistics and processed results from previous runs.
 
-If you want to delete builds of jlm, this can be done using `--clean-jlm`.
+If you want to delete builds of jlm, this can be done using the `clean-jlm` task.
 
-If you want to remove all of the above, in addition to all extracted benchmarks, this can be done using `--purge`.
+If you want to remove all of the above, in addition to all extracted benchmarks, this can be done using `purge` task.
 Deleting the extracted benchmark programs means they will be extracted and re-configured on the next run,
 which can be necessary if the environment has changed. This should be rare, however.
 

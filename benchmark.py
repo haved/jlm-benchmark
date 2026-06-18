@@ -608,7 +608,7 @@ class Benchmark:
         # Add an optional suffix to outputs of jlm-opt
         self.jlm_opt_suffix = None
 
-        # Optional validation script
+        # Optional validation script, requires linking
         self.validator = validator
 
     def get_full_srcfile_name(self, srcfile):
@@ -668,6 +668,10 @@ class Benchmark:
                 raise ValueError(f"Unknown SourceFile kind: {srcfile.kind}")
 
 
+        # Only perform LLVM IR compilation (llc) and linking if the output file is specified
+        if self.clang_link_output is None:
+            return tasks
+
         # Try as much as possible to use the LLVM IR files produced above when linking
         llfiles = []
         direct_ofiles = []
@@ -678,7 +682,6 @@ class Benchmark:
                 direct_ofiles.append(ofile_to_objectfile[ofile])
             else:
                 direct_ofiles.append(ofile)
-                #raise ValueError(f"No command for producing {ofile} is known")
 
         link_and_optimize(tasks, full_name=self.name, llfiles=llfiles, direct_ofiles=direct_ofiles,
                           stats_dir=stats_dir, env_vars=env_vars,
@@ -819,6 +822,10 @@ def run_validation(benchmarks, dryrun=False):
         if bench.validator is None:
             continue
 
+        if bench.clang_link_output is None:
+            print(f"Benchmark {bench.name} has validator but no link output")
+            return False
+
         linked_binary = os.path.abspath(bench.clang_link_output)
         if not os.path.exists(linked_binary):
             print(f"Missing binary for validation: {linked_binary}")
@@ -889,8 +896,10 @@ def main():
     parser.add_argument('-j', metavar='N', dest='workers', action='store', default='1',
                         help='Run up to N tasks in parallel when possible')
 
+    parser.add_argument('--link', dest='link', action='store_true',
+                        help='Link the optimized LLVM IR into executable binaries')
     parser.add_argument('--do-validation', dest='do_validation', action='store_true',
-                        help='Run validation scripts after compiling and linking')
+                        help='Run validation scripts after compiling and linking. Implies --link')
 
     parser.add_argument('--aggregateAllocaSplitting', action='store_true', dest='aggregateAllocaSplitting',
                         help='Perform aggregate alloca splitting early in the jlm-opt pipeline')
@@ -912,15 +921,8 @@ def main():
                         help='Uses LLVM opt\'s sroa and gvn')
     parser.add_argument('--aggressiveGvn', action='store_true', dest='aggressive_gvn',
                         help='Make GVN try harder')
-    parser.add_argument('--extraCneSvf', action='store_true', dest='extraCneSvf',
-                        help='Perform SVF twice, with CNE in between')
-    parser.add_argument('--extraExtra', action='store_true', dest='extraExtra',
-                        help='Perform SVF thrice, with CNE in between')
     parser.add_argument('--skipNodeReduction', action='store_true', dest='skipNodeReduction',
                         help='Skip running NodeReduction in jlm-opt')
-    parser.add_argument('--nodePushOut', action='store_true', dest='nodePushOut',
-                        help='Run NodePushOut in between SVF passes in jlm-opt')
-
 
     args = parser.parse_args()
 
@@ -971,13 +973,12 @@ def main():
     if dryrun: # There is no point in multithreading the dryruns
         workers = 1
 
-    env_vars = {}
     for bench in benchmarks:
         configure_benchmark(bench, args)
 
     # Perform all compilation and linking tasks
     success = run_benchmarks(benchmarks,
-                             env_vars=env_vars,
+                             env_vars={},
                              offset=offset,
                              limit=limit,
                              stride=stride,
@@ -1016,6 +1017,7 @@ def configure_benchmark(bench, args):
 
     # Don't use multiple at once!
     assert args.clangOs + args.clangO3 <= 1
+    assert args.optMem2reg + args.optSroa + args.optSroaGvn + args.optOs <= 1
 
     if args.optMem2reg:
         bench.opt_flags = ["-passes=mem2reg"]
@@ -1105,9 +1107,7 @@ def configure_benchmark(bench, args):
     bench.jlm_opt_flags.append("--StoreValueForwarding")
     # Make sure SVF gets close to its fixedpoint
     for _ in range(3):
-        if args.nodePushOut:
-            bench.jlm_opt_flags.append("--NodePushOut")
-        bench.jlm_opt_flags.extend(["--CommonNodeElimination", "--StoreValueForwarding"])
+        bench.jlm_opt_flags.extend(["--NodePushOut", "--CommonNodeElimination", "--StoreValueForwarding"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
@@ -1121,8 +1121,10 @@ def configure_benchmark(bench, args):
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
-    # Uncomment to disable linking
-    bench.clang_link_output = None
+    # Only perform linking if requested, or if we need to do validation
+    do_linking = args.link or args.do_validation
+    if not do_linking:
+        bench.clang_link_output = None
 
     # Uncomment to disable all use of jlm-opt
     # bench.jlm_opt_flags = None

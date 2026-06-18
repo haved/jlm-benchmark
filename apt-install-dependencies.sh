@@ -4,8 +4,8 @@ apt-get update
 apt-get install -y \
     wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn python3-plotly \
     just bear make ninja-build g++ libstdc++-14-dev gfortran autoconf texinfo cmake \
-    llvm-18-dev clang-18 clang-format-18 libgtest-dev \
-    lmod locales doxygen unzip git \
+    llvm-18-dev clang-18 clang-format-18 clang-tidy-18 libgtest-dev \
+    lmod locales doxygen unzip git parallel \
     \
     \
     build-essential gcc-multilib gcc-mingw-w64 libasound2-dev libpulse-dev libdbus-1-dev \
