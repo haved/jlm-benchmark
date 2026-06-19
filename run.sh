@@ -59,7 +59,7 @@ function usage()
     echo "    purge             Perform the above removals, remove all extracted benchmark programs, and exit."
 	echo "    help / --help     Print this message and exit."
 	echo ""
-    echo "Options to run:"
+    echo "Options to the run task:"
 	echo "  --parallel <threads>  The number of threads to run in parallel."
 	echo "                        Default=[${PARALLEL_INVOCATIONS}]"
 	echo "  --jlm-opt <path>      Specify the path to jlm-opt."
@@ -74,7 +74,16 @@ function usage()
     echo "  --ci                  Perform a benchmark run suitable for CI and exit with its status code."
 	echo ""
 	echo "  Optional filters:     (or none to select all)"
-	echo "    --spec              Compile SPEC (redist or full)."
+	echo "    --spec              Compile all of SPEC (redist or full)."
+    echo "    --perlbench         Compile perlbench from SPEC."
+    echo "    --gcc               Compile gcc from SPEC."
+    echo "    --cactuBSSN         Compile cactuBSSN from SPEC."
+    echo "    --x264              Compile x264 from SPEC."
+    echo "    --blender           Compile blender from SPEC."
+    echo "    --imagick           Compile imagick from SPEC."
+    echo "    --nab               Compile nab from SPEC."
+    echo "    --xz                Compile xz from SPEC."
+    echo "    --spec              Compile SPEC (redist or full)."
 	echo "    --emacs             Compile emacs."
 	echo "    --ghostscript       Compile ghostscript."
 	echo "    --gdb               Compile gdb."
@@ -84,7 +93,7 @@ function usage()
 	echo ""
 }
 
-# Helper function for making sure no options have been given to a task that doesn't handle them
+# Helper function for making sure no options have been given to a task that doesn't take them
 assert_no_options() {
     if [[ "$#" -gt 1 ]] ; then
         echo "$0: error: the task '${1}' does not take any options. Unknown option: ${2}" >&2
@@ -117,11 +126,11 @@ case "${1-}" in
         exit 0
 		;;
 	purge)
+        assert_no_options "$@"
         "$0" clean-runs
         "$0" clean-jlm
 		echo "Deleting extracted sources"
 		just sources/programs/clean-all
-        assert_no_options "$@"
 		exit 0
 		;;
     help)
@@ -168,13 +177,15 @@ while [[ "$#" -ge 1 ]] ; do
             RUNNING_IN_CI=true
             shift
             ;;
-		--spec)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench|502\\.gcc|507\\.cactuBSSN|525\\.x264|526\\.blender|538\\.imagick|544\\.nab|557\\.xz"
+        # Filter for all of spec
+        --spec)
+			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=5\\d\\d\\."
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
 			shift
 			;;
-		--perlbench)
+        # Invividual spec benchmark filters
+        --perlbench)
 			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench"
 			EXTRACT_SPEC=true
 			EXTRACT_ALL=false
@@ -222,6 +233,7 @@ while [[ "$#" -ge 1 ]] ; do
 			EXTRACT_ALL=false
 			shift
 			;;
+        # Open source benchmark filters
 		--emacs)
 			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=emacs"
 			EXTRACT_EMACS=true
