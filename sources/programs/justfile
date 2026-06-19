@@ -70,10 +70,8 @@ extract-gdb: download-gdb
     cd gdb-15.2
 
     # gdb requires a full build to create its config files
-    ./configure
-
     # Disable Python, since adding Python support only adds a bunch of C++ files
-    sed -i 's~^#define HAVE_PYTHON.*~//\0~' gdb/config.h
+    ./configure --without-python
 
     bear intercept -- make -j12
 
