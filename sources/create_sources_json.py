@@ -494,7 +494,9 @@ class Program:
         self.ofiles = [ofile for ofile in self.ofiles if keep(ofile)]
 
     def _remove_unused_srcfiles(self):
-        expected_ofiles = set(make_relative_to(os.path.join(self.linker_workdir, ofile), SCRIPT_ROOT) for ofile in self.ofiles)
+        expected_ofiles = [make_relative_to(os.path.join(self.linker_workdir, ofile), SCRIPT_ROOT) for ofile in self.ofiles]
+        # Create a mapping from ofile name to index in the linking command, for sorting
+        expected_ofiles = {ofile: index for index, ofile in enumerate(expected_ofiles)}
 
         seen_ofiles = {}
         def keep(srcfile):
@@ -514,7 +516,10 @@ class Program:
 
         self.srcfiles = [srcfile for srcfile in self.srcfiles if keep(srcfile)]
 
-        missing_ofiles = expected_ofiles - seen_ofiles.keys()
+        # Sort srcfiles by the position their corresponding ofile has in the linker command
+        self.srcfiles.sort(key=lambda srcfile: expected_ofiles[srcfile.get_full_ofile()])
+
+        missing_ofiles = expected_ofiles.keys() - seen_ofiles.keys()
         if len(missing_ofiles):
             print("Missing ofiles not provided by any srcfile:")
             for ofile in missing_ofiles:

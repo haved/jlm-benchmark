@@ -8,7 +8,6 @@ llvm-bin := `llvm-config-18 --bindir`
 
 # Compile jlm-opt using clang++ from the LLVM bindir, unless specified in .env
 JLM_CXX := env_var_or_default("JLM_CXX", "clang++-18")
-CXXFLAGS_DISABLE_WARNINGS := env_var_or_default("JLM_CXXFLAGS_DISABLE_WARNINGS", "")
 
 default:
     @just --list
@@ -27,7 +26,7 @@ build-release:
     cd {{JLM_PATH}}
 
     echo "Building release target"
-    ./configure.sh --target release CXX={{JLM_CXX}} CXXFLAGS_DISABLE_WARNINGS={{CXXFLAGS_DISABLE_WARNINGS}}
+    ./configure.sh --target release CXX={{JLM_CXX}}
     make jlm-opt -j`nproc`
 
 # Build the release and target of jlm-opt
@@ -36,7 +35,7 @@ build-debug:
     cd {{JLM_PATH}}
 
     echo "Building debug target"
-    ./configure.sh --target debug --enable-asserts CXX={{JLM_CXX}} CXXFLAGS_DISABLE_WARNINGS={{CXXFLAGS_DISABLE_WARNINGS}}
+    ./configure.sh --target debug --enable-asserts CXX={{JLM_CXX}}
     make jlm-opt -j`nproc`
 
 # Remove builds of jlm-opt

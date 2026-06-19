@@ -74,22 +74,25 @@ function usage()
     echo "  --ci                  Perform a benchmark run suitable for CI and exit with its status code."
     echo ""
     echo "  Optional filters:     (or none to select all)"
-    echo "    --spec              Compile all of SPEC (redist or full)."
-    echo "    --perlbench         Compile perlbench from SPEC."
-    echo "    --gcc               Compile gcc from SPEC."
-    echo "    --cactuBSSN         Compile cactuBSSN from SPEC."
-    echo "    --x264              Compile x264 from SPEC."
-    echo "    --blender           Compile blender from SPEC."
-    echo "    --imagick           Compile imagick from SPEC."
-    echo "    --nab               Compile nab from SPEC."
-    echo "    --xz                Compile xz from SPEC."
-    echo "    --spec              Compile SPEC (redist or full)."
-    echo "    --emacs             Compile emacs."
-    echo "    --ghostscript       Compile ghostscript."
-    echo "    --gdb               Compile gdb."
-    echo "    --sendmail          Compile sendmail."
-    echo "    --polybench         Compile Polybench."
-    echo "    --embench           Compile Embench IoT."
+    echo "    SPEC CPU 2017 benchmarks (redist or full)"
+    echo "      --spec            Compile all supported SPEC benchmarks."
+    echo "      --perlbench       Compile 500.perlbench."
+    echo "      --gcc             Compile 502.gcc."
+    echo "      --mcf             Compile 505.mcf (not in redist)."
+    echo "      --cactuBSSN       Compile 507.cactuBSSN."
+    echo "      --x264            Compile 525.x264."
+    echo "      --blender         Compile 526.blender."
+    echo "      --imagick         Compile 538.imagick."
+    echo "      --nab             Compile 544.nab."
+    echo "      --xz              Compile 557.xz."
+    echo "    Other benchmark suites"
+    echo "      --embench         Compile the Embench IoT suite."
+    echo "      --polybench       Compile the Polybench suite."
+    echo "    Open source programs"
+    echo "      --emacs           Compile emacs."
+    echo "      --gdb             Compile gdb."
+    echo "      --ghostscript     Compile ghostscript."
+    echo "      --sendmail        Compile sendmail."
 	echo ""
 }
 
@@ -177,14 +180,14 @@ while [[ "$#" -ge 1 ]] ; do
             RUNNING_IN_CI=true
             shift
             ;;
-        # Filter for all of spec
+        # Filter for all of SPEC 2017
         --spec)
             EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=5\\d\\d\\."
             EXTRACT_SPEC=true
             EXTRACT_ALL=false
             shift
             ;;
-        # Invividual spec benchmark filters
+        # Invividual SPEC 2017 benchmark filters
         --perlbench)
             EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench"
             EXTRACT_SPEC=true
@@ -193,6 +196,12 @@ while [[ "$#" -ge 1 ]] ; do
             ;;
         --gcc)
             EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=502\\.gcc"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --mcf)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=505\\.mcf"
             EXTRACT_SPEC=true
             EXTRACT_ALL=false
             shift
@@ -233,16 +242,22 @@ while [[ "$#" -ge 1 ]] ; do
             EXTRACT_ALL=false
             shift
             ;;
+        # Other benchmark suites
+        --embench)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=embench"
+            EXTRACT_EMBENCH=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --polybench)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=polybench"
+            EXTRACT_ALL=false
+            shift
+            ;;
         # Open source benchmark filters
         --emacs)
             EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=emacs"
             EXTRACT_EMACS=true
-            EXTRACT_ALL=false
-            shift
-            ;;
-        --ghostscript)
-            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=ghostscript"
-            EXTRACT_GHOSTSCRIPT=true
             EXTRACT_ALL=false
             shift
             ;;
@@ -252,20 +267,15 @@ while [[ "$#" -ge 1 ]] ; do
             EXTRACT_ALL=false
             shift
             ;;
+        --ghostscript)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=ghostscript"
+            EXTRACT_GHOSTSCRIPT=true
+            EXTRACT_ALL=false
+            shift
+            ;;
         --sendmail)
             EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=sendmail"
             EXTRACT_SENDMAIL=true
-            EXTRACT_ALL=false
-            shift
-            ;;
-        --polybench)
-            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=polybench"
-            EXTRACT_ALL=false
-            shift
-            ;;
-        --embench)
-            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=embench"
-            EXTRACT_EMBENCH=true
             EXTRACT_ALL=false
             shift
             ;;
