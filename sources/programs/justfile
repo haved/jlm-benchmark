@@ -67,8 +67,15 @@ extract-gdb: download-gdb
     fi
 
     tar xzf gdb-15.2.tar.gz
+    cd gdb-15.2
+
     # gdb requires a full build to create its config files
-    cd gdb-15.2 && ./configure && bear intercept -- make -j12
+    ./configure
+
+    # Disable Python, since adding Python support only adds a bunch of C++ files
+    sed -i 's~^#define HAVE_PYTHON.*~//\0~' gdb/config.h
+
+    bear intercept -- make -j12
 
 build-gdb: extract-gdb
 # Do nothing here, as extracting gdb already involves building it
