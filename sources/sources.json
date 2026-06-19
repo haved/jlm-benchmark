@@ -17508,6 +17508,479 @@
     "srcfiles": [
       {
         "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_ActiveThorns.f90",
+        "ofile": "Fortran/cctk_ActiveThorns.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Banner.f90",
+        "ofile": "Fortran/cctk_Banner.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Cache.f90",
+        "ofile": "Fortran/cctk_Cache.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Comm.f90",
+        "ofile": "Fortran/cctk_Comm.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_CommandLine.f90",
+        "ofile": "Fortran/cctk_CommandLine.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Complex.f90",
+        "ofile": "Fortran/cctk_Complex.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Constants.f90",
+        "ofile": "Fortran/cctk_Constants.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Coord.f90",
+        "ofile": "Fortran/cctk_Coord.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_DebugDefines.f90",
+        "ofile": "Fortran/cctk_DebugDefines.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Faces.f90",
+        "ofile": "Fortran/cctk_Faces.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_File.f90",
+        "ofile": "Fortran/cctk_File.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Flesh.f90",
+        "ofile": "Fortran/cctk_Flesh.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_FortranString1.f90",
+        "ofile": "Fortran/cctk_FortranString1.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_FortranWrappers.f90",
+        "ofile": "Fortran/cctk_FortranWrappers.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GHExtensions.f90",
+        "ofile": "Fortran/cctk_GHExtensions.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GNU.f90",
+        "ofile": "Fortran/cctk_GNU.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Groups.f90",
+        "ofile": "Fortran/cctk_Groups.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GroupsOnGH.f90",
+        "ofile": "Fortran/cctk_GroupsOnGH.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_IO.f90",
+        "ofile": "Fortran/cctk_IO.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_IOMethods.f90",
+        "ofile": "Fortran/cctk_IOMethods.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Interp.f90",
+        "ofile": "Fortran/cctk_Interp.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Main.f90",
+        "ofile": "Fortran/cctk_Main.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Malloc1.f90",
+        "ofile": "Fortran/cctk_Malloc1.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Math.f90",
+        "ofile": "Fortran/cctk_Math.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_MemAlloc.f90",
+        "ofile": "Fortran/cctk_MemAlloc.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Misc.f90",
+        "ofile": "Fortran/cctk_Misc.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_ParamCheck.f90",
+        "ofile": "Fortran/cctk_ParamCheck.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Parameter.f90",
+        "ofile": "Fortran/cctk_Parameter.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Reduction.f90",
+        "ofile": "Fortran/cctk_Reduction.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Schedule.f90",
+        "ofile": "Fortran/cctk_Schedule.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Sync.f90",
+        "ofile": "Fortran/cctk_Sync.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Termination.f90",
+        "ofile": "Fortran/cctk_Termination.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Timers.f90",
+        "ofile": "Fortran/cctk_Timers.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Types.f90",
+        "ofile": "Fortran/cctk_Types.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Version.f90",
+        "ofile": "Fortran/cctk_Version.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_WarnLevel.f90",
+        "ofile": "Fortran/cctk_WarnLevel.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/util_Table.f90",
+        "ofile": "Fortran/util_Table.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk.f90",
+        "ofile": "Fortran/cctk.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/paramcheck.f90",
+        "ofile": "Fortran/paramcheck.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/CopyTmunu.f90",
+        "ofile": "TmunuBase/CopyTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/SetStressEnergyState.f90",
+        "ofile": "TmunuBase/SetStressEnergyState.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/SetTmunu.f90",
+        "ofile": "TmunuBase/SetTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/ZeroTmunu.f90",
+        "ofile": "TmunuBase/ZeroTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
         "srcfile": "gnu/getopt.c",
         "ofile": "gnu/getopt.o",
         "kind": "C",
@@ -20933,39 +21406,6 @@
       },
       {
         "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk.f90",
-        "ofile": "Fortran/cctk.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_ActiveThorns.f90",
-        "ofile": "Fortran/cctk_ActiveThorns.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Banner.f90",
-        "ofile": "Fortran/cctk_Banner.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
         "srcfile": "Fortran/cctk_Bindings/cctk_ThornBindings.c",
         "ofile": "Fortran/cctk_Bindings/cctk_ThornBindings.o",
         "kind": "C",
@@ -20976,402 +21416,6 @@
           "-Iinclude",
           "-DCCODE",
           "-DSPEC_LP64",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Cache.f90",
-        "ofile": "Fortran/cctk_Cache.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Comm.f90",
-        "ofile": "Fortran/cctk_Comm.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_CommandLine.f90",
-        "ofile": "Fortran/cctk_CommandLine.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Complex.f90",
-        "ofile": "Fortran/cctk_Complex.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Constants.f90",
-        "ofile": "Fortran/cctk_Constants.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Coord.f90",
-        "ofile": "Fortran/cctk_Coord.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_DebugDefines.f90",
-        "ofile": "Fortran/cctk_DebugDefines.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Faces.f90",
-        "ofile": "Fortran/cctk_Faces.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_File.f90",
-        "ofile": "Fortran/cctk_File.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Flesh.f90",
-        "ofile": "Fortran/cctk_Flesh.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_FortranString1.f90",
-        "ofile": "Fortran/cctk_FortranString1.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_FortranWrappers.f90",
-        "ofile": "Fortran/cctk_FortranWrappers.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GHExtensions.f90",
-        "ofile": "Fortran/cctk_GHExtensions.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GNU.f90",
-        "ofile": "Fortran/cctk_GNU.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Groups.f90",
-        "ofile": "Fortran/cctk_Groups.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GroupsOnGH.f90",
-        "ofile": "Fortran/cctk_GroupsOnGH.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_IO.f90",
-        "ofile": "Fortran/cctk_IO.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_IOMethods.f90",
-        "ofile": "Fortran/cctk_IOMethods.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Interp.f90",
-        "ofile": "Fortran/cctk_Interp.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Main.f90",
-        "ofile": "Fortran/cctk_Main.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Malloc1.f90",
-        "ofile": "Fortran/cctk_Malloc1.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Math.f90",
-        "ofile": "Fortran/cctk_Math.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_MemAlloc.f90",
-        "ofile": "Fortran/cctk_MemAlloc.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Misc.f90",
-        "ofile": "Fortran/cctk_Misc.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_ParamCheck.f90",
-        "ofile": "Fortran/cctk_ParamCheck.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Parameter.f90",
-        "ofile": "Fortran/cctk_Parameter.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Reduction.f90",
-        "ofile": "Fortran/cctk_Reduction.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Schedule.f90",
-        "ofile": "Fortran/cctk_Schedule.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Sync.f90",
-        "ofile": "Fortran/cctk_Sync.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Termination.f90",
-        "ofile": "Fortran/cctk_Termination.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Timers.f90",
-        "ofile": "Fortran/cctk_Timers.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Types.f90",
-        "ofile": "Fortran/cctk_Types.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Version.f90",
-        "ofile": "Fortran/cctk_Version.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_WarnLevel.f90",
-        "ofile": "Fortran/cctk_WarnLevel.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/paramcheck.f90",
-        "ofile": "Fortran/paramcheck.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/util_Table.f90",
-        "ofile": "Fortran/util_Table.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
           "-fcommon"
         ]
       },
@@ -23875,50 +23919,6 @@
           "-Iinclude",
           "-DCCODE",
           "-DSPEC_LP64",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/CopyTmunu.f90",
-        "ofile": "TmunuBase/CopyTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/SetStressEnergyState.f90",
-        "ofile": "TmunuBase/SetStressEnergyState.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/SetTmunu.f90",
-        "ofile": "TmunuBase/SetTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/cpu2017/benchspec/CPU/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/ZeroTmunu.f90",
-        "ofile": "TmunuBase/ZeroTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
           "-fcommon"
         ]
       },
@@ -24402,6 +24402,479 @@
     "srcfiles": [
       {
         "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_ActiveThorns.f90",
+        "ofile": "Fortran/cctk_ActiveThorns.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Banner.f90",
+        "ofile": "Fortran/cctk_Banner.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Cache.f90",
+        "ofile": "Fortran/cctk_Cache.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Comm.f90",
+        "ofile": "Fortran/cctk_Comm.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_CommandLine.f90",
+        "ofile": "Fortran/cctk_CommandLine.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Complex.f90",
+        "ofile": "Fortran/cctk_Complex.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Constants.f90",
+        "ofile": "Fortran/cctk_Constants.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Coord.f90",
+        "ofile": "Fortran/cctk_Coord.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_DebugDefines.f90",
+        "ofile": "Fortran/cctk_DebugDefines.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Faces.f90",
+        "ofile": "Fortran/cctk_Faces.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_File.f90",
+        "ofile": "Fortran/cctk_File.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Flesh.f90",
+        "ofile": "Fortran/cctk_Flesh.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_FortranString1.f90",
+        "ofile": "Fortran/cctk_FortranString1.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_FortranWrappers.f90",
+        "ofile": "Fortran/cctk_FortranWrappers.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GHExtensions.f90",
+        "ofile": "Fortran/cctk_GHExtensions.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GNU.f90",
+        "ofile": "Fortran/cctk_GNU.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Groups.f90",
+        "ofile": "Fortran/cctk_Groups.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_GroupsOnGH.f90",
+        "ofile": "Fortran/cctk_GroupsOnGH.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_IO.f90",
+        "ofile": "Fortran/cctk_IO.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_IOMethods.f90",
+        "ofile": "Fortran/cctk_IOMethods.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Interp.f90",
+        "ofile": "Fortran/cctk_Interp.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Main.f90",
+        "ofile": "Fortran/cctk_Main.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Malloc1.f90",
+        "ofile": "Fortran/cctk_Malloc1.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Math.f90",
+        "ofile": "Fortran/cctk_Math.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_MemAlloc.f90",
+        "ofile": "Fortran/cctk_MemAlloc.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Misc.f90",
+        "ofile": "Fortran/cctk_Misc.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_ParamCheck.f90",
+        "ofile": "Fortran/cctk_ParamCheck.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Parameter.f90",
+        "ofile": "Fortran/cctk_Parameter.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Reduction.f90",
+        "ofile": "Fortran/cctk_Reduction.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Schedule.f90",
+        "ofile": "Fortran/cctk_Schedule.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Sync.f90",
+        "ofile": "Fortran/cctk_Sync.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Termination.f90",
+        "ofile": "Fortran/cctk_Termination.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Timers.f90",
+        "ofile": "Fortran/cctk_Timers.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Types.f90",
+        "ofile": "Fortran/cctk_Types.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_Version.f90",
+        "ofile": "Fortran/cctk_Version.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk_WarnLevel.f90",
+        "ofile": "Fortran/cctk_WarnLevel.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/util_Table.f90",
+        "ofile": "Fortran/util_Table.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/cctk.f90",
+        "ofile": "Fortran/cctk.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "Fortran/paramcheck.f90",
+        "ofile": "Fortran/paramcheck.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/CopyTmunu.f90",
+        "ofile": "TmunuBase/CopyTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/SetStressEnergyState.f90",
+        "ofile": "TmunuBase/SetStressEnergyState.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/SetTmunu.f90",
+        "ofile": "TmunuBase/SetTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
+        "srcfile": "TmunuBase/ZeroTmunu.f90",
+        "ofile": "TmunuBase/ZeroTmunu.o",
+        "kind": "Fortran",
+        "arguments": [
+          "-m64",
+          "-Iinclude",
+          "-fcommon"
+        ]
+      },
+      {
+        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
         "srcfile": "gnu/getopt.c",
         "ofile": "gnu/getopt.o",
         "kind": "C",
@@ -27827,39 +28300,6 @@
       },
       {
         "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk.f90",
-        "ofile": "Fortran/cctk.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_ActiveThorns.f90",
-        "ofile": "Fortran/cctk_ActiveThorns.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Banner.f90",
-        "ofile": "Fortran/cctk_Banner.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
         "srcfile": "Fortran/cctk_Bindings/cctk_ThornBindings.c",
         "ofile": "Fortran/cctk_Bindings/cctk_ThornBindings.o",
         "kind": "C",
@@ -27870,402 +28310,6 @@
           "-Iinclude",
           "-DCCODE",
           "-DSPEC_LP64",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Cache.f90",
-        "ofile": "Fortran/cctk_Cache.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Comm.f90",
-        "ofile": "Fortran/cctk_Comm.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_CommandLine.f90",
-        "ofile": "Fortran/cctk_CommandLine.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Complex.f90",
-        "ofile": "Fortran/cctk_Complex.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Constants.f90",
-        "ofile": "Fortran/cctk_Constants.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Coord.f90",
-        "ofile": "Fortran/cctk_Coord.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_DebugDefines.f90",
-        "ofile": "Fortran/cctk_DebugDefines.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Faces.f90",
-        "ofile": "Fortran/cctk_Faces.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_File.f90",
-        "ofile": "Fortran/cctk_File.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Flesh.f90",
-        "ofile": "Fortran/cctk_Flesh.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_FortranString1.f90",
-        "ofile": "Fortran/cctk_FortranString1.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_FortranWrappers.f90",
-        "ofile": "Fortran/cctk_FortranWrappers.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GHExtensions.f90",
-        "ofile": "Fortran/cctk_GHExtensions.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GNU.f90",
-        "ofile": "Fortran/cctk_GNU.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Groups.f90",
-        "ofile": "Fortran/cctk_Groups.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_GroupsOnGH.f90",
-        "ofile": "Fortran/cctk_GroupsOnGH.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_IO.f90",
-        "ofile": "Fortran/cctk_IO.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_IOMethods.f90",
-        "ofile": "Fortran/cctk_IOMethods.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Interp.f90",
-        "ofile": "Fortran/cctk_Interp.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Main.f90",
-        "ofile": "Fortran/cctk_Main.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Malloc1.f90",
-        "ofile": "Fortran/cctk_Malloc1.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Math.f90",
-        "ofile": "Fortran/cctk_Math.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_MemAlloc.f90",
-        "ofile": "Fortran/cctk_MemAlloc.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Misc.f90",
-        "ofile": "Fortran/cctk_Misc.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_ParamCheck.f90",
-        "ofile": "Fortran/cctk_ParamCheck.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Parameter.f90",
-        "ofile": "Fortran/cctk_Parameter.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Reduction.f90",
-        "ofile": "Fortran/cctk_Reduction.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Schedule.f90",
-        "ofile": "Fortran/cctk_Schedule.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Sync.f90",
-        "ofile": "Fortran/cctk_Sync.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Termination.f90",
-        "ofile": "Fortran/cctk_Termination.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Timers.f90",
-        "ofile": "Fortran/cctk_Timers.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Types.f90",
-        "ofile": "Fortran/cctk_Types.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_Version.f90",
-        "ofile": "Fortran/cctk_Version.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/cctk_WarnLevel.f90",
-        "ofile": "Fortran/cctk_WarnLevel.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/paramcheck.f90",
-        "ofile": "Fortran/paramcheck.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "Fortran/util_Table.f90",
-        "ofile": "Fortran/util_Table.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
           "-fcommon"
         ]
       },
@@ -30769,50 +30813,6 @@
           "-Iinclude",
           "-DCCODE",
           "-DSPEC_LP64",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/CopyTmunu.f90",
-        "ofile": "TmunuBase/CopyTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/SetStressEnergyState.f90",
-        "ofile": "TmunuBase/SetStressEnergyState.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/SetTmunu.f90",
-        "ofile": "TmunuBase/SetTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
-          "-fcommon"
-        ]
-      },
-      {
-        "working_dir": "programs/redist2017/extracted/507.cactuBSSN_r/src",
-        "srcfile": "TmunuBase/ZeroTmunu.f90",
-        "ofile": "TmunuBase/ZeroTmunu.o",
-        "kind": "Fortran",
-        "arguments": [
-          "-m64",
-          "-Iinclude",
           "-fcommon"
         ]
       },

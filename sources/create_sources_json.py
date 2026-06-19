@@ -517,7 +517,12 @@ class Program:
         self.srcfiles = [srcfile for srcfile in self.srcfiles if keep(srcfile)]
 
         # Sort srcfiles by the position their corresponding ofile has in the linker command
-        self.srcfiles.sort(key=lambda srcfile: expected_ofiles[srcfile.get_full_ofile()])
+        def srcfile_sorting_key(srcfile):
+            # Keep Fortran files in their original order, since it matters
+            if srcfile.kind == "Fortran":
+                return -1
+            return expected_ofiles[srcfile.get_full_ofile()]
+        self.srcfiles.sort(key=srcfile_sorting_key)
 
         missing_ofiles = expected_ofiles.keys() - seen_ofiles.keys()
         if len(missing_ofiles):

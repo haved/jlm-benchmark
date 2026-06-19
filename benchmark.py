@@ -384,7 +384,7 @@ def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags, stat
 
     return (clang_out, opt_out, jlm_opt_out)
 
-def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_vars=None):
+def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_vars=None, previous_fortran_output=None):
     """
     Creates a task for compiling the given fortran file with the given arguments.
     :param tasks: the list of tasks to append commands to
@@ -393,6 +393,7 @@ def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_va
     :param srcfile: the name of the fortran file, relative to workdir
     :param extra_flags: the flags to pass to the fortran compiler
     :param env_vars: environment variables passed to the executed command
+    :param previous_fortran_file: the output of the last fortran compiler invocation, used for sequentializing
     :return: the path to the produced object file in the build dir
     """
     assert "/" not in full_name
@@ -403,12 +404,16 @@ def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_va
     if env_vars is not None:
         combined_env_vars.update(env_vars)
 
+    input_files = [srcfile]
+    if previous_fortran_output is not None:
+        input_files.append(previous_fortran_output)
+
     fortran_command = [options.fortran_compiler,
                        "-c", srcfile,
                        "-o", objectfile_out,
                        *extra_flags]
     tasks.append(Task(name=f"Compile {full_name} to object file",
-                      input_files=[srcfile],
+                      input_files=input_files,
                       output_files=[objectfile_out],
                       action=lambda task: run_command(fortran_command, cwd=workdir, env_vars=combined_env_vars, timeout=options.timeout)))
 
@@ -626,6 +631,11 @@ class Benchmark:
         # Maps from the ofile path used in sources.json, to the compiled object file in the build directory
         ofile_to_objectfile = {}
 
+        # Fortran is a silly language, where the compiler leaves behind .mod files needed by subsequent compilations.
+        # We have no way of detecting these dependencies outside of reading the source code,
+        # so we instead make every single fortran compiler task depend on the output of the previous one
+        previous_fortran_output = None
+
         for i, srcfile in enumerate(self.srcfiles):
             full_name = self.get_full_srcfile_name(srcfile)
 
@@ -660,7 +670,9 @@ class Benchmark:
             elif srcfile.kind == "Fortran":
                 # Compile Fortran to machine code
                 objectfile_out = compile_fortran_file(tasks, full_name=full_name, workdir=srcfile.working_dir,
-                                               srcfile=srcfile.srcfile, env_vars=env_vars, extra_flags=srcfile.arguments)
+                                                      srcfile=srcfile.srcfile, env_vars=env_vars, extra_flags=srcfile.arguments,
+                                                      previous_fortran_output=previous_fortran_output)
+                previous_fortran_output = objectfile_out
 
                 ofile_to_objectfile[srcfile.get_ofile_abspath()] = objectfile_out
 
