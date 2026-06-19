@@ -5,7 +5,7 @@ set -eu
 
 # source .env if it exists
 if [ -f .env ]; then
-	source .env
+    source .env
 fi
 
 # Assign defaults if not already specified as environment variables.
@@ -49,32 +49,32 @@ RUNNING_IN_CI=false
 
 function usage()
 {
-	echo "Usage: ./run.sh [task] [options]"
+    echo "Usage: ./run.sh [task] [options]"
     echo ""
     echo "Tasks:"
     echo "    run               The default. Extract and compile benchmarks"
-	echo "    create-json       Build all benchmarks to re-create sources.json. Implies --full-spec"
+    echo "    create-json       Build all benchmarks to re-create sources.json. Implies --full-spec"
     echo "    clean-runs        Remove build output and statistics from running benchmarks, and exit."
-	echo "    clean-jlm         Remove the build(s) of jlm-opt, and exit."
+    echo "    clean-jlm         Remove the build(s) of jlm-opt, and exit."
     echo "    purge             Perform the above removals, remove all extracted benchmark programs, and exit."
-	echo "    help / --help     Print this message and exit."
-	echo ""
+    echo "    help / --help     Print this message and exit."
+    echo ""
     echo "Options to the run task:"
-	echo "  --parallel <threads>  The number of threads to run in parallel."
-	echo "                        Default=[${PARALLEL_INVOCATIONS}]"
-	echo "  --jlm-opt <path>      Specify the path to jlm-opt."
-	echo "                        Default=[${JLM_OPT}]"
-	echo "  --llvm-config <path>  Path to the llvm config binary."
-	echo "                        Default=[${LLVM_CONFIG}]"
-	echo "  --build-jlm           Clone the jlm repository and build debug and release."
-	echo "                        Uses the given jlm-opt path to decide directory."
-	echo "  --full-spec           Use the full version of SPEC instead of redist2017. Requires cpu2017.tar.xz."
-	echo "  --dry-run             Do all setup except actually compiling benchmarks."
-	echo "  --do-validation       Execute validation scripts after compiling benchmarks."
+    echo "  --parallel <threads>  The number of threads to run in parallel."
+    echo "                        Default=[${PARALLEL_INVOCATIONS}]"
+    echo "  --jlm-opt <path>      Specify the path to jlm-opt."
+    echo "                        Default=[${JLM_OPT}]"
+    echo "  --llvm-config <path>  Path to the llvm config binary."
+    echo "                        Default=[${LLVM_CONFIG}]"
+    echo "  --build-jlm           Clone the jlm repository and build debug and release."
+    echo "                        Uses the given jlm-opt path to decide directory."
+    echo "  --full-spec           Use the full version of SPEC instead of redist2017. Requires cpu2017.tar.xz."
+    echo "  --dry-run             Do all setup except actually compiling benchmarks."
+    echo "  --do-validation       Execute validation scripts after compiling benchmarks."
     echo "  --ci                  Perform a benchmark run suitable for CI and exit with its status code."
-	echo ""
-	echo "  Optional filters:     (or none to select all)"
-	echo "    --spec              Compile all of SPEC (redist or full)."
+    echo ""
+    echo "  Optional filters:     (or none to select all)"
+    echo "    --spec              Compile all of SPEC (redist or full)."
     echo "    --perlbench         Compile perlbench from SPEC."
     echo "    --gcc               Compile gcc from SPEC."
     echo "    --cactuBSSN         Compile cactuBSSN from SPEC."
@@ -84,12 +84,12 @@ function usage()
     echo "    --nab               Compile nab from SPEC."
     echo "    --xz                Compile xz from SPEC."
     echo "    --spec              Compile SPEC (redist or full)."
-	echo "    --emacs             Compile emacs."
-	echo "    --ghostscript       Compile ghostscript."
-	echo "    --gdb               Compile gdb."
-	echo "    --sendmail          Compile sendmail."
-	echo "    --polybench         Compile Polybench."
-	echo "    --embench           Compile Embench IoT."
+    echo "    --emacs             Compile emacs."
+    echo "    --ghostscript       Compile ghostscript."
+    echo "    --gdb               Compile gdb."
+    echo "    --sendmail          Compile sendmail."
+    echo "    --polybench         Compile Polybench."
+    echo "    --embench           Compile Embench IoT."
 	echo ""
 }
 
@@ -109,171 +109,171 @@ case "${1-}" in
         ;;
     create-json)
         assert_no_options "$@"
-		FULL_SPEC=true
-		CREATE_JSON=true
+        FULL_SPEC=true
+        CREATE_JSON=true
         shift
-		;;
+        ;;
     clean-runs)
         assert_no_options "$@"
-		echo "Removing build output, statistics and results from runs"
+        echo "Removing build output, statistics and results from runs"
         just clean-runs
         exit 0
-		;;
+        ;;
     clean-jlm)
         assert_no_options "$@"
-		echo "Removing build of jlm-opt"
+        echo "Removing build of jlm-opt"
         just clean-jlm-builds
         exit 0
-		;;
-	purge)
+        ;;
+    purge)
         assert_no_options "$@"
         "$0" clean-runs
         "$0" clean-jlm
-		echo "Deleting extracted sources"
-		just sources/programs/clean-all
-		exit 0
-		;;
+        echo "Deleting extracted sources"
+        just sources/programs/clean-all
+        exit 0
+        ;;
     help)
-		usage >&2
-		exit 0
-		;;
+        usage >&2
+        exit 0
+        ;;
 esac
 
 # Process options for the run task
 while [[ "$#" -ge 1 ]] ; do
-	case "$1" in
-		--parallel)
-			shift
-			PARALLEL_INVOCATIONS="$1"
-			shift
-			;;
-		--jlm-opt)
-			shift
-			JLM_OPT="$(readlink -m "$1")"
-			shift
-			;;
-		--llvm-config)
-			shift
-			LLVM_CONFIG="$1"
-			shift
-			;;
-		--build-jlm)
-			BUILD_JLM=true
-			shift
-			;;
-		--full-spec)
-			FULL_SPEC=true
-			shift
-			;;
-		--dry-run)
-			DRY_RUN=true
-			shift
-			;;
-		--do-validation)
-		    EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --do-validation"
-			shift
-			;;
+    case "$1" in
+        --parallel)
+            shift
+            PARALLEL_INVOCATIONS="$1"
+            shift
+            ;;
+        --jlm-opt)
+            shift
+            JLM_OPT="$(readlink -m "$1")"
+            shift
+            ;;
+        --llvm-config)
+            shift
+            LLVM_CONFIG="$1"
+            shift
+            ;;
+        --build-jlm)
+            BUILD_JLM=true
+            shift
+            ;;
+        --full-spec)
+            FULL_SPEC=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --do-validation)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --do-validation"
+            shift
+            ;;
         --ci)
             RUNNING_IN_CI=true
             shift
             ;;
         # Filter for all of spec
         --spec)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=5\\d\\d\\."
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=5\\d\\d\\."
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
         # Invividual spec benchmark filters
         --perlbench)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--gcc)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=502\\.gcc"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--cactuBSSN)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=507\\.cactuBSSN"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--x264)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=525\\.x264"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--blender)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=526\\.blender"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--imagick)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=538\\.imagick"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--nab)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=544\\.nab"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--xz)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=557\\.xz"
-			EXTRACT_SPEC=true
-			EXTRACT_ALL=false
-			shift
-			;;
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=500\\.perlbench"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --gcc)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=502\\.gcc"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --cactuBSSN)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=507\\.cactuBSSN"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --x264)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=525\\.x264"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --blender)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=526\\.blender"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --imagick)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=538\\.imagick"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --nab)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=544\\.nab"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --xz)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=557\\.xz"
+            EXTRACT_SPEC=true
+            EXTRACT_ALL=false
+            shift
+            ;;
         # Open source benchmark filters
-		--emacs)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=emacs"
-			EXTRACT_EMACS=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--ghostscript)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=ghostscript"
-			EXTRACT_GHOSTSCRIPT=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--gdb)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=gdb"
-			EXTRACT_GDB=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--sendmail)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=sendmail"
-			EXTRACT_SENDMAIL=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--polybench)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=polybench"
-			EXTRACT_ALL=false
-			shift
-			;;
-		--embench)
-			EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=embench"
-			EXTRACT_EMBENCH=true
-			EXTRACT_ALL=false
-			shift
-			;;
-		--help|*)
-			usage >&2
-			exit 1
-			;;
-	esac
+        --emacs)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=emacs"
+            EXTRACT_EMACS=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --ghostscript)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=ghostscript"
+            EXTRACT_GHOSTSCRIPT=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --gdb)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=gdb"
+            EXTRACT_GDB=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --sendmail)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=sendmail"
+            EXTRACT_SENDMAIL=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --polybench)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=polybench"
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --embench)
+            EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --filter=embench"
+            EXTRACT_EMBENCH=true
+            EXTRACT_ALL=false
+            shift
+            ;;
+        --help|*)
+            usage >&2
+            exit 1
+            ;;
+    esac
 done
 
 # Prepare the benchmarks
@@ -283,8 +283,8 @@ pushd sources
 if [[ ${FULL_SPEC} = true ]]; then
    # Check that the tarball is in place
    if [ ! -f programs/cpu2017.tar.xz ]; then
-	   echo "error: missing file 'sources/programs/cpu2017.tar.xz'".
-	   exit 1
+       echo "error: missing file 'sources/programs/cpu2017.tar.xz'".
+       exit 1
    fi
    EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --full-spec"
 fi
@@ -301,66 +301,66 @@ if [[ ${CREATE_JSON} = true ]]; then
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_SPEC} = true ]; then
-	echo "Extracting SPEC ."
-	if [ ${FULL_SPEC} = true ]; then
-		just programs/extract-cpu2017
-	else
-		just programs/extract-redist2017
-	fi
+    echo "Extracting SPEC ."
+    if [ ${FULL_SPEC} = true ]; then
+        just programs/extract-cpu2017
+    else
+        just programs/extract-redist2017
+    fi
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_EMACS} = true ]; then
-	echo "Extracting Emacs sources."
-	just programs/extract-emacs
+    echo "Extracting Emacs sources."
+    just programs/extract-emacs
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_GHOSTSCRIPT} = true ]; then
-	echo "Extracting ghostscript sources."
-	just programs/extract-ghostscript
+    echo "Extracting ghostscript sources."
+    just programs/extract-ghostscript
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_GDB} = true ]; then
-	echo "Extracting gbd sources."
-	just programs/extract-gdb
+    echo "Extracting gbd sources."
+    just programs/extract-gdb
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_SENDMAIL} = true ]; then
-	echo "Extracting gbd sources."
-	just programs/extract-sendmail
+    echo "Extracting gbd sources."
+    just programs/extract-sendmail
 fi
 
 if [ ${EXTRACT_ALL} = true ] || [ ${EXTRACT_EMBENCH} = true ]; then
-	echo "Extracting embench sources."
-	just programs/extract-embench
+    echo "Extracting embench sources."
+    just programs/extract-embench
 fi
 popd
 
 # Build the jlm-opt binary if requested
 if [[ ${BUILD_JLM} = true ]]; then
 
-	if [[ "${JLM_OPT}" = */build*/jlm-opt ]]; then
-	    # Remove the build-*/jlm-opt part of the jlm-opt path to find the jlm path
-	    export JLM_PATH="${JLM_OPT%/build*/jlm-opt}"
-	else
-		echo "Unable to extract a jlm path from the jlm-opt path (${JLM_OPT}). Aborting."
-		exit 1
-	fi
+    if [[ "${JLM_OPT}" = */build*/jlm-opt ]]; then
+        # Remove the build-*/jlm-opt part of the jlm-opt path to find the jlm path
+        export JLM_PATH="${JLM_OPT%/build*/jlm-opt}"
+    else
+        echo "Unable to extract a jlm path from the jlm-opt path (${JLM_OPT}). Aborting."
+        exit 1
+    fi
 
-	echo "Cloning and building jlm in location: ${JLM_PATH}"
-	just clone-jlm
-	just build-release
-	just build-debug
+    echo "Cloning and building jlm in location: ${JLM_PATH}"
+    just clone-jlm
+    just build-release
+    just build-debug
 fi
 
 # Extract the LLVM bindir
 LLVM_BIN="$(${LLVM_CONFIG} --bindir || true)"
 if [[ -z "${LLVM_BIN}" ]]; then
-	echo "Unable to extract --bindir from ${LLVM_CONFIG}"
-	exit 1
+    echo "Unable to extract --bindir from ${LLVM_CONFIG}"
+    exit 1
 fi
 
 if [ ${DRY_RUN} = true ]; then
-	EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --dry-run"
+    EXTRA_BENCH_OPTIONS="${EXTRA_BENCH_OPTIONS:-} --dry-run"
 fi
 
 # Ensure Ctrl-C quits immediately, without starting the next command
@@ -389,156 +389,156 @@ fi
 
 # For testing with asserts (slow)
 #./benchmark.py --jlm-opt="../jlm/build-debug/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
 #    --regionAwareModRef --builddir build/jlm --statsdir statistics/raware-debug
 #exit 0
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--builddir build/jlm --statsdir statistics/jlm \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --builddir build/jlm --statsdir statistics/jlm \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --builddir build/jlm --statsdir statistics/raware \
+#    || true
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --builddir build/jlm --statsdir statistics/raware-aggaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --builddir build/jlm --statsdir statistics/raware-aggaa \
+#    || true
 
 #JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--builddir build/jlm --statsdir statistics/ptgaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --builddir build/jlm --statsdir statistics/ptgaa \
+#    || true
 
 #JLM_ENABLE_SVF_PTGAA=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--builddir build/jlm --statsdir statistics/ptgaa-aggaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --builddir build/jlm --statsdir statistics/ptgaa-aggaa \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware \
+#    || true
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
+#    || true
 
 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
-	|| true
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
+    || true
 
 JLM_DISABLE_CALL_SIMPLE_ALLOCA_BLOCKING=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-no-callblocking \
-	|| true
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-no-callblocking \
+    || true
 exit 0
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 JLM_ENABLE_SVF_REGION_PREDICATE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--optSroa --regionAwareModRef --nodePushOut --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-node-push-out-region-predicate \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroa --regionAwareModRef --nodePushOut --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-node-push-out-region-predicate \
+#    || true
 
 JLM_ENABLE_SVF_PTGAA=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--optSroa --builddir build/sroa --statsdir statistics/sroa-ptgaa-aggaa \
-	|| true
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --optSroa --builddir build/sroa --statsdir statistics/sroa-ptgaa-aggaa \
+    || true
 
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware \
-	|| true
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware \
+    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
+#    || true
 
 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggaa \
-	|| true
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggaa \
+    || true
 exit 0
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3-raware-aggaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3-raware-aggaa \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--optSroaGvn --regionAwareModRef --builddir build/sroa-gvn --statsdir statistics/sroa-gvn-raware \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroaGvn --regionAwareModRef --builddir build/sroa-gvn --statsdir statistics/sroa-gvn-raware \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--optMem2reg --regionAwareModRef --builddir build/mem2reg --statsdir statistics/mem2reg-raware \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optMem2reg --regionAwareModRef --builddir build/mem2reg --statsdir statistics/mem2reg-raware \
+#    || true
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--builddir build/jlm --statsdir statistics/jlm-aggressive-localaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --builddir build/jlm --statsdir statistics/jlm-aggressive-localaa \
+#    || true
 
 #JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--builddir build/jlm --statsdir statistics/jlm-ptgaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --builddir build/jlm --statsdir statistics/jlm-ptgaa \
+#    || true
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggressive-localaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggressive-localaa \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os \
+#    || true
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-aggressive-localaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-aggressive-localaa \
+#    || true
 
 #JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-ptgaa \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-ptgaa \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--clangOs --optOs --builddir build/clang-Os-opt-Os --statsdir statistics/clang-Os-opt-Os \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --clangOs --optOs --builddir build/clang-Os-opt-Os --statsdir statistics/clang-Os-opt-Os \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --optOs --builddir build/opt-Os --statsdir statistics/opt-Os \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optOs --builddir build/opt-Os --statsdir statistics/opt-Os \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --optPreGvn --builddir build/opt-preGvn --statsdir statistics/opt-preGvn \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optPreGvn --builddir build/opt-preGvn --statsdir statistics/opt-preGvn \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --optWithGvn --builddir build/opt-withGvn --statsdir statistics/opt-withGvn \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optWithGvn --builddir build/opt-withGvn --statsdir statistics/opt-withGvn \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3 \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3 \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_PATH}/build-release/jlm-opt" --llvmbin="${LLVM_BIN}" \
-#	--sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#	--regionAwareModRef --optMem2reg --builddir build/opt-m2r --statsdir statistics/opt-m2r \
-#	|| true
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optMem2reg --builddir build/opt-m2r --statsdir statistics/opt-m2r \
+#    || true
 
 # Finally run some data aggregation
 just aggregate
