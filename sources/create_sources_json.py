@@ -303,6 +303,25 @@ def extract(flag, args):
     return value, args[:output_index] + args[output_index+2:]
 
 
+def replace_absolute_path(working_dir, argument):
+    """
+    If the argument contains the absolute path of SCRIPT_ROOT, makes the path relative to the working dir
+
+    :param working_dir: the working directory, either absolute path or relative to SCRIPT_ROOT
+    :param argument: an argument that might contain the absolute path of SCRIPT_ROOT
+    """
+
+    absolute_script_root = os.path.abspath(SCRIPT_ROOT)
+
+    while absolute_script_root in argument:
+        pos = argument.find(absolute_script_root)
+        path = argument[pos:]
+        newpath = make_relative_to(path, working_dir)
+        argument = argument[:pos] + newpath
+
+    return argument
+
+
 class SourceFile:
     """
     Represents the compilation of a single file in a given working directory, with a set of arguments.
@@ -323,7 +342,7 @@ class SourceFile:
         self.srcfile = ensure_relative_to(srcfile, self.working_dir)
         self.ofile = ensure_relative_to(ofile, self.working_dir)
         self.kind = kind
-        self.arguments = [arg for arg in arguments]
+        self.arguments = [replace_absolute_path(self.working_dir, arg) for arg in arguments]
 
         if self.kind not in ["C", "C-nonjlm", "C++", "Fortran"]:
             raise ValueError(f"Unknown SourceFile kind: {kind}")
@@ -459,7 +478,7 @@ class Program:
             assert linker_arguments is None
 
         if linker_arguments:
-            self.linker_arguments = linker_arguments.copy()
+            self.linker_arguments = [replace_absolute_path(self.linker_workdir, arg) for arg in linker_arguments]
         else:
             self.linker_arguments = []
 
