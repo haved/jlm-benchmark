@@ -115,6 +115,8 @@ METRICS_MAPPING = {
         ("MarkTime[ns]", "DNEMarkTime[ns]"),
         ("SweepTime[ns]", "DNESweepTime[ns]"),
     ],
+    "NodeReduction": lambda x: x, # Include every statistic from node reduction
+    "RED": lambda x: x, # TODO: This is the old name for NodeReduction
     "RVSDGOPTIMIZATION": map_optimization_statistic,
     "RVSDGDESTRUCTION": [
         ("Time[ns]", "RvsdgDestructionTime[ns]")
@@ -183,9 +185,17 @@ def extract_file_data(folder):
         cfile = fil[:-4]
         file_data["cfile"] = cfile
 
+        # Keep track of how many times the same statstic line has been seen
+        statistic_line_counts = {}
+
         with open(os.path.join(folder, fil), "r", encoding="utf-8") as fd:
             for line in fd:
                 statistic, _, *parts = line.split(" ")
+
+                # If this statistic line has been seen before, give it a suffix
+                statistic_num = statistic_line_counts.get(statistic, 0)
+                statistic_line_counts[statistic] = statistic_num + 1
+                statistic_suffix = "" if statistic_num == 0 else f"--{statistic_num:02}"
 
                 for part in parts:
                     original_name, value = part.split(":")
@@ -193,6 +203,11 @@ def extract_file_data(folder):
                     metric_name = get_metric_name(statistic, original_name)
                     if not metric_name:
                         continue
+
+                    metric_name = metric_name + statistic_suffix
+
+                    if metric_name in file_data:
+                        raise ValueError(f"Multiple statistics provide the metric {metric_name}")
 
                     try:
                         file_data[metric_name] = int(value)

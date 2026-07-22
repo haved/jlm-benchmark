@@ -276,14 +276,20 @@ def less_equal_more(file_data, config1, col1, config2, col2):
     more = data1 > data2
     more = set(more.index[more].values)
 
-    return less, equal, more
+    sum1 = data1.sum()
+    sum2 = data2.sum()
 
-def print_less_equal_more(name, less, equal, more):
+    return less, equal, more, sum1, sum2
+
+def print_less_equal_more(name, less, equal, more, sum1, sum2):
     print(f"Less / Equal / More for: {name}")
     total = len(less | equal | more)
     print(f"Less  ({len(less):3}/{total}):", ', '.join(map(str, list(less)[:3])))
     print(f"Equal ({len(equal):3}/{total}):", ', '.join(map(str, list(equal)[:3])))
     print(f"More  ({len(more):3}/{total}):", ', '.join(map(str, list(more)[:3])))
+    print(f"Sum of {name} in first configuration: {sum1}")
+    print(f"Sum of {name} in second configuration: {sum2}")
+    print(f"Difference: {abs(sum2-sum1)}")
     print()
 
 
@@ -430,32 +436,40 @@ def main():
         #plot_difference("NumStoreNodes")
         #plot_difference("NumAllocaNodes")
 
-    study_differences("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-no-callblocking", "Tree4")
-    # study_differences("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")
-
-    print()
-
     print("Total number of files:", file_data["cfile"].nunique())
 
     def compare(c1, tree1, c2, tree2):
         print(f"Comparing {c1}'s {tree1} to {c2}'s {tree2}:")
-        less_loads, equal_loads, more_loads = less_equal_more(file_data, c1, f"{tree1}-NumLoadNodes", c2, f"{tree2}-NumLoadNodes")
-        less_stores, equal_stores, more_stores = less_equal_more(file_data, c1, f"{tree1}-NumStoreNodes", c2, f"{tree2}-NumStoreNodes")
-        less_allocas, equal_allocas, more_allocas = less_equal_more(file_data, c1, f"{tree1}-NumAllocaNodes", c2, f"{tree2}-NumAllocaNodes")
+        study_differences(c1, tree1, c2, tree2)
+        loads = less_equal_more(file_data, c1, f"{tree1}-NumLoadNodes", c2, f"{tree2}-NumLoadNodes")
+        stores = less_equal_more(file_data, c1, f"{tree1}-NumStoreNodes", c2, f"{tree2}-NumStoreNodes")
+        allocas = less_equal_more(file_data, c1, f"{tree1}-NumAllocaNodes", c2, f"{tree2}-NumAllocaNodes")
 
-        print_less_equal_more("Loads", less_loads, equal_loads, more_loads)
-        print_less_equal_more("Stores", less_stores, equal_stores, more_stores)
-        print_less_equal_more("Allocas", less_allocas, equal_allocas, more_allocas)
+        print_less_equal_more("Loads", *loads)
+        print_less_equal_more("Stores", *stores)
+        print_less_equal_more("Allocas", *allocas)
 
-        print_less_equal_more("AllThree", less_loads&less_stores&less_allocas, equal_loads&equal_stores&equal_allocas, more_loads&more_stores&more_allocas)
-        print()
+    compare("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-sans-predcheck", "Tree4")
+    sys.exit(0)
 
-    #compare("RegionAwareModRef", "Tree0", "O3", "Tree0")
-    #compare("O", "Tree4", "O3", "Tree0")
+    # Vs using PtG directly and no memory state encoding
+    compare("sroa-raware-aggaa", "Tree4", "sroa-ptgaa-aggaa", "Tree4")
+
+    # Results vs sroa+GVN
+    compare("sroa-raware-aggaa", "Tree4", "sroa-gvn-raware-aggaa", "Tree0")
+
+    # Results vs clang Os
+    compare("sroa-raware-aggaa", "Tree4", "clang-Os-raware-aggaa", "Tree0")
+
+    # Results on top of clang Os
+    compare("clang-Os-raware-aggaa", "Tree4", "clang-Os-raware-aggaa", "Tree0")
+
+    # study_differences("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")
+
+    sys.exit(0)
 
     print("SROA+Raware+AggLocalAA vs SROA+Raware+AggLocalAA without callblocking")
     compare("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-no-callblocking", "Tree4")
-    sys.exit(0)
 
     print("SROA+Raware+AggLocalAA+NodePushOut+RegionPred vs SROA+Raware+AggLocalAA+NodePushOut")
     compare("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")

@@ -24,11 +24,14 @@ class TaskSubprocessError(Exception):
 
 class Options:
     DEFAULT_FORTRAN_COMPILER = "gfortran"
-    DEFAULT_BUILD_DIR = "build/default/"
-    DEFAULT_STATS_DIR = "statistics/default/"
+    # Build files and statistics are placed in subfolders of the given folders
+    DEFAULT_BUILD_DIR = "build/"
+    DEFAULT_STATS_DIR = "statistics/"
+    # The jlm name is the name of the build and statsitics folders for this specifc configuration
+    DEFAULT_JLM_NAME = "default"
     DEFAULT_JLM_OPT_VERBOSITY = 1
 
-    def __init__(self, llvm_bindir, fortran_compiler, build_dir, stats_dir, jlm_opt, jlm_opt_verbosity, timeout):
+    def __init__(self, llvm_bindir, fortran_compiler, build_dir, stats_dir, pre_jlm_name, jlm_name, jlm_opt, jlm_opt_verbosity, timeout):
         self.llvm_bindir = llvm_bindir
         self.clang = os.path.join(llvm_bindir, "clang")
         self.clang_link = os.path.join(llvm_bindir, "clang++")
@@ -41,6 +44,11 @@ class Options:
         self.build_dir = build_dir
         self.stats_dir = stats_dir
 
+        # If multiple configurations share the same pipeline up until the jlm-opt invocation,
+        # a shared "pre-jlm name" can be used to avoid repeated work
+        self.pre_jlm_name = pre_jlm_name if pre_jlm_name is not None else jlm_name
+        self.jlm_name = jlm_name
+
         self.jlm_opt = jlm_opt
         self.jlm_opt_verbosity = jlm_opt_verbosity
 
@@ -49,11 +57,14 @@ class Options:
         # Any other task that relies on the output of the task is skipped
         self.timeout = timeout
 
-    def get_build_dir(self, filename=""):
-        return os.path.abspath(os.path.join(self.build_dir, filename))
+    def get_pre_jlm_build_dir(self, filename=""):
+        return os.path.abspath(os.path.join(os.path.join(self.build_dir, self.pre_jlm_name), filename))
 
-    def get_stats_dir(self, filename=""):
-        return os.path.abspath(os.path.join(self.stats_dir, filename))
+    def get_jlm_build_dir(self, filename=""):
+        return os.path.abspath(os.path.join(os.path.join(self.build_dir, self.jlm_name), filename))
+
+    def get_jlm_stats_dir(self, filename=""):
+        return os.path.abspath(os.path.join(os.path.join(self.stats_dir, self.jlm_name), filename))
 
 
 options: Options = None
@@ -313,7 +324,7 @@ def ensure_folder_exists(path):
         pass # Someone else made the folder, no biggie
 
 
-def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags, stats_dir,
+def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags,
                  env_vars=None, opt_flags=None, jlm_opt_flags=None, jlm_opt_suffix=None):
     """
     Creates tasks for compiling the given file with the given arguments to clang.
@@ -323,7 +334,6 @@ def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags, stat
     :param cfile: the name of the c file, relative to workdir
     :param kind: the kind of c file (passed to -x). Either "c" or "c++"
     :param extra_clang_flags: the flags to pass to clang when making the .ll file
-    :param stats_dir: the directory to place statistics files in
     :param env_vars: environment variables passed to the executed commands
     :param opt_flags: if not None, opt is run with the given flags
     :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
@@ -335,11 +345,11 @@ def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags, stat
     if jlm_opt_suffix is None:
         jlm_opt_suffix = ""
 
-    clang_out = options.get_build_dir(f"{full_name}-clang-out.ll")
-    opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
-    jlm_opt_out = options.get_build_dir(f"{full_name}{jlm_opt_suffix}-jlm-opt-out.ll")
-    stats_output = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}.log")
-    other_outputs = os.path.join(stats_dir, f"{full_name}{jlm_opt_suffix}")
+    clang_out = options.get_pre_jlm_build_dir(f"{full_name}-clang-out.ll")
+    opt_out = options.get_pre_jlm_build_dir(f"{full_name}-opt-out.ll")
+    jlm_opt_out = options.get_jlm_build_dir(f"{full_name}{jlm_opt_suffix}-jlm-opt-out.ll")
+    stats_output = options.get_jlm_stats_dir(f"{full_name}{jlm_opt_suffix}.log")
+    other_outputs = options.get_jlm_stats_dir(f"{full_name}{jlm_opt_suffix}")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -398,7 +408,7 @@ def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_va
     """
     assert "/" not in full_name
 
-    objectfile_out = options.get_build_dir(f"{full_name}.o")
+    objectfile_out = options.get_pre_jlm_build_dir(f"{full_name}.o")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -419,7 +429,7 @@ def compile_fortran_file(tasks, full_name, workdir, srcfile, extra_flags, env_va
 
     return objectfile_out
 
-def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
+def link_and_optimize(tasks, full_name, llfiles, direct_ofiles,
                       env_vars=None, llvm_link_flags=None, opt_flags=None, jlm_opt_flags=None, llc_flags=None, clang_link_output=None, clang_link_workdir=None, clang_link_flags=None):
     """
     Links together the given files. The files can be LLVM IR files and/or object files.
@@ -432,7 +442,6 @@ def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
     :param full_name: should be a valid filename, unique to the program
     :param llfiles: a list of LLVM IR/bitcode files, relative to CWD
     :param direct_ofiles: a list of object files, relative to CWD
-    :param stats_dir: the directory to place statistics files in
     :param env_vars: environment variables passed to the executed commands
     :param llvm_link_flags: if not None, llvm-link is run with the given flags
     :param opt_flags: if not None, opt is run with the given flags
@@ -445,9 +454,9 @@ def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
     """
     assert "/" not in full_name
 
-    llvm_link_out = options.get_build_dir(f"{full_name}-llvm-link-out.ll")
-    opt_out = options.get_build_dir(f"{full_name}-opt-out.ll")
-    jlm_opt_out = options.get_build_dir(f"{full_name}-jlm-opt-out.ll")
+    llvm_link_out = options.get_jlm_build_dir(f"{full_name}-llvm-link-out.ll")
+    opt_out = options.get_jlm_build_dir(f"{full_name}-opt-out.ll")
+    jlm_opt_out = options.get_jlm_build_dir(f"{full_name}-jlm-opt-out.ll")
 
     combined_env_vars = os.environ.copy()
     if env_vars is not None:
@@ -501,7 +510,7 @@ def link_and_optimize(tasks, full_name, llfiles, direct_ofiles, stats_dir,
     if llc_flags is not None:
         for llfile in llfiles:
             basename = os.path.basename(llfile)
-            ofile = options.get_build_dir(f"{basename}.o")
+            ofile = options.get_jlm_build_dir(f"{basename}.o")
             llc_command = [options.llc, llfile, "--relocation-model=static", "-filetype=obj", "-o", ofile, *llc_flags]
             tasks.append(Task(name=f"llc {basename}",
                               input_files=[llfile],
@@ -603,7 +612,7 @@ class Benchmark:
 
         # The final invocation of clang for linking, resulting in an executable
         if linker_output is not None:
-            self.clang_link_output = options.get_build_dir(linker_output)
+            self.clang_link_output = options.get_jlm_build_dir(linker_output)
         else:
             # None disables linking
             self.clang_link_output = None
@@ -623,7 +632,7 @@ class Benchmark:
         path = abspath[len(self.common_abspath):]
         return f"{self.name}+{path}".replace("/", "_")
 
-    def get_tasks(self, stats_dir, env_vars):
+    def get_tasks(self, env_vars):
         tasks = []
 
         # Maps from the ofile path used in sources.json, to the output file produced by jlm-opt
@@ -641,7 +650,7 @@ class Benchmark:
 
             if srcfile.kind == "C":
                 _, _, outfile = compile_file(tasks, full_name=full_name, workdir=srcfile.working_dir, cfile=srcfile.srcfile,
-                                             kind="c", stats_dir=stats_dir, env_vars=env_vars,
+                                             kind="c", env_vars=env_vars,
                                              extra_clang_flags=[*self.extra_clang_flags, *srcfile.arguments],
                                              opt_flags=self.opt_flags,
                                              jlm_opt_flags=self.jlm_opt_flags,
@@ -652,7 +661,7 @@ class Benchmark:
             elif srcfile.kind == "C-nonjlm":
                 # Compile to LLVM IR, but skip jlm-opt
                 _, _, outfile = compile_file(tasks, full_name=full_name, workdir=srcfile.working_dir, cfile=srcfile.srcfile,
-                                             kind="c", stats_dir=stats_dir, env_vars=env_vars,
+                                             kind="c", env_vars=env_vars,
                                              extra_clang_flags=[*self.extra_clang_flags_nonjlm, *srcfile.arguments],
                                              opt_flags=self.opt_flags)
 
@@ -661,7 +670,7 @@ class Benchmark:
             elif srcfile.kind == "C++" or srcfile.kind == "C++-nonjlm":
                 # Compile C++ to LLVM IR, no not use jlm-opt in any case
                 _, _, outfile = compile_file(tasks, full_name=full_name, workdir=srcfile.working_dir, cfile=srcfile.srcfile,
-                                             kind="c++", stats_dir=stats_dir, env_vars=env_vars,
+                                             kind="c++", env_vars=env_vars,
                                              extra_clang_flags=[*self.extra_clang_flags_cpp, *srcfile.arguments],
                                              opt_flags=self.opt_flags)
 
@@ -696,7 +705,7 @@ class Benchmark:
                 direct_ofiles.append(ofile)
 
         link_and_optimize(tasks, full_name=self.name, llfiles=llfiles, direct_ofiles=direct_ofiles,
-                          stats_dir=stats_dir, env_vars=env_vars,
+                          env_vars=env_vars,
                           llvm_link_flags=self.llvm_link_flags,
                           opt_flags=self.linked_opt_flags,
                           jlm_opt_flags=self.linked_jlm_opt_flags,
@@ -779,7 +788,7 @@ def run_benchmarks(benchmarks,
     """
     start_time = datetime.datetime.now()
 
-    tasks = [task for bench in benchmarks for task in bench.get_tasks(options.get_stats_dir(), env_vars)]
+    tasks = [task for bench in benchmarks for task in bench.get_tasks(env_vars)]
     for i, task in enumerate(tasks):
         task.index = i
 
@@ -875,12 +884,17 @@ def main():
                         help=f'Specify the jlm-opt binary used. [Required]')
     parser.add_argument('--sources', dest='sources_file', action='store', required=True,
                         help=f'Specify the sources.json file containing benchmark descriptions. [Required]')
+    parser.add_argument('--jlm-name', dest='jlm_name', action='store', default=Options.DEFAULT_JLM_NAME,
+                        help=f'Give a name to the compilation pipeline, used for directory names. [{Options.DEFAULT_JLM_NAME}]')
+    parser.add_argument('--pre-jlm-name', dest='pre_jlm_name', action='store', default=None,
+                        help=f'Give a separate name to the compilation pipeline before jlm. [By default same as --jlm-name]')
     parser.add_argument('--fortran-compiler', dest='fortran_compiler', action='store', default=Options.DEFAULT_FORTRAN_COMPILER,
                         help=f'Specify the fortran compiler to use (only used for 507.cactuBSSN). [{Options.DEFAULT_FORTRAN_COMPILER}]')
     parser.add_argument('--builddir', dest='build_dir', action='store', default=Options.DEFAULT_BUILD_DIR,
-                        help=f'Specify the build folder to build benchmarks in. [{Options.DEFAULT_BUILD_DIR}]')
+                        help=f'Specify the folder to create build directories in. [{Options.DEFAULT_BUILD_DIR}]')
     parser.add_argument('--statsdir', dest='stats_dir', action='store', default=Options.DEFAULT_STATS_DIR,
-                        help=f'Specify the folder to put jlm-opt statistics in. [{Options.DEFAULT_STATS_DIR}]')
+                        help=f'Specify the folder to create statistics directories in. [{Options.DEFAULT_STATS_DIR}]')
+
     parser.add_argument('--jlmV', dest='jlm_opt_verbosity', action='store', default=Options.DEFAULT_JLM_OPT_VERBOSITY,
                         help=f'Set verbosity level for jlm-opt. [{Options.DEFAULT_JLM_OPT_VERBOSITY}]')
 
@@ -943,14 +957,17 @@ def main():
                       fortran_compiler=args.fortran_compiler,
                       build_dir=args.build_dir,
                       stats_dir=args.stats_dir,
+                      pre_jlm_name=args.pre_jlm_name,
+                      jlm_name=args.jlm_name,
                       jlm_opt=args.jlm_opt,
                       jlm_opt_verbosity=int(args.jlm_opt_verbosity),
                       timeout=intOrNone(args.timeout))
 
     dryrun = args.dryrun
     if not dryrun:
-        ensure_folder_exists(options.get_build_dir())
-        ensure_folder_exists(options.get_stats_dir())
+        ensure_folder_exists(options.get_pre_jlm_build_dir())
+        ensure_folder_exists(options.get_jlm_build_dir())
+        ensure_folder_exists(options.get_jlm_stats_dir())
 
     def should_keep_benchmark(benchmark):
         # Ensure that either cpu2017 or redist2017 are being used, not both
@@ -1087,7 +1104,7 @@ def configure_benchmark(bench, args):
             ]
 
     # Configure the flags sent to jlm-opt here
-    bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-store-value-forwarding", "--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization", "--print-dne-stat"]
+    bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-store-value-forwarding", "--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization", "--print-dne-stat", "--print-reduction-stat"]
     bench.jlm_opt_flags.append("--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes,NumAggregateAllocaNodes")# , "--print-aa-precision-evaluation"]
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")

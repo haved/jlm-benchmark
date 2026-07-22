@@ -362,6 +362,13 @@ if [[ ${BUILD_JLM} = true ]]; then
     just build-debug
 fi
 
+# Check that the jlm-opt binary exists
+if [[ ! -f "${JLM_OPT}" ]]; then
+    echo "error: jlm-opt binary does not exist: ${JLM_OPT}"
+    echo "hint: use --build-jlm to clone and build jlm in ${JLM_PATH}"
+    exit 1
+fi
+
 # Extract the LLVM bindir
 LLVM_BIN="$(${LLVM_CONFIG} --bindir || true)"
 if [[ -z "${LLVM_BIN}" ]]; then
@@ -391,7 +398,7 @@ set -x
 if [ ${RUNNING_IN_CI} = true ]; then
     ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" --sources="${SOURCES_JSON}" \
         -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-        --regionAwareModRef --builddir build/ci --statsdir statistics/ci --do-validation
+        --regionAwareModRef --jlm-name ci
     exit $?
 fi
 
@@ -400,7 +407,7 @@ fi
 # For testing with asserts (slow)
 #./benchmark.py --jlm-opt="../jlm/build-debug/jlm-opt" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --regionAwareModRef --builddir build/jlm --statsdir statistics/raware-debug
+#    --regionAwareModRef --jlm-name debug
 #exit 0
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
@@ -435,34 +442,41 @@ fi
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
-#    || true
+#    --optSroa --pre-jlm-name sroa \
+#    --regionAwareModRef --jlm-name sroa-raware-aggaa
 
-JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+JLM_DISABLE_REGION_PREDICATE_CHECK=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
     --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa \
-    || true
+    --optSroa --pre-jlm-name sroa \
+    --regionAwareModRef --jlm-name sroa-raware-aggaa-sans-predcheck
 
-JLM_DISABLE_CALL_SIMPLE_ALLOCA_BLOCKING=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-no-callblocking \
-    || true
 exit 0
 
-#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 JLM_ENABLE_SVF_REGION_PREDICATE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 JLM_ENABLE_REGION_PREDICATE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --optSroa --regionAwareModRef --nodePushOut --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-node-push-out-region-predicate \
+#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-predcheck \
+#    || true
+
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-region-predication --do-validation \
+#    || true
+#exit 0
+
+#JLM_DISABLE_CALL_SIMPLE_ALLOCA_BLOCKING=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware-aggaa-no-callblocking \
 #    || true
 
 JLM_ENABLE_SVF_PTGAA=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
     --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --optSroa --builddir build/sroa --statsdir statistics/sroa-ptgaa-aggaa \
-    || true
+    --optSroa --pre-jlm-name sroa \
+    --jlm-name sroa-ptgaa-aggaa
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware \
-    || true
+#JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware-aggaa \
+#    || true
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
@@ -471,19 +485,18 @@ JLM_ENABLE_SVF_PTGAA=1 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-
 
 JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
     --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --regionAwareModRef --clangOs --builddir build/clang-Os --statsdir statistics/clang-Os-raware-aggaa \
-    || true
-exit 0
+    --clangOs --pre-jlm-name clang-Os \
+    --regionAwareModRef --jlm-name clang-Os-raware-aggaa
 
 #JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
 #    --regionAwareModRef --clangO3 --builddir build/clang-O3 --statsdir statistics/clang-O3-raware-aggaa \
 #    || true
 
-#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --optSroaGvn --regionAwareModRef --builddir build/sroa-gvn --statsdir statistics/sroa-gvn-raware \
-#    || true
+JLM_ENABLE_SVF_AGGRESSIVE_LOCALAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --optSroaGvn --pre-jlm-name sroa-gvn \
+    --regionAwareModRef --jlm-name sroa-gvn-raware-aggaa
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
