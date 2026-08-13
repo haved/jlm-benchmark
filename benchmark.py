@@ -937,6 +937,8 @@ def main():
                         help='Uses clang\'s Os')
     parser.add_argument('--clangO3', action='store_true', dest='clangO3',
                         help='Uses clang\'s O3')
+    parser.add_argument('--noStrictAliasing', action='store_true', dest='noStrictAliasing',
+                        help='Disables strict aliasing in clang')
     parser.add_argument('--optMem2reg', action='store_true', dest='optMem2reg',
                         help='Uses LLVM opt\'s mem2reg pass')
     parser.add_argument('--optSroa', action='store_true', dest='optSroa',
@@ -949,6 +951,9 @@ def main():
                         help='Make GVN try harder')
     parser.add_argument('--skipNodeReduction', action='store_true', dest='skipNodeReduction',
                         help='Skip running NodeReduction in jlm-opt')
+    parser.add_argument('--extraEncoding', action='store_true', dest='extraEncoding',
+                        help='Perform memory state encoding an additional time in jlm-opt')
+
 
     args = parser.parse_args()
 
@@ -1043,6 +1048,8 @@ def configure_benchmark(bench, args):
 
     # Even when clang does not perform optimizations, these options attach attributes
     bench.extra_clang_flags.extend(["-fno-vectorize", "-fno-slp-vectorize", "-fno-inline"])
+    if args.noStrictAliasing:
+        bench.extra_clang_flags.extend(["-fno-strict-aliasing"])
 
     # Don't use multiple at once!
     assert args.clangOs + args.clangO3 <= 1
@@ -1111,7 +1118,7 @@ def configure_benchmark(bench, args):
 
     bench.jlm_opt_flags.extend([
         #"--FunctionInlining", # We do not allow clang to inline, so it would be unfair
-        "--PredicateCorrelation",
+        #"--PredicateCorrelation",
         #"--LoopUnswitching",
     ])
 
@@ -1123,6 +1130,9 @@ def configure_benchmark(bench, args):
         "--InvariantValueRedirection",
         "--DeadNodeElimination"])
 
+    if not args.skipNodeReduction:
+        bench.jlm_opt_flags.append("--NodeReduction")
+
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     if args.agnosticModRef:
@@ -1132,6 +1142,9 @@ def configure_benchmark(bench, args):
         bench.jlm_opt_flags.extend(["--AAAndersenRegionAware", "--print-mod-ref-summarization", "--print-basicencoder-encoding"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
+
+    if not args.skipNodeReduction:
+        bench.jlm_opt_flags.append("--NodeReduction")
 
     bench.jlm_opt_flags.append("--StoreValueForwarding")
     # Make sure SVF gets close to its fixedpoint
@@ -1147,6 +1160,9 @@ def configure_benchmark(bench, args):
     if not args.skipNodeReduction:
         bench.jlm_opt_flags.append("--NodeReduction")
     bench.jlm_opt_flags.extend(["--DeadNodeElimination"])
+
+    if args.extraEncoding:
+        bench.jlm_opt_flags.extend(["--AAAndersenRegionAware", "--StoreValueForwarding", "--CommonNodeElimination", "--NodeReduction", "--DeadNodeElimination"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 

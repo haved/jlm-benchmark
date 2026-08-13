@@ -317,6 +317,12 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
+    print("Removing files where any configuration has no loads in Tree0")
+    remove_cfiles = file_data.loc[file_data["Tree0-NumLoadNodes"]==0, "cfile"].unique()
+    print(f"Removing {len(remove_cfiles)} files")
+    file_data = file_data.loc[~file_data["cfile"].isin(remove_cfiles)]
+    print(f"cfiles left: {file_data["cfile"].nunique()}")
+
     raware_configurations = file_data["Configuration"].unique()
 
     raware_steps = [
@@ -399,7 +405,6 @@ def main():
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
 
-
     def study_differences(config_name, tree_name, baseline_config_name, baseline_tree_name, save_csv=None):
         config_data = file_data[file_data["Configuration"] == config_name].set_index("cfile")
         baseline_data = file_data[file_data["Configuration"] == baseline_config_name].set_index("cfile")
@@ -424,19 +429,17 @@ def main():
             data["cfile"] = data.index
             data["x"] = range(len(data))
 
-            fig = px.scatter(data, x="x", y="relative", color="comparison", hover_data=['cfile', 'baseline', 'relative'], title=f"{full_title} {column_name} Relative")
-            fig.add_hline(y=1)
-            fig.show()
+            #fig = px.scatter(data, x="x", y="relative", color="comparison", hover_data=['cfile', 'baseline', 'relative'], title=f"{full_title} {column_name} Relative")
+            #fig.add_hline(y=1)
+            #fig.show()
 
             fig = px.scatter(data, x="x", y="difference", color="comparison", hover_data=['cfile', 'baseline', 'difference'], title=f"{full_title} {column_name} Absolute")
             fig.add_hline(y=0)
             fig.show()
 
         plot_difference("NumLoadNodes")
-        #plot_difference("NumStoreNodes")
+        plot_difference("NumStoreNodes")
         #plot_difference("NumAllocaNodes")
-
-    print("Total number of files:", file_data["cfile"].nunique())
 
     def compare(c1, tree1, c2, tree2):
         print(f"Comparing {c1}'s {tree1} to {c2}'s {tree2}:")
@@ -449,22 +452,25 @@ def main():
         print_less_equal_more("Stores", *stores)
         print_less_equal_more("Allocas", *allocas)
 
-    compare("sroa-raware-aggaa", "Tree4", "sroa-raware-aggaa-sans-predcheck", "Tree4")
+    # Results vs sroa+GVN
+    compare("sroa-raware", "Tree4", "sroa-gvn-raware", "Tree0")
     sys.exit(0)
 
     # Vs using PtG directly and no memory state encoding
-    compare("sroa-raware-aggaa", "Tree4", "sroa-ptgaa-aggaa", "Tree4")
+    compare("sroa-raware", "Tree4", "sroa-ptgaa", "Tree4")
 
-    # Results vs sroa+GVN
-    compare("sroa-raware-aggaa", "Tree4", "sroa-gvn-raware-aggaa", "Tree0")
+    # Results on top of sroa+GVN
+    compare("sroa-gvn-raware", "Tree4", "sroa-gvn-raware", "Tree0")
 
     # Results vs clang Os
-    compare("sroa-raware-aggaa", "Tree4", "clang-Os-raware-aggaa", "Tree0")
+    compare("sroa-raware", "Tree4", "clang-Os-raware", "Tree0")
 
     # Results on top of clang Os
-    compare("clang-Os-raware-aggaa", "Tree4", "clang-Os-raware-aggaa", "Tree0")
+    compare("clang-Os-raware", "Tree4", "clang-Os-raware", "Tree0")
 
-    # study_differences("sroa-raware-aggaa-node-push-out-region-predicate", "Tree4", "sroa-raware-aggaa-node-push-out", "Tree4")
+    # Average number of memory states per load
+    file_data["#MemoryStatesPerLoad"] = file_data["#TotalRefOnlyStatesThroughLoad"] / file_data["#LoadOperations"]
+    table_quartiles_per_configuration(file_data, raware_configurations, "#MemoryStatesPerLoad")
 
     sys.exit(0)
 
