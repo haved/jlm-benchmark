@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-apt-get update
+#apt-get update
 apt-get install -y \
     wget pipx python3-psutil python3-pandas python3-matplotlib python3-seaborn python3-plotly \
     just bear make ninja-build g++ libstdc++-14-dev gfortran autoconf texinfo cmake \
