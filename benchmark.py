@@ -1149,7 +1149,7 @@ def configure_benchmark(bench, args):
     bench.jlm_opt_flags.append("--StoreValueForwarding")
     # Make sure SVF gets close to its fixedpoint
     for _ in range(3):
-        bench.jlm_opt_flags.extend(["--NodePushOut", "--CommonNodeElimination", "--StoreValueForwarding"])
+        bench.jlm_opt_flags.extend(["--NodePushOut", "--CommonNodeElimination", "--IOBarrierElimination", "--StoreValueForwarding"])
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
