@@ -404,6 +404,48 @@ fi
 
 # The benchmarking invocations below change frequently
 
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --noStrictAliasing --optSroa --pre-jlm-name sroa \
+    --regionAwareModRef --jlm-name sroa-raware
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --noStrictAliasing --optSroaGvn --pre-jlm-name sroa-gvn \
+    --regionAwareModRef --jlm-name sroa-gvn-raware
+
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --noStrictAliasing --optSroa --pre-jlm-name sroa \
+#    --jlm-name sroa
+
+#JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --noStrictAliasing --optSroa --pre-jlm-name sroa \
+#    --jlm-name sroa-ptgaa
+
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware \
+#    || true
+
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
+#    || true
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --noStrictAliasing --clangOs --pre-jlm-name clang-Os \
+    --regionAwareModRef --jlm-name clang-Os-raware
+
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --noStrictAliasing --clangOz --pre-jlm-name clang-Oz \
+    --regionAwareModRef --jlm-name clang-Oz-raware
+
+exit 0
+
 # For testing with asserts (slow)
 #./benchmark.py --jlm-opt="../jlm/build-debug/jlm-opt" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
@@ -435,65 +477,6 @@ fi
 #    --builddir build/jlm --statsdir statistics/ptgaa \
 #    || true
 
-#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --optSroa --regionAwareModRef --builddir build/sroa --statsdir statistics/sroa-raware \
-#    || true
-
-#USE_OLD_UNCREACHABLE_CHECK=1 USE_ALT_UNCREACHABLE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-#    --regionAwareModRef --jlm-name sroa-raware-both
-
-#USE_OLD_UNCREACHABLE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-#    --regionAwareModRef --jlm-name sroa-raware-old
-
-#USE_ALT_UNCREACHABLE_CHECK=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-#    --regionAwareModRef --jlm-name sroa-raware-alt
-
-
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --regionAwareModRef --jlm-name sroa-raware
-
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroaGvn --pre-jlm-name sroa-gvn \
-    --regionAwareModRef --jlm-name sroa-gvn-raware
-
-exit 0
-
-JLM_ENABLE_SVF_PTGAA=1 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --jlm-name sroa-ptgaa
-
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --jlm-name sroa
-
-#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --optSroaGvn --regionAwareModRef --builddir build/gvn --statsdir statistics/gvn-raware \
-#    || true
-
-#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-#    --regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
-#    || true
-
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --clangOs --pre-jlm-name clang-Os \
-    --regionAwareModRef --jlm-name clang-Os-raware
-
-exit 0
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \

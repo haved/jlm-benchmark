@@ -452,12 +452,18 @@ def main():
         print_less_equal_more("Stores", *stores)
         print_less_equal_more("Allocas", *allocas)
 
-    # Results vs sroa+GVN
-    compare("sroa-raware", "Tree4", "sroa-gvn-raware", "Tree0")
+    compare("sroa-raware", "Tree4", "clang-Os-raware", "Tree0")
+    compare("sroa-raware", "Tree4", "clang-Oz-raware", "Tree0")
     sys.exit(0)
+
+    # Vs using only LocalAA
+    compare("sroa-raware", "Tree4", "sroa", "Tree4")
 
     # Vs using PtG directly and no memory state encoding
     compare("sroa-raware", "Tree4", "sroa-ptgaa", "Tree4")
+
+    # Results vs sroa+GVN
+    compare("sroa-raware", "Tree4", "sroa-gvn-raware", "Tree0")
 
     # Results on top of sroa+GVN
     compare("sroa-gvn-raware", "Tree4", "sroa-gvn-raware", "Tree0")

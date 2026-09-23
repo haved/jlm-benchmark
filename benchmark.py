@@ -933,6 +933,8 @@ def main():
                         help='Uses agnostic memory state encoding')
     parser.add_argument('--regionAwareModRef', action='store_true', dest='regionAwareModRef',
                         help='Uses region aware memory state encoding')
+    parser.add_argument('--clangOz', action='store_true', dest='clangOz',
+                        help='Uses clang\'s Oz')
     parser.add_argument('--clangOs', action='store_true', dest='clangOs',
                         help='Uses clang\'s Os')
     parser.add_argument('--clangO3', action='store_true', dest='clangO3',
@@ -1041,7 +1043,13 @@ def configure_benchmark(bench, args):
     #bench.extra_clang_flags = ["-Xclang", "-disable-O0-optnone"]
     bench.extra_clang_flags = ["-Os", "-Xclang", "-disable-llvm-passes"]
 
-    if args.clangOs:
+    # Don't use multiple at once!
+    assert args.clangOz + args.clangOs + args.clangO3 <= 1
+    assert args.optMem2reg + args.optSroa + args.optSroaGvn + args.optOs <= 1
+
+    if args.clangOz:
+        bench.extra_clang_flags = ["-Oz"]
+    elif args.clangOs:
         bench.extra_clang_flags = ["-Os"]
     elif args.clangO3:
         bench.extra_clang_flags = ["-O3"]
@@ -1050,10 +1058,6 @@ def configure_benchmark(bench, args):
     bench.extra_clang_flags.extend(["-fno-vectorize", "-fno-slp-vectorize", "-fno-inline"])
     if args.noStrictAliasing:
         bench.extra_clang_flags.extend(["-fno-strict-aliasing"])
-
-    # Don't use multiple at once!
-    assert args.clangOs + args.clangO3 <= 1
-    assert args.optMem2reg + args.optSroa + args.optSroaGvn + args.optOs <= 1
 
     if args.optMem2reg:
         bench.opt_flags = ["-passes=mem2reg"]
