@@ -328,7 +328,6 @@ def main():
     raware_steps = [
         "CallGraphTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
-        "NonReentrantAllocaSetsTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
         #"ReadOnlyDetectionTimer[ns]",
@@ -452,8 +451,8 @@ def main():
         print_less_equal_more("Stores", *stores)
         print_less_equal_more("Allocas", *allocas)
 
-    compare("sroa-raware", "Tree4", "clang-Os-raware", "Tree0")
-    compare("sroa-raware", "Tree4", "clang-Oz-raware", "Tree0")
+    # Results vs sroa+GVN
+    compare("sroa-raware", "Tree4", "sroa-gvn-raware", "Tree0")
     sys.exit(0)
 
     # Vs using only LocalAA

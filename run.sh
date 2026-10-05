@@ -413,6 +413,7 @@ fi
     --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
     --noStrictAliasing --optSroaGvn --pre-jlm-name sroa-gvn \
     --regionAwareModRef --jlm-name sroa-gvn-raware
+exit 0
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \

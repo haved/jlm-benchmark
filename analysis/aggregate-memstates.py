@@ -56,7 +56,6 @@ METRICS_MAPPING = {
     ],
     "RegionAwareModRefSummarizer": [
         "#SimpleAllocas",
-        "#NonReentrantAllocas",
         "#CallGraphSccs",
         "#FunctionsCallingSetjmp",
         "#ReadOnlyMemoryNodesDetected",
@@ -70,7 +69,6 @@ METRICS_MAPPING = {
 
         "CallGraphTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
-        "NonReentrantAllocaSetsTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
         "ReadOnlyDetectionTimer[ns]",
@@ -88,7 +86,8 @@ METRICS_MAPPING = {
         "#ModRefSetOperations",
         "#TotalModRefSetIntervals",
         "#TotalLiveIntervals",
-        ("Time[ns]", "MemoryStateEncodingTime[ns]")
+        ("EncodingTime[ns]", "MemoryStateEncodingTime[ns]"),
+        ("PruningTime[ns]", "MemoryStateEncoderPruningTime[ns]")
     ],
     "InterProceduralGraphToRvsdg": [
         ("Time[ns]", "RvsdgConstructionTime[ns]")
@@ -231,11 +230,10 @@ def calculate_total_ramrs_time(file_data):
     file_data["RegionAwareModRefSummarizerTime[ns]"] = (
         file_data["CallGraphTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
-        file_data["NonReentrantAllocaSetsTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
-        file_data["SolvingTimer[ns]"] # +
-        #file_data["ReadOnlyDetectionTimer[ns]"] +
-        #file_data["ModRefSetMaterializationTimer[ns]"]
+        file_data["SolvingTimer[ns]"] +
+        file_data["ReadOnlyDetectionTimer[ns]"] +
+        file_data["ModRefSetMaterializationTimer[ns]"]
     )
 
 def make_file_data(folder, configuration):
