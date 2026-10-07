@@ -326,7 +326,6 @@ def main():
     raware_configurations = file_data["Configuration"].unique()
 
     raware_steps = [
-        "CallGraphTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
@@ -451,8 +450,8 @@ def main():
         print_less_equal_more("Stores", *stores)
         print_less_equal_more("Allocas", *allocas)
 
-    # Results vs sroa+GVN
-    compare("sroa-raware", "Tree4", "sroa-gvn-raware", "Tree0")
+
+    compare("sroa-raware-nocallgraph", "Tree4", "sroa-raware", "Tree4")
     sys.exit(0)
 
     # Vs using only LocalAA

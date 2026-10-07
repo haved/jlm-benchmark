@@ -56,7 +56,7 @@ METRICS_MAPPING = {
     ],
     "RegionAwareModRefSummarizer": [
         "#SimpleAllocas",
-        "#CallGraphSccs",
+        "#Functions",
         "#FunctionsCallingSetjmp",
         "#ReadOnlyMemoryNodesDetected",
 
@@ -67,7 +67,6 @@ METRICS_MAPPING = {
         "#ModRefSetsCallingExternalFunction",
         "ModRefSetSizeAfterMaterialization",
 
-        "CallGraphTimer[ns]",
         "SimpleAllocasSetTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
@@ -228,7 +227,6 @@ def extract_file_data(folder):
 
 def calculate_total_ramrs_time(file_data):
     file_data["RegionAwareModRefSummarizerTime[ns]"] = (
-        file_data["CallGraphTimer[ns]"] +
         file_data["SimpleAllocasSetTimer[ns]"] +
         file_data["AnnotationTimer[ns]"] +
         file_data["SolvingTimer[ns]"] +

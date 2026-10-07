@@ -407,7 +407,7 @@ fi
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
     --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
     --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --regionAwareModRef --jlm-name sroa-raware
+    --regionAwareModRef --jlm-name sroa-raware2
 
 exit 0
 
