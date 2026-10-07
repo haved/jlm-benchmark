@@ -330,13 +330,13 @@ def main():
         "SimpleAllocasSetTimer[ns]",
         "AnnotationTimer[ns]",
         "SolvingTimer[ns]",
-        #"ReadOnlyDetectionTimer[ns]",
-        #"ModRefSetMaterializationTimer[ns]",
+        "ReadOnlyDetectionTimer[ns]",
+        "ModRefSetMaterializationTimer[ns]",
     ]
-    table_quartiles_per_column(file_data, "raware", raware_steps)
+    table_quartiles_per_column(file_data, "sroa-raware", raware_steps)
 
-    andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
-    table_quartiles_per_column(file_data, "raware", andersen_steps)
+    #andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
+    #table_quartiles_per_column(file_data, "raware", andersen_steps)
 
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
     #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)

@@ -1137,6 +1137,8 @@ def configure_benchmark(bench, args):
     if not args.skipNodeReduction:
         bench.jlm_opt_flags.append("--NodeReduction")
 
+    bench.jlm_opt_flags.append("--DeadNodeElimination")
+
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     if args.agnosticModRef:
