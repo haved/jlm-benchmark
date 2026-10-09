@@ -451,7 +451,7 @@ def main():
         print_less_equal_more("Allocas", *allocas)
 
 
-    compare("sroa-raware-nocallgraph", "Tree4", "sroa-raware", "Tree4")
+    compare("sroa-raware-explicitmodref", "Tree4", "sroa-raware", "Tree4")
     sys.exit(0)
 
     # Vs using only LocalAA

@@ -404,11 +404,43 @@ fi
 
 # The benchmarking invocations below change frequently
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --regionAwareModRef --jlm-name sroa-raware2
+function testSroaRaware()
+{
+    ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+        --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+        --noStrictAliasing --optSroa --pre-jlm-name sroa \
+        --regionAwareModRef --jlm-name "sroa-raware$1"
+}
 
+function testOperationSizeBlocking()
+{
+    export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+    testSroaRaware "$1-sans_size_blocking"
+    unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
+    testSroaRaware "$1"
+}
+
+function testConstantMemoryBlocking()
+{
+    export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+    testOperationSizeBlocking "$1-sans_constantmemory_blocking"
+    unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
+    testOperationSizeBlocking "$1"
+}
+
+function testRegisterConfinedAllocaBlocking()
+{
+    export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
+    export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
+    export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
+    testConstantMemoryBlocking "$1-sans_rc_alloca_blocking"
+    unset JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST
+    unset JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST
+    unset JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST
+    testConstantMemoryBlocking "$1"
+}
+
+testRegisterConfinedAllocaBlocking ""
 exit 0
 
 ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
