@@ -409,44 +409,68 @@ function testSroaRaware()
     ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
         --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
         --noStrictAliasing --optSroa --pre-jlm-name sroa \
-        --regionAwareModRef --jlm-name "sroa-raware$1"
+        --regionAwareModRef --jlm-name "sroa-raw$1"
 }
 
 function testOperationSizeBlocking()
 {
-    export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
-    testSroaRaware "$1-sans_size_blocking"
-    unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
     testSroaRaware "$1"
+    unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
+    testSroaRaware "$1-osf"
+    export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
 }
 
 function testConstantMemoryBlocking()
 {
-    export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
-    testOperationSizeBlocking "$1-sans_constantmemory_blocking"
-    unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
     testOperationSizeBlocking "$1"
+    unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
+    testOperationSizeBlocking "$1-cmf"
+    export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
 }
 
 function testRegisterConfinedAllocaBlocking()
 {
-    export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
-    export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
-    export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
-    testConstantMemoryBlocking "$1-sans_rc_alloca_blocking"
+    testConstantMemoryBlocking "$1"
     unset JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST
     unset JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST
     unset JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST
-    testConstantMemoryBlocking "$1"
+    testConstantMemoryBlocking "$1-rcaf"
+    export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
+    export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
+    export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
 }
 
-testRegisterConfinedAllocaBlocking ""
+function testOmegaFolding()
+{
+    testRegisterConfinedAllocaBlocking "$1"
+    unset JLM_DISABLE_OMEGA_FOLDING
+    testRegisterConfinedAllocaBlocking "$1-of"
+    export JLM_DISABLE_OMEGA_FOLDING=1
+}
+
+function testImplicitRepresentation()
+{
+    testOmegaFolding "$1"
+    unset JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION
+    testOmegaFolding "$1-ip"
+    export JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION=1
+}
+
+export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
+export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
+export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
+export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
+export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
+export JLM_DISABLE_OMEGA_FOLDING=1
+export JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION=1
+
+testImplicitRepresentation ""
 exit 0
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroaGvn --pre-jlm-name sroa-gvn \
-    --regionAwareModRef --jlm-name sroa-gvn-raware
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --noStrictAliasing --optSroaGvn --pre-jlm-name sroa-gvn \
+#    --regionAwareModRef --jlm-name sroa-gvn-raware
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
@@ -468,15 +492,15 @@ exit 0
 #    --regionAwareModRef --optSroaGvn --aggressiveGvn --builddir build/gvn-aggressive --statsdir statistics/gvn-aggressive-raware \
 #    || true
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --clangOs --pre-jlm-name clang-Os \
-    --regionAwareModRef --jlm-name clang-Os-raware
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --noStrictAliasing --clangOs --pre-jlm-name clang-Os \
+#    --regionAwareModRef --jlm-name clang-Os-raware
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --clangOz --pre-jlm-name clang-Oz \
-    --regionAwareModRef --jlm-name clang-Oz-raware
+#./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+#    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+#    --noStrictAliasing --clangOz --pre-jlm-name clang-Oz \
+#    --regionAwareModRef --jlm-name clang-Oz-raware
 
 exit 0
 
