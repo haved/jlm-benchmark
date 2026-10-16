@@ -404,69 +404,11 @@ fi
 
 # The benchmarking invocations below change frequently
 
-function testSroaRaware()
-{
-    ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-        --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-        --noStrictAliasing --optSroa --pre-jlm-name sroa \
-        --regionAwareModRef --jlm-name "sroa-raw$1" --skipTreePrinting
-    exit 0
-}
+./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
+    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
+    --noStrictAliasing --optSroa --pre-jlm-name sroa \
+    --regionAwareModRef --jlm-name sroa-raware
 
-function testOperationSizeBlocking()
-{
-    testSroaRaware "$1"
-    unset JLM_DISABLE_OPERATION_SIZE_BLOCKING
-    testSroaRaware "$1-osf"
-    export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
-}
-
-function testConstantMemoryBlocking()
-{
-    testOperationSizeBlocking "$1"
-    unset JLM_DISABLE_CONSTANT_MEMORY_BLOCKING
-    testOperationSizeBlocking "$1-cmf"
-    export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
-}
-
-function testRegisterConfinedAllocaBlocking()
-{
-    testConstantMemoryBlocking "$1"
-    unset JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST
-    unset JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST
-    unset JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST
-    testConstantMemoryBlocking "$1-rcaf"
-    export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
-    export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
-    export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
-}
-
-function testOmegaFolding()
-{
-    testRegisterConfinedAllocaBlocking "$1"
-    unset JLM_DISABLE_OMEGA_FOLDING
-    testRegisterConfinedAllocaBlocking "$1-of"
-    export JLM_DISABLE_OMEGA_FOLDING=1
-}
-
-function testImplicitRepresentation()
-{
-    testOmegaFolding "$1"
-    unset JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION
-    testOmegaFolding "$1-ip"
-    export JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION=1
-}
-
-export JLM_DISABLE_OPERATION_SIZE_BLOCKING=1
-export JLM_DISABLE_CONSTANT_MEMORY_BLOCKING=1
-export JLM_DISABLE_FUNCTION_SIMPLE_ALLOCA_ALLOWLIST=1
-export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
-export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
-export JLM_DISABLE_OMEGA_FOLDING=1
-export JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION=1
-export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1
-
-testImplicitRepresentation ""
 exit 0
 
 #./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \

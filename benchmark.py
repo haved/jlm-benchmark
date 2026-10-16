@@ -15,6 +15,7 @@ import queue
 import json
 import functools
 import traceback
+from pathlib import Path
 
 class TaskTimeoutError(Exception):
     pass
@@ -316,13 +317,7 @@ def clean_temp_dir(temp_dir):
 
 
 def ensure_folder_exists(path):
-    if os.path.exists(path):
-        return
-    try:
-        os.mkdir(path)
-    except FileExistsError as e:
-        pass # Someone else made the folder, no biggie
-
+    Path(path).mkdir(parents=True, exist_ok=True)
 
 def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags,
                  env_vars=None, opt_flags=None, jlm_opt_flags=None, jlm_opt_suffix=None):
