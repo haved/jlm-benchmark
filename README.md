@@ -98,7 +98,35 @@ If you prefer Apptainer over docker, there is an Apptainer definition file in th
 It can be used without re-creating `sources.json`.
 See the README in the `extras/` folder for instructions.
 
-### Running across SLURM nodes (a bit outdated)
-There are some SLURM scripts in the `extras/` folder that can be used with Apptainer to spread work across SLURM nodes.
+### Running all configuration across SLURM nodes
+This is based on the file `extras/README.md`.
+The script `./generate_runs.py` creates scripts inside `runs/`,
+which can all be run on SLURM using `slurm-execute-runs.sh`.
+
+
+## Building apptainer image
+The image must be built from the root of the repository:
+``` sh
+apptainer build --fakeroot jlm-benchmark.sif extras/jlm-benchmark.def
+```
+
+## Running with SLURM
+Before benchmarking, make sure you delete any old statistics, jlm-opt builds and logs.
+```sh
+apptainer exec jlm-benchmark.sif ./run.sh purge
+rm -rf slurm-log
+```
+
+Then make sure sources are extracted and `jlm-opt` is built using:
+``` sh
+apptainer exec jlm-benchmark.sif ./run.sh --build-jlm --full-spec --dry-run
+```
+
+Then run every configuration and iteration using
+```sh
+APPTAINER_CONTAINER=jlm-benchmark.sif sbatch slurm-execute-runs.sh
+```
+
+
 
 
