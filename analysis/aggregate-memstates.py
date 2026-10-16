@@ -13,6 +13,7 @@ import json
 def get_memory_node_counts(suffix):
     return [
         "#TotalRefOnlyState" + suffix,
+        "#TotalModOnlyState" + suffix,
         "#TotalModRefState" + suffix,
 
         "#TotalAllocaState" + suffix,

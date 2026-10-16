@@ -409,7 +409,8 @@ function testSroaRaware()
     ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
         --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
         --noStrictAliasing --optSroa --pre-jlm-name sroa \
-        --regionAwareModRef --jlm-name "sroa-raw$1"
+        --regionAwareModRef --jlm-name "sroa-raw$1" --skipTreePrinting
+    exit 0
 }
 
 function testOperationSizeBlocking()
@@ -463,6 +464,7 @@ export JLM_DISABLE_CALL_SIMPLE_ALLOCA_ALLOWLIST=1
 export JLM_DISABLE_EXTERN_SIMPLE_ALLOCA_ALLOWLIST=1
 export JLM_DISABLE_OMEGA_FOLDING=1
 export JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION=1
+export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1
 
 testImplicitRepresentation ""
 exit 0

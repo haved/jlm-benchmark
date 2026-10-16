@@ -955,6 +955,10 @@ def main():
                         help='Skip running NodeReduction in jlm-opt')
     parser.add_argument('--extraEncoding', action='store_true', dest='extraEncoding',
                         help='Perform memory state encoding an additional time in jlm-opt')
+    parser.add_argument('--skipTreePrinting', action='store_true', dest='skipTreePrinting',
+                        help='Skip all tree printing passes')
+    parser.add_argument('--nullOutput', action='store_true', dest='nullOutput',
+                        help='Disable creation of output files from jlm-opt')
 
 
     args = parser.parse_args()
@@ -1147,6 +1151,8 @@ def configure_benchmark(bench, args):
     if args.regionAwareModRef:
         bench.jlm_opt_flags.extend(["--AAAndersenRegionAware", "--print-mod-ref-summarization", "--print-basicencoder-encoding"])
 
+    bench.jlm_opt_flags.append("--DeadNodeElimination")
+
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
     if not args.skipNodeReduction:
@@ -1172,8 +1178,16 @@ def configure_benchmark(bench, args):
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
+    if args.skipTreePrinting:
+        bench.jlm_opt_flags = [flag for flag in bench.jlm_opt_flags if flag != "--RvsdgTreePrinter"]
+
+    if args.nullOutput:
+        bench.jlm_opt_flags.append("--output-format=null")
+
     # Only perform linking if requested, or if we need to do validation
     do_linking = args.link or args.do_validation
+    if do_linking and args.nullOutput:
+        raise ValueError("Linking can not be combined with --nullOutput")
     if not do_linking:
         bench.clang_link_output = None
 

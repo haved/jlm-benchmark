@@ -14,13 +14,13 @@ apptainer build --fakeroot jlm-benchmark.sif extras/jlm-benchmark.def
 ## Running with SLURM
 Before benchmarking, make sure you delete any old statistics and logs.
 ```sh
-apptainer exec jlm-benchmark.sif just purge
+apptainer exec jlm-benchmark.sif ./run.sh purge
 rm -rf slurm-log
 ```
 
 Then make sure sources are extracted and `jlm-opt` is built using:
 ``` sh
-apptainer exec jlm-benchmark.sif ./run.sh dry-run
+apptainer exec jlm-benchmark.sif ./run.sh --build-jlm --dry-run
 ```
 
 Then run `extras/run-slurm.sh` like so:
