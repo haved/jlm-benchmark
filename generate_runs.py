@@ -54,9 +54,8 @@ def createScript(name, flags, env, number):
         for key, value in env.items():
             fd.write(f"export {key}={value}\n")
 
-        # Avoid dumping full statistics for every iteration
-        if number > 0:
-            fd.write("export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1\n")
+        # Avoid dumping full statistics, as it takes up too much disk (~300MB per run)
+        fd.write("export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1\n")
 
         fd.write("\n")
         fd.write("./benchmark.py ")
@@ -67,9 +66,9 @@ def createScript(name, flags, env, number):
         fd.write(" ".join(flags) + " ")
         fd.write(f"--jlm-name {name_and_number} ")
 
-        # Avoid tree printing and storing output files for every iteration
-        if number > 0:
-            fd.write("--skipTreePrinting --nullOutput")
+        # Avoid tree printing to save disk (~2.5GB per run)
+        # Avoid outputting files, to save disk (~600MB per run)
+        fd.write("--skipTreePrinting --nullOutput")
 
         fd.write("\n\n")
         fd.write(f'echo "Done with status code $? at $(date)" >> {echo_file}\n')
