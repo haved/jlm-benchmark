@@ -320,7 +320,7 @@ def ensure_folder_exists(path):
     Path(path).mkdir(parents=True, exist_ok=True)
 
 def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags,
-                 env_vars=None, opt_flags=None, jlm_opt_flags=None, jlm_opt_suffix=None):
+                 env_vars=None, opt_flags=None, jlm_opt_flags=None, disable_jlm_opt_output=False, jlm_opt_suffix=None):
     """
     Creates tasks for compiling the given file with the given arguments to clang.
     :param tasks: the list of tasks to append commands to
@@ -332,6 +332,7 @@ def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags,
     :param env_vars: environment variables passed to the executed commands
     :param opt_flags: if not None, opt is run with the given flags
     :param jlm_opt_flags: if not None, jlm-opt is run with the given flags
+    :param disable_jlm_opt_output: if True, jlm-opt is asked to not create an output file
     :param jlm_opt_suffix: an extra suffix added to output filenames
     :return: a tuple with paths to (clang's output, opt's output, jlm-opt's output)
     """
@@ -375,14 +376,20 @@ def compile_file(tasks, full_name, workdir, cfile, kind, extra_clang_flags,
         def jlm_opt_action(task):
             with tempfile.TemporaryDirectory(suffix="jlm-bench") as tmpdir:
                 jlm_opt_command = [options.jlm_opt, opt_out, "-o", jlm_opt_out, "-s", tmpdir, *jlm_opt_flags]
+                if disable_jlm_opt_output:
+                    jlm_opt_command.append("--output-format=null")
                 run_command(jlm_opt_command, env_vars=combined_env_vars, verbose=options.jlm_opt_verbosity,
                             print_prefix=f"({task.index})", timeout=options.timeout)
                 move_output_files(tmpdir, stats_output, other_outputs)
                 clean_temp_dir(tmpdir)
 
+        output_files = [stats_output]
+        if not disable_jlm_opt_output:
+            output_files.append(jlm_opt_out)
+
         tasks.append(Task(name=f"jlm-opt {full_name}{jlm_opt_suffix}",
                           input_files=[opt_out],
-                          output_files=[jlm_opt_out, stats_output],
+                          output_files=output_files,
                           action=jlm_opt_action))
     else:
         jlm_opt_out = opt_out
@@ -593,6 +600,10 @@ class Benchmark:
         self.opt_flags = None
         self.jlm_opt_flags = None
 
+        # If true, jlm-opt is told to disable outputs
+        # Can not be True if linking is enabled
+        self.disable_jlm_opt_output = False
+
         # Whole program optimization and linking flags
         # If set, llvm-link is used
         self.llvm_link_flags = None
@@ -649,6 +660,7 @@ class Benchmark:
                                              extra_clang_flags=[*self.extra_clang_flags, *srcfile.arguments],
                                              opt_flags=self.opt_flags,
                                              jlm_opt_flags=self.jlm_opt_flags,
+                                             disable_jlm_opt_output=self.disable_jlm_opt_output,
                                              jlm_opt_suffix=self.jlm_opt_suffix)
 
                 ofile_to_llfile[srcfile.get_ofile_abspath()] = outfile
@@ -687,6 +699,9 @@ class Benchmark:
         # Only perform LLVM IR compilation (llc) and linking if the output file is specified
         if self.clang_link_output is None:
             return tasks
+
+        if self.disable_jlm_opt_output:
+            raise ValueError("Linking can not be enabled when jlm-opt is disabled")
 
         # Try as much as possible to use the LLVM IR files produced above when linking
         llfiles = []
@@ -950,8 +965,6 @@ def main():
                         help='Skip running NodeReduction in jlm-opt')
     parser.add_argument('--extraEncoding', action='store_true', dest='extraEncoding',
                         help='Perform memory state encoding an additional time in jlm-opt')
-    parser.add_argument('--skipTreePrinting', action='store_true', dest='skipTreePrinting',
-                        help='Skip all tree printing passes')
     parser.add_argument('--nullOutput', action='store_true', dest='nullOutput',
                         help='Disable creation of output files from jlm-opt')
 
@@ -1115,9 +1128,11 @@ def configure_benchmark(bench, args):
 
     # Configure the flags sent to jlm-opt here
     bench.jlm_opt_flags = ["--print-andersen-analysis", "--print-store-value-forwarding", "--print-rvsdg-construction", "--print-rvsdg-destruction", "--print-rvsdg-optimization", "--print-dne-stat", "--print-reduction-stat"]
-    bench.jlm_opt_flags.append("--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes,NumAggregateAllocaNodes")# , "--print-aa-precision-evaluation"]
 
-    bench.jlm_opt_flags.append("--RvsdgTreePrinter")
+    # We do not enable any tree printer annotations, so the tree printer is statistics only
+    #bench.jlm_opt_flags.append("--annotations=NumMemoryStateInputsOutputs,NumLoadNodes,NumStoreNodes,NumAllocaNodes,NumAggregateAllocaNodes")# , "--print-aa-precision-evaluation"]
+
+    bench.jlm_opt_flags.extend(["--RvsdgTreePrinter", "--print-rvsdg-tree"])
 
     bench.jlm_opt_flags.extend([
         #"--FunctionInlining", # We do not allow clang to inline, so it would be unfair
@@ -1154,6 +1169,7 @@ def configure_benchmark(bench, args):
         bench.jlm_opt_flags.append("--NodeReduction")
 
     bench.jlm_opt_flags.append("--StoreValueForwarding")
+
     # Make sure SVF gets close to its fixedpoint
     for _ in range(3):
         bench.jlm_opt_flags.extend(["--NodePushOut", "--CommonNodeElimination", "--IOBarrierElimination", "--StoreValueForwarding"])
@@ -1173,16 +1189,11 @@ def configure_benchmark(bench, args):
 
     bench.jlm_opt_flags.append("--RvsdgTreePrinter")
 
-    if args.skipTreePrinting:
-        bench.jlm_opt_flags = [flag for flag in bench.jlm_opt_flags if flag != "--RvsdgTreePrinter"]
-
     if args.nullOutput:
-        bench.jlm_opt_flags.append("--output-format=null")
+        bench.disable_jlm_opt_output = True
 
     # Only perform linking if requested, or if we need to do validation
     do_linking = args.link or args.do_validation
-    if do_linking and args.nullOutput:
-        raise ValueError("Linking can not be combined with --nullOutput")
     if not do_linking:
         bench.clang_link_output = None
 

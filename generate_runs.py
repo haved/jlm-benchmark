@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 DEST_FOLDER = Path("runs/")
-NUM_PER_CONFIG = 10
+# Applies to the regular configs. Some are only run once
+DEFAULT_ITERATIONS_PER_CONFIG = 20
 
 # By default disable everything
 # The del keyword throws an error if we try to delete a missing key
@@ -54,8 +55,9 @@ def createScript(name, flags, env, number):
         for key, value in env.items():
             fd.write(f"export {key}={value}\n")
 
-        # Avoid dumping full statistics, as it takes up too much disk (~300MB per run)
-        fd.write("export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1\n")
+        # Avoid dumping full statistics for all runs, as it takes up too much disk (~300MB per run)
+        if number > 0:
+            fd.write("export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1\n")
 
         fd.write("\n")
         fd.write("./benchmark.py ")
@@ -66,19 +68,22 @@ def createScript(name, flags, env, number):
         fd.write(" ".join(flags) + " ")
         fd.write(f"--jlm-name {name_and_number} ")
 
-        # Avoid tree printing to save disk (~2.5GB per run)
         # Avoid outputting files, to save disk (~600MB per run)
-        fd.write("--skipTreePrinting --nullOutput")
+        fd.write("--nullOutput")
 
         fd.write("\n\n")
         fd.write(f'echo "Done with status code $? at $(date)" >> {echo_file}\n')
 
-def createScripts(optPipeline, modRefType, enableRcaf, enableOmegaFolding, enableCmf, enableOsf):
+def createScripts(iterations, optPipeline, modRefType, enableRcaf, enableOmegaFolding, enableCmf, enableOsf):
     name = []
     env = DEFAULT_ENV.copy()
     flags = []
 
-    if optPipeline == "sroa":
+    if optPipeline == "O0":
+        flags.extend(["--pre-jlm-name", "clangO0"])
+    elif optPipeline == "Oz":
+        flags.extend(["--clangOz", "--pre-jlm-name", "clangOz"])
+    elif optPipeline == "sroa":
         flags.extend(["--optSroa", "--pre-jlm-name", "sroa"])
     else:
         raise ValueError("Other opt pipelines not defined")
@@ -91,6 +96,10 @@ def createScripts(optPipeline, modRefType, enableRcaf, enableOmegaFolding, enabl
         del env["JLM_DISABLE_IMPLICIT_MODREF_REPRESENTATION"]
     elif modRefType == "rag":
         flags.append("--agnosticModRef")
+    elif modRefType == "noPtG":
+        pass # Do nothing
+    elif modRefType == "PtGAA":
+        env["JLM_ENABLE_SVF_PTGAA"] = 1
     else:
         raise ValueError(f"Unknown modRefType: {modRefType}")
     name.append(modRefType)
@@ -120,7 +129,7 @@ def createScripts(optPipeline, modRefType, enableRcaf, enableOmegaFolding, enabl
         assert "raw" in modRefType or "rag" in modRefType
 
     name_string = "-".join(name)
-    for i in range(NUM_PER_CONFIG):
+    for i in range(iterations):
         createScript(name_string, flags, env, i)
 
 def pickOsf(**kwargs):
@@ -147,14 +156,41 @@ def pickModRefType(**kwargs):
     pickRcaf(modRefType="raw-ip", **kwargs)
 
 def pickOptPipeline(**kwargs):
-    pickModRefType(optPipeline="sroa")
+    pickModRefType(optPipeline="sroa", **kwargs)
 
 def main():
     if DEST_FOLDER.exists():
         shutil.rmtree(DEST_FOLDER)
     DEST_FOLDER.mkdir()
 
-    pickOptPipeline()
+    pickOptPipeline(iterations=DEFAULT_ITERATIONS_PER_CONFIG)
+
+    # Using no PtG
+    createScripts(iterations=1,
+                  optPipeline="sroa",
+                  modRefType="noPtG",
+                  enableRcaf=False,
+                  enableOmegaFolding=False,
+                  enableCmf=False,
+                  enableOsf=False)
+
+    # Using PtG only as AA in SVF
+    createScripts(iterations=1,
+                  optPipeline="sroa",
+                  modRefType="PtGAA",
+                  enableRcaf=False,
+                  enableOmegaFolding=False,
+                  enableCmf=False,
+                  enableOsf=False)
+
+    # Performing our best pipeline on top of clang Oz
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="raw-ip",
+                  enableRcaf=True,
+                  enableOmegaFolding=True,
+                  enableCmf=True,
+                  enableOsf=True)
 
 
 if __name__ == "__main__":
