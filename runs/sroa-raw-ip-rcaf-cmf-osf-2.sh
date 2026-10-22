@@ -3,19 +3,28 @@
 
 set -euo pipefail
 JLM_PATH="${JLM_PATH:-jlm}"
-mkdir -p statistics/sroa-raw-ip-rcaf-cmf-osf-2
-echo "Run started at $(date)" | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-echo "Benchmark checkout:" | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-git rev-parse HEAD | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-git status --porcelain | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-echo "Jlm checkout:" | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-git -C "${JLM_PATH}" rev-parse HEAD | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
-git -C "${JLM_PATH}" status --porcelain | tee -a statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
+PARALLEL_TASKS="${PARALLEL_TASKS:-1}"
+TMP_STATS_DIR="${TMP_STATS_DIR:-statistics}"
+echo "Run started at $(date)" | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+echo "Benchmark checkout:" | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+git rev-parse HEAD | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+git status --porcelain | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+echo "Jlm checkout:" | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+git -C "${JLM_PATH}" rev-parse HEAD | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+git -C "${JLM_PATH}" status --porcelain | tee -a "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
 set -x
+
+if [ -f "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.csv" ]; then
+echo "Configuration already done" >> "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+exit 0
+fi
 
 export JLM_DISABLE_OMEGA_FOLDING=1
 export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1
 
-./benchmark.py "--jlm-opt=${JLM_PATH}/build-release/jlm-opt" --llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j=1 --full-spec '--filter=5\d\d\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail --noStrictAliasing --optSroa --pre-jlm-name sroa --regionAwareModRef --jlm-name sroa-raw-ip-rcaf-cmf-osf-2 --nullOutput
+./benchmark.py "--jlm-opt=${JLM_PATH}/build-release/jlm-opt" --llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j="${PARALLEL_TASKS}" --statsdir="${TMP_STATS_DIR}" --full-spec '--filter=5\d\d\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail --noStrictAliasing --optSroa --pre-jlm-name sroa --regionAwareModRef --jlm-name sroa-raw-ip-rcaf-cmf-osf-2 --nullOutput
 
-echo "Done with status code $? at $(date)" >> statistics/sroa-raw-ip-rcaf-cmf-osf-2/run.echo
+echo "Done with status code $? at $(date)" >> "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+
+echo "Aggregating statistics into single csv" >> "statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.echo"
+python3 analysis/aggregate-memstates.py --stats-in="${TMP_STATS_DIR}/sroa-raw-ip-rcaf-cmf-osf-2" --stats-out="statistics-out/sroa-raw-ip-rcaf-cmf-osf-2.csv"

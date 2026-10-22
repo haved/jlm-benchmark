@@ -44,8 +44,7 @@ clean-jlm-builds:
 
 # Aggregate statistics from runs
 aggregate:
-    mkdir -p statistics-out
-    ./analysis/aggregate-memstates.py --stats-in statistics --stats-out statistics-out
+    ./analysis/aggregate-memstates.py --stats-in statistics --stats-out statistics-out/file-data.csv
 
 # Perform analysis and plotting on the aggregated statistics
 analyze-all:

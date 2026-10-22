@@ -9,6 +9,7 @@ import seaborn as sns
 import argparse
 import re
 import json
+from pathlib import Path
 
 def get_memory_node_counts(suffix):
     return [
@@ -55,6 +56,10 @@ METRICS_MAPPING = {
         ("SetAndConstraintBuildingTimer[ns]", "AndersenSetBuildingTimer[ns]"), ("OVSTimer[ns]", "AndersenOVSTimer[ns]"),
         ("ConstraintSolvingWorklistTimer[ns]", "AndersenWorklistTimer[ns]"), "PointsToGraphConstructionTimer[ns]",
     ],
+    "AgnosticModRefSummarizer": [
+        "MemoryStateDistribution",
+        ("Time[ns]", "AgnosticModRefSummarizerTime[ns]")
+    ],
     "RegionAwareModRefSummarizer": [
         "#SimpleAllocas",
         "#Functions",
@@ -67,6 +72,8 @@ METRICS_MAPPING = {
         "#ModRefSetsWithEffectOnExternal",
         "#ModRefSetsCallingExternalFunction",
         "ModRefSetSizeAfterMaterialization",
+
+        "MemoryStateDistribution",
 
         "SimpleAllocasSetTimer[ns]",
         "AnnotationTimer[ns]",
@@ -114,6 +121,7 @@ METRICS_MAPPING = {
         ("MarkTime[ns]", "DNEMarkTime[ns]"),
         ("SweepTime[ns]", "DNESweepTime[ns]"),
     ],
+    "RvsdgTreePrinter": lambda x: f"{x}-Tree",
     "NodeReduction": lambda x: x, # Include every statistic from node reduction
     "RED": lambda x: x, # TODO: This is the old name for NodeReduction
     "RVSDGOPTIMIZATION": map_optimization_statistic,
@@ -121,36 +129,6 @@ METRICS_MAPPING = {
         ("Time[ns]", "RvsdgDestructionTime[ns]")
     ]
 }
-
-def read_rvsdg_tree(path, prefix):
-    with open(path) as fd:
-        root_region_data = json.load(fd)
-
-    data = {
-        "NumAllocaNodes": 0,
-        "NumAggregateAllocaNodes": 0,
-        "NumStoreNodes": 0,
-        "NumLoadNodes": 0,
-        "NumMemoryStateTypeArguments": 0
-    }
-
-    def process(region_data):
-        for key in data.keys():
-            if key in region_data:
-                data[key] += int(region_data[key])
-        if "StructuralNodes" not in region_data:
-            return
-
-        for node_data in region_data["StructuralNodes"]:
-            if "Subregions" not in node_data:
-                continue
-
-            for subregion_data in node_data["Subregions"]:
-                process(subregion_data)
-
-    process(root_region_data)
-
-    return { f"{prefix}{key}": value for key, value in data.items() }
 
 def get_metric_name(statistic, original_name):
     if statistic not in METRICS_MAPPING:
@@ -197,7 +175,8 @@ def extract_file_data(folder):
                 statistic_suffix = "" if statistic_num == 0 else f"--{statistic_num:02}"
 
                 for part in parts:
-                    original_name, value = part.split(":")
+                    colon = part.find(":")
+                    original_name, value = part[:colon], part[colon+1:]
 
                     metric_name = get_metric_name(statistic, original_name)
                     if not metric_name:
@@ -212,15 +191,6 @@ def extract_file_data(folder):
                         file_data[metric_name] = int(value)
                     except:
                         file_data[metric_name] = value
-
-        for fil2 in files:
-            if not fil2.startswith(cfile):
-                continue
-            if "rvsdgTree" not in fil2:
-                continue
-
-            num = fil2[:-4].split("-")[-1]
-            file_data.update(read_rvsdg_tree(os.path.join(folder, fil2), f"Tree{num}-"))
 
         file_datas.append(file_data)
 
@@ -244,35 +214,33 @@ def make_file_data(folder, configuration):
 def main():
     parser = argparse.ArgumentParser(description='Process raw statistics from the given folder.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', default="statistics",
-                        help='The folder where statistics files are located')
-    parser.add_argument('--stats-out', dest='stats_out', action='store', default="statistics-out",
-                        help='Folder where aggregated statistics should be placed')
+                        help='The folder where statistics files (*.log) are located, or subfolders')
+    parser.add_argument('--stats-out', dest='stats_out', action='store', default="statistics-out/data.csv",
+                        help='File name for the output file. Creates its folder if missing')
     args = parser.parse_args()
 
-    if not os.path.exists(args.stats_out):
-        os.mkdir(args.stats_out)
-    def stats_out(filename=""):
-        return os.path.join(args.stats_out, filename)
+    stats_in = Path(args.stats_in)
+    if not stats_in.is_dir():
+        raise ValueError("stats-in must be a directory")
 
-    folders = os.listdir(args.stats_in)
-    folders.sort()
-    data = [make_file_data(os.path.join(args.stats_in, folder), folder) for folder in folders]
+    data = []
+    stats_in_contents = os.listdir(stats_in)
+    stats_in_contents.sort()
+    for subfolder_name in stats_in_contents:
+        subfolder = stats_in / subfolder_name
+        if subfolder.is_dir():
+            data.append(make_file_data(subfolder, subfolder_name))
+
+    # If the stats_in folder itself contains .log files, use it as a statistics folder directly
+    if any(c.endswith(".log") for c in stats_in_contents):
+        data.append(make_file_data(stats_in, stats_in.name))
+
     file_data = pd.concat(data)
-
     calculate_total_ramrs_time(file_data)
 
-    file_data["TotalTime[ns]"] = file_data["RvsdgConstructionTime[ns]"] + file_data["OptimizationTime[ns]"] + file_data["RvsdgDestructionTime[ns]"]
-
-    #def add_total_memory_state_column(suffix):
-    #    file_data["#TotalMemoryState" + suffix] = file_data["#TotalRefOnlyState" + suffix] + file_data["#TotalModRefState" + suffix]
-
-    #add_total_memory_state_column("Arguments")
-    #add_total_memory_state_column("sThroughLoad")
-    #add_total_memory_state_column("sThroughStore")
-    #add_total_memory_state_column("sIntoCallEntryMerge")
-
-
-    file_data.to_csv(stats_out("memstate-file-data.csv"))
+    stats_out = Path(args.stats_out)
+    stats_out.parent.mkdir(parents=True, exist_ok=True)
+    file_data.to_csv(stats_out, index=False)
 
 if __name__ == "__main__":
     main()

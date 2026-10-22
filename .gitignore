@@ -6,4 +6,4 @@ jlm-benchmark.sif
 .env
 archives/*
 results/
-.run.sh.progress
+slurm-log/

@@ -7,6 +7,7 @@ This script creates separate .sh files for all configurations and iterations
 import shutil
 import sys
 from pathlib import Path
+import os.path
 
 DEST_FOLDER = Path("runs/")
 # Applies to the regular configs. Some are only run once
@@ -33,8 +34,10 @@ def createScript(name, flags, env, number):
     name_and_number = f"{name}-{number}"
     path = DEST_FOLDER / f"{name_and_number}.sh"
 
-    statistics_dir = f"statistics/{name_and_number}"
-    echo_file = f"{statistics_dir}/run.echo"
+    # These folders are used for the final outputs
+    statistics_out_dir = f"statistics-out/"
+    statistics_out_file = os.path.join(statistics_out_dir, f"{name_and_number}.csv")
+    echo_file = os.path.join(statistics_out_dir, f"{name_and_number}.echo")
 
     with open(path, 'w', encoding='utf-8') as fd:
         fd.write("#!/usr/bin/bash\n")
@@ -42,15 +45,25 @@ def createScript(name, flags, env, number):
         fd.write("\n")
         fd.write("set -euo pipefail\n")
         fd.write('JLM_PATH="${JLM_PATH:-jlm}"\n')
-        fd.write(f"mkdir -p {statistics_dir}\n")
-        fd.write(f'echo "Run started at $(date)" | tee -a {echo_file}\n')
-        fd.write(f'echo "Benchmark checkout:" | tee -a {echo_file}\n')
-        fd.write(f'git rev-parse HEAD | tee -a {echo_file}\n')
-        fd.write(f'git status --porcelain | tee -a {echo_file}\n')
-        fd.write(f'echo "Jlm checkout:" | tee -a {echo_file}\n')
-        fd.write(f'git -C "${{JLM_PATH}}" rev-parse HEAD | tee -a {echo_file}\n')
-        fd.write(f'git -C "${{JLM_PATH}}" status --porcelain | tee -a {echo_file}\n')
+        fd.write('PARALLEL_TASKS="${PARALLEL_TASKS:-1}"\n')
+        fd.write('TMP_STATS_DIR="${TMP_STATS_DIR:-statistics}"\n')
+        fd.write(f'echo "Run started at $(date)" | tee -a "{echo_file}"\n')
+        fd.write(f'echo "Benchmark checkout:" | tee -a "{echo_file}"\n')
+        fd.write(f'git rev-parse HEAD | tee -a "{echo_file}"\n')
+        fd.write(f'git status --porcelain | tee -a "{echo_file}"\n')
+        fd.write(f'echo "Jlm checkout:" | tee -a "{echo_file}"\n')
+        fd.write(f'git -C "${{JLM_PATH}}" rev-parse HEAD | tee -a "{echo_file}"\n')
+        fd.write(f'git -C "${{JLM_PATH}}" status --porcelain | tee -a "{echo_file}"\n')
         fd.write("set -x\n")
+        fd.write("\n")
+
+        # If the statistics out file already exists, skip this job
+        fd.write(f'if [ -f "{statistics_out_file}" ]; then\n')
+        fd.write(f'echo "Configuration already done" >> "{echo_file}"\n')
+        fd.write("exit 0\n")
+        fd.write("fi\n")
+
+        # Run the task, with all its environment variables
         fd.write("\n")
         for key, value in env.items():
             fd.write(f"export {key}={value}\n")
@@ -62,17 +75,21 @@ def createScript(name, flags, env, number):
         fd.write("\n")
         fd.write("./benchmark.py ")
         fd.write('"--jlm-opt=${JLM_PATH}/build-release/jlm-opt" ')
-        fd.write("--llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j=1 ")
+        fd.write('--llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j="${PARALLEL_TASKS}" --statsdir="${TMP_STATS_DIR}" ')
         fd.write("--full-spec '--filter=5\\d\\d\\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail ")
         fd.write("--noStrictAliasing ")
         fd.write(" ".join(flags) + " ")
         fd.write(f"--jlm-name {name_and_number} ")
-
         # Avoid outputting files, to save disk (~600MB per run)
-        fd.write("--nullOutput")
+        fd.write("--nullOutput\n")
 
-        fd.write("\n\n")
-        fd.write(f'echo "Done with status code $? at $(date)" >> {echo_file}\n')
+        fd.write("\n")
+        fd.write(f'echo "Done with status code $? at $(date)" >> "{echo_file}"\n')
+
+        fd.write("\n")
+        fd.write(f'echo "Aggregating statistics into single csv" >> "{echo_file}"\n')
+        fd.write(f'python3 analysis/aggregate-memstates.py --stats-in="${{TMP_STATS_DIR}}/{name_and_number}" --stats-out="{statistics_out_file}"\n')
+
 
 def createScripts(iterations, optPipeline, modRefType, enableRcaf, enableOmegaFolding, enableCmf, enableOsf):
     name = []

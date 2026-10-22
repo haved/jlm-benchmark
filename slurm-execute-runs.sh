@@ -19,6 +19,10 @@ if [ -f .env ]; then
     source .env
 fi
 export JLM_PATH
+# On SLURM, place individual statistics files in the tmpfs, only keep aggregated
+export TMP_STATS_DIR="/tmp/jlm-statistics"
+# Avoid doing anything in parallel on SLURM
+export PARALLEL_TASKS=1
 
 # Find the script in runs/ corresponding to the array job number
 RUNS_FOLDER="runs"
