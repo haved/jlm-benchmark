@@ -130,7 +130,7 @@ apptainer exec jlm-benchmark.sif ./run.sh --build-jlm --full-spec --dry-run
 Then run every configuration and iteration using
 ```sh
 # To get the clang -> llvm tasks finished without races
-APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1-2 slurm-execute-runs.sh
+APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1,200 slurm-execute-runs.sh
 # Later, to run all the jlm-opt tasks in all configurations
-sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=3-803 slurm-execute-runs.sh
+sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1-410 slurm-execute-runs.sh
 ```
