@@ -11,7 +11,7 @@ import os.path
 
 DEST_FOLDER = Path("runs/")
 # Applies to the regular configs. Some are only run once
-DEFAULT_ITERATIONS_PER_CONFIG = 20
+DEFAULT_ITERATIONS_PER_CONFIG = 10
 
 # By default disable everything
 # The del keyword throws an error if we try to delete a missing key
@@ -180,6 +180,7 @@ def main():
         shutil.rmtree(DEST_FOLDER)
     DEST_FOLDER.mkdir()
 
+    # Every pipeline combination on top of sroa
     pickOptPipeline(iterations=DEFAULT_ITERATIONS_PER_CONFIG)
 
     # Using no PtG
@@ -200,7 +201,35 @@ def main():
                   enableCmf=False,
                   enableOsf=False)
 
-    # Performing our best pipeline on top of clang Oz
+    #### Performing selected pipelines on top of clang Oz ####
+    # Using no PtG
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="noPtG",
+                  enableRcaf=False,
+                  enableOmegaFolding=False,
+                  enableCmf=False,
+                  enableOsf=False)
+
+    # Using PtG only as AA in SVF
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="PtGAA",
+                  enableRcaf=False,
+                  enableOmegaFolding=False,
+                  enableCmf=False,
+                  enableOsf=False)
+
+    # Using region agnostic with everything enabled
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="rag",
+                  enableRcaf=False,
+                  enableOmegaFolding=True,
+                  enableCmf=True,
+                  enableOsf=True)
+
+    # Using our best pipeline
     createScripts(iterations=1,
                   optPipeline="Oz",
                   modRefType="raw-ip",
@@ -209,6 +238,38 @@ def main():
                   enableCmf=True,
                   enableOsf=True)
 
+    # "Ablation study" of raw-ip on top of clang Oz
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="raw-ip",
+                  enableRcaf=False,
+                  enableOmegaFolding=True,
+                  enableCmf=True,
+                  enableOsf=True)
+
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="raw-ip",
+                  enableRcaf=True,
+                  enableOmegaFolding=False,
+                  enableCmf=True,
+                  enableOsf=True)
+
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="raw-ip",
+                  enableRcaf=True,
+                  enableOmegaFolding=True,
+                  enableCmf=False,
+                  enableOsf=True)
+
+    createScripts(iterations=1,
+                  optPipeline="Oz",
+                  modRefType="raw-ip",
+                  enableRcaf=True,
+                  enableOmegaFolding=True,
+                  enableCmf=True,
+                  enableOsf=False)
 
 if __name__ == "__main__":
     main()
