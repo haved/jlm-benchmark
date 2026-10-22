@@ -21,6 +21,8 @@ fi
 export JLM_PATH
 # On SLURM, place individual statistics files in the tmpfs, only keep aggregated
 export TMP_STATS_DIR="/tmp/jlm-statistics"
+# Make the slurm task delete its statistics folder afterwards
+export CLEAN_TMP_STATS_DIR=1
 # Avoid doing anything in parallel on SLURM
 export PARALLEL_TASKS=1
 

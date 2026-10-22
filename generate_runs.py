@@ -89,6 +89,10 @@ def createScript(name, flags, env, number):
         fd.write("\n")
         fd.write(f'echo "Aggregating statistics into single csv" >> "{echo_file}"\n')
         fd.write(f'python3 analysis/aggregate-memstates.py --stats-in="${{TMP_STATS_DIR}}/{name_and_number}" --stats-out="{statistics_out_file}"\n')
+        fd.write("\n")
+        fd.write('if [ ! -z "${CLEAN_TMP_STATS_DIR+x}" ]; then\n')
+        fd.write(f'rm -rf "${{TMP_STATS_DIR}}/{name_and_number}"\n')
+        fd.write("fi\n")
 
 
 def createScripts(iterations, optPipeline, modRefType, enableRcaf, enableOmegaFolding, enableCmf, enableOsf):

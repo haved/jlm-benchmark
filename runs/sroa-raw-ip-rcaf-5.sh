@@ -31,3 +31,7 @@ echo "Done with status code $? at $(date)" >> "statistics-out/sroa-raw-ip-rcaf-5
 
 echo "Aggregating statistics into single csv" >> "statistics-out/sroa-raw-ip-rcaf-5.echo"
 python3 analysis/aggregate-memstates.py --stats-in="${TMP_STATS_DIR}/sroa-raw-ip-rcaf-5" --stats-out="statistics-out/sroa-raw-ip-rcaf-5.csv"
+
+if [ ! -z "${CLEAN_TMP_STATS_DIR+x}" ]; then
+rm -rf "${TMP_STATS_DIR}/sroa-raw-ip-rcaf-5"
+fi

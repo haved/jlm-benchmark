@@ -132,5 +132,5 @@ Then run every configuration and iteration using
 # To get the clang -> llvm tasks finished without races
 APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1,200 slurm-execute-runs.sh
 # Later, to run all the jlm-opt tasks in all configurations
-sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1-410 slurm-execute-runs.sh
+sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=2-199,201-410 slurm-execute-runs.sh
 ```
