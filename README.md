@@ -125,6 +125,7 @@ apptainer exec jlm-benchmark.sif ./run.sh purge
 Then make sure sources are extracted and `jlm-opt` is built using:
 ``` sh
 apptainer exec jlm-benchmark.sif ./run.sh --build-jlm --full-spec --dry-run
+mkdir -p statistics-out
 ```
 
 Then run every configuration and iteration using

@@ -197,13 +197,19 @@ def extract_file_data(folder):
     return pd.DataFrame(file_datas)
 
 def calculate_total_ramrs_time(file_data):
-    file_data["RegionAwareModRefSummarizerTime[ns]"] = (
-        file_data["SimpleAllocasSetTimer[ns]"] +
-        file_data["AnnotationTimer[ns]"] +
-        file_data["SolvingTimer[ns]"] +
-        file_data["ReadOnlyDetectionTimer[ns]"] +
-        file_data["ModRefSetMaterializationTimer[ns]"]
-    )
+    columns = ["SimpleAllocasSetTimer[ns]",
+               "AnnotationTimer[ns]",
+               "SolvingTimer[ns]",
+               "ReadOnlyDetectionTimer[ns]",
+               "ModRefSetMaterializationTimer[ns]"]
+
+    added_up = 0
+    for column in columns:
+        if column in file_data.columns:
+            added_up += file_data[column].fillna(0.0)
+
+    if isinstance(added_up, pd.Series):
+        file_data["RegionAwareModRefSummarizerTime[ns]"] = added_up
 
 def make_file_data(folder, configuration):
     file_data = extract_file_data(folder)
@@ -215,7 +221,7 @@ def main():
     parser = argparse.ArgumentParser(description='Process raw statistics from the given folder.')
     parser.add_argument('--stats-in', dest='stats_in', action='store', default="statistics",
                         help='The folder where statistics files (*.log) are located, or subfolders')
-    parser.add_argument('--stats-out', dest='stats_out', action='store', default="statistics-out/data.csv",
+    parser.add_argument('--stats-out', dest='stats_out', action='store', default="statistics-out/file-data.csv",
                         help='File name for the output file. Creates its folder if missing')
     args = parser.parse_args()
 
