@@ -67,16 +67,19 @@ def main():
 
     main_data_df.set_index(["cfile", "Configuration"], inplace=True)
 
+    all_data_grouped = all_data_df.groupby(["cfile", "Configuration"])
+    print(all_data_grouped.count())
+
     added_columns = [main_data_df]
     for column in main_data_df.columns:
         if not column.endswith("[ns]"):
             continue
 
-        all_data_grouped = all_data_df.groupby(["cfile", "Configuration"])[column]
-        added_columns.append(all_data_grouped.mean().rename(column + "-mean"))
-        added_columns.append(all_data_grouped.min().rename(column + "-min"))
-        added_columns.append(all_data_grouped.max().rename(column + "-max"))
-        added_columns.append(all_data_grouped.std().rename(column + "-std"))
+        grouped_column = all_data_grouped[column]
+        added_columns.append(grouped_column.mean().rename(column + "-mean"))
+        added_columns.append(grouped_column.min().rename(column + "-min"))
+        added_columns.append(grouped_column.max().rename(column + "-max"))
+        added_columns.append(grouped_column.std().rename(column + "-std"))
 
     main_data_df = pd.concat(added_columns, axis=1)
 

@@ -50,7 +50,7 @@ aggregate:
 analyze-all:
     [ -d statistics-out ] # This recipe only works if statistics-out exists
     mkdir -p results
-    ./analysis/compare-memstates.py --stats statistics-out --out results
+    ./analysis/compare-memstates.py --stats-file statistics-out/file-data.csv --out results
 
 # Clean statistics-out and plotted results, but not raw statistics
 clean-processed:

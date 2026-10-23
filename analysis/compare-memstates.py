@@ -292,10 +292,15 @@ def print_less_equal_more(name, less, equal, more, sum1, sum2):
     print(f"Difference: {abs(sum2-sum1)}")
     print()
 
+def num_loads(file_data, config, tree_num):
+    colname = "#LoadNodes-Tree"
+    if tree_num > 0:
+        colname = f"{colname}--{tree_num:02d}"
+    return file_data.loc[file_data["Configuration"] == config, colname].sum()
 
 def main():
     parser = argparse.ArgumentParser(description='Create results from from aggregated statistics.')
-    parser.add_argument('--stats', dest='stats', action='store', default="statistics-out",
+    parser.add_argument('--stats-file', dest='stats_file', action='store', default="statistics-out/file-data.csv",
                         help='The folder where aggregated statistics are located')
     parser.add_argument('--out', dest='out', action='store', default="results",
                         help='Folder where result plots and tables should be placed')
@@ -304,7 +309,8 @@ def main():
     args = parser.parse_args()
 
     plotly = args.plotly
-    file_data = pd.read_csv(os.path.join(args.stats, "memstate-file-data.csv"))
+
+    file_data = pd.read_csv(args.stats_file)
 
     def result(filename=""):
         return os.path.join(args.out, filename)
@@ -317,52 +323,93 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
-    print("Removing files where any configuration has no loads in Tree0")
-    remove_cfiles = file_data.loc[file_data["Tree0-NumLoadNodes"]==0, "cfile"].unique()
+    print("Removing files where any configuration has no loads in #LoadNodes-Tree")
+    remove_cfiles = file_data.loc[file_data["#LoadNodes-Tree"]==0, "cfile"].unique()
     print(f"Removing {len(remove_cfiles)} files")
     file_data = file_data.loc[~file_data["cfile"].isin(remove_cfiles)]
-    print(f"cfiles left: {file_data["cfile"].nunique()}")
+    print(f'cfiles left: {file_data["cfile"].nunique()}')
 
-    raware_configurations = file_data["Configuration"].unique()
+    all_configurations = file_data["Configuration"].unique()
 
-    raware_steps = [
-        "SimpleAllocasSetTimer[ns]",
-        "AnnotationTimer[ns]",
-        "SolvingTimer[ns]",
-        "ReadOnlyDetectionTimer[ns]",
-        "ModRefSetMaterializationTimer[ns]",
+    # The order of steps is as follows:
+    # sroa-raw-ip-rcaf-omf-cmf-osf
+
+    ### Statistics on number of loads elided
+    ###
+    num_loads_baseconfig = ("sroa-raw-ip-rcaf-omf-cmf-osf", 0)
+    num_loads_configs = [
+        ("sroa-noPtG", 4),
+        ("sroa-PtGAA", 4),
+
+        ("sroa-rag", 4),
+        ("sroa-rag-cmf-osf", 4),
+        ("sroa-rag-omf-cmf-osf", 4),
+
+        ("sroa-raw-ip", 4),
+        ("sroa-raw-ip-cmf-osf", 4),
+        ("sroa-raw-ip-omf-cmf-osf", 4),
+        ("sroa-raw-ip-rcaf-omf-cmf-osf", 4),
+
+        ("Oz-raw-ip-rcaf-omf-cmf-osf", 0), # Oz baseline
+        ("Oz-noPtG", 4),
+        ("Oz-PtGAA", 4),
+        ("Oz-rag-omf-cmf-osf", 4),
+        ("Oz-raw-ip-rcaf-omf-cmf-osf", 4),
+
+        # Ablation
+        ("Oz-raw-ip-omf-cmf-osf", 4), # Without RCAF
+        ("Oz-raw-ip-rcaf-omf-osf", 4), # Without CMF
+        ("Oz-raw-ip-rcaf-omf-cmf", 4), # Without OSF
     ]
-    table_quartiles_per_column(file_data, "sroa-raware", raware_steps)
 
-    #andersen_steps = ["AndersenSetBuildingTimer[ns]", "AndersenOVSTimer[ns]", "AndersenWorklistTimer[ns]", "PointsToGraphConstructionTimer[ns]", "AndersenAnalysisTimer[ns]"]
-    #table_quartiles_per_column(file_data, "raware", andersen_steps)
+    baseline_loads = num_loads(file_data, *num_loads_baseconfig)
+    print("Num loads in base config: ", *num_loads_baseconfig, ": ", baseline_loads)
+    for config, tree_num in num_loads_configs:
+        loads = num_loads(file_data, config, tree_num)
+        print(f"{config} (Tree{tree_num}): {loads} (-{(1-loads/baseline_loads)*100}%)")
 
-    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="RegionAwareModRefSummarizerTime[us]", savefig=result("rawmr-time-vs-size.pdf"), plotly=plotly)
-    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodes", y_axis="MemoryStateEncodingTime[us]", savefig=result("mse-time-vs-size.pdf"), plotly=plotly)
+    modref_size_configurations = [
+        "sroa-rag",
+        "sroa-rag-cmf",
+        "sroa-rag-omf",
+        "sroa-rag-omf-cmf-osf",
 
-    #plot_scatter(file_data, "RegionAwareModRef", x_axis="#RvsdgNodesBeforeSequence", y_axis="#RvsdgNodesAfterSequence", savefig=result("size-before-vs-after.pdf"), plotly=plotly)
+        "sora-raw-ip",
+        "sora-raw-ip-cmf",
+        "sora-raw-ip-rcaf-cmf-osf",
+        "sora-raw-ip-omf",
+        "sora-raw-ip-omf-cmf-osf",
+        "sora-raw-ip-rcaf-omf-cmf-osf",
+    ]
 
-    # Time it takes to make Non reentrant alloca sets, against size of PtG
-    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#PointsToGraphEdges", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
-    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#PointsToGraphAllocaNodes", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
-    # plot_scatter(file_data, "RegionAwareModRef", x_axis="#NonReentrantAllocas", y_axis="NonReentrantAllocaSetsTimer[ns]", plotly=True)
+    # TODO: quartiles within all mod/ref sets in each configuration
+    # table_quartiles_per_configuration(file_data, raware_configurations, "TotalModRefSetSize")
 
-    #file_data["#RelevantOperations"] = file_data["#IntraProceduralRegions"] + file_data["#LoadOperations"] + file_data["#StoreOperations"] + file_data["#CallEntryMergeOperations"]
-    #for step in ramrs_steps:
-    #    plot_scatter(file_data, "RegionAwareModRef", x_axis="#RelevantOperations", y_axis=step, plotly=True)
+    rag_modref_summarizer_time_configs = [
+        "sroa-rag",
+        "sroa-rag-cmf-osf",
+        "sroa-rag-omf-cmf-osf"
+    ]
+    table_quartiles_per_configuration(file_data, rag_modref_summarizer_time_configs, "AgnosticModRefSummarizerTime[ns]-mean")
+    raw_modref_summarizer_time_configs = [
+        "sroa-raw",
+        "sroa-raw-rcaf-omf-cmf-osf",
+        "sroa-raw-ip-rcaf-omf-cmf-osf"
+    ]
+    table_quartiles_per_configuration(file_data, raw_modref_summarizer_time_configs, "RegionAwareModRefSummarizerTime[ns]-mean")
 
-    table_quartiles_per_configuration(file_data, raware_configurations, "MemoryStateEncodingTime[ns]")
-    table_quartiles_per_configuration(file_data, raware_configurations, "RegionAwareModRefSummarizerTime[ns]")
-    table_quartiles_per_configuration(file_data, raware_configurations, "StoreValueForwardingTime[ns]")
-    table_quartiles_per_configuration(file_data, raware_configurations, "TotalTime[ns]")
+    table_quartiles_per_configuration(file_data, rag_modref_summarizer_time_configs, "MemoryStateEncodingTime[ns]-mean")
+    table_quartiles_per_configuration(file_data, raw_modref_summarizer_time_configs, "MemoryStateEncodingTime[ns]-mean")
+
+    table_quartiles_per_configuration(file_data, ["sroa-raw-ip-rcaf-omf-cmf-osf"], "StoreValueForwardingTime[ns]-mean")
+
+
 
     #plot_scatter_between_configs(file_data, "StoreValueForwardingTime[ns]", x_axis="RegionAwareModRef", y_axis="RegionAwareModRef-NoCompression", plotly=True, line=True)
     #plot_scatter_between_configs(file_data, "StoreValueForwardingTime[ns]", x_axis="Mem2Reg", y_axis="RegionAwareModRef-NoCompression", plotly=True, line=True)
 
-    print()
-
-    table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
-    table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
     #table_quartiles_per_configuration(file_data, raware_configurations, "#LoadsForwarded")
 
     #file_data["#AAQueriesStore"] = file_data["#NoAliasStore"] + file_data["#MayAliasStore"] + file_data["#MustAliasStore"]
@@ -388,13 +435,13 @@ def main():
 
     print()
 
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumLoadNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree3-NumLoadNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumLoadNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumStoreNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumStoreNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumAllocaNodes")
-    table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumAllocaNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumLoadNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree3-NumLoadNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumLoadNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumStoreNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumStoreNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree0-NumAllocaNodes")
+    #table_quartiles_per_configuration(file_data, raware_configurations, "Tree4-NumAllocaNodes")
     #table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes", "Tree4-NumAllocaNodes"])
     #table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
     #table_quartiles_per_column(file_data, "RegionAwareModRef", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
@@ -402,6 +449,8 @@ def main():
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumAllocaNodes", "Tree1-NumAllocaNodes", "Tree2-NumAllocaNodes", "Tree3-NumAllocaNodes", "Tree4-NumAllocaNodes"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumStoreNodes", "Tree1-NumStoreNodes", "Tree2-NumStoreNodes", "Tree3-NumStoreNodes", "Tree4-NumStoreNodes"])
     #table_quartiles_per_column(file_data, "Mem2Reg", ["Tree0-NumLoadNodes", "Tree1-NumLoadNodes", "Tree2-NumLoadNodes", "Tree3-NumLoadNodes", "Tree4-NumLoadNodes"])
+
+    sys.exit(0)
 
     def study_differences(config_name, tree_name, baseline_config_name, baseline_tree_name, save_csv=None):
         config_data = file_data[file_data["Configuration"] == config_name].set_index("cfile")
@@ -450,9 +499,8 @@ def main():
         print_less_equal_more("Stores", *stores)
         print_less_equal_more("Allocas", *allocas)
 
-
     compare("sroa-raware-explicitmodref", "Tree4", "sroa-raware", "Tree4")
-    sys.exit(0)
+
 
     # Vs using only LocalAA
     compare("sroa-raware", "Tree4", "sroa", "Tree4")

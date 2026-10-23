@@ -205,75 +205,76 @@ def main():
                   enableCmf=False,
                   enableOsf=False)
 
-    #### Performing selected pipelines on top of clang Oz ####
-    # Using no PtG
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="noPtG",
-                  enableRcaf=False,
-                  enableOmegaFolding=False,
-                  enableCmf=False,
-                  enableOsf=False)
+    #### Performing selected pipelines on top of clang O0 and Oz ####
+    for clang in ["O0", "Oz"]:
+        # Using no PtG
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="noPtG",
+                      enableRcaf=False,
+                      enableOmegaFolding=False,
+                      enableCmf=False,
+                      enableOsf=False)
 
-    # Using PtG only as AA in SVF
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="PtGAA",
-                  enableRcaf=False,
-                  enableOmegaFolding=False,
-                  enableCmf=False,
-                  enableOsf=False)
+        # Using PtG only as AA in SVF
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="PtGAA",
+                      enableRcaf=False,
+                      enableOmegaFolding=False,
+                      enableCmf=False,
+                      enableOsf=False)
 
-    # Using region agnostic with everything enabled
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="rag",
-                  enableRcaf=False,
-                  enableOmegaFolding=True,
-                  enableCmf=True,
-                  enableOsf=True)
+        # Using region agnostic with everything enabled
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="rag",
+                      enableRcaf=False,
+                      enableOmegaFolding=True,
+                      enableCmf=True,
+                      enableOsf=True)
 
-    # Using our best pipeline
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="raw-ip",
-                  enableRcaf=True,
-                  enableOmegaFolding=True,
-                  enableCmf=True,
-                  enableOsf=True)
+        # Using our best pipeline
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=True,
+                      enableOmegaFolding=True,
+                      enableCmf=True,
+                      enableOsf=True)
 
-    # "Ablation study" of raw-ip on top of clang Oz
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="raw-ip",
-                  enableRcaf=False,
-                  enableOmegaFolding=True,
-                  enableCmf=True,
-                  enableOsf=True)
+        # "Ablation study" of raw-ip on top of clang Oz
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=False,
+                      enableOmegaFolding=True,
+                      enableCmf=True,
+                      enableOsf=True)
 
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="raw-ip",
-                  enableRcaf=True,
-                  enableOmegaFolding=False,
-                  enableCmf=True,
-                  enableOsf=True)
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=True,
+                      enableOmegaFolding=False,
+                      enableCmf=True,
+                      enableOsf=True)
 
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="raw-ip",
-                  enableRcaf=True,
-                  enableOmegaFolding=True,
-                  enableCmf=False,
-                  enableOsf=True)
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=True,
+                      enableOmegaFolding=True,
+                      enableCmf=False,
+                      enableOsf=True)
 
-    createScripts(iterations=1,
-                  optPipeline="Oz",
-                  modRefType="raw-ip",
-                  enableRcaf=True,
-                  enableOmegaFolding=True,
-                  enableCmf=True,
-                  enableOsf=False)
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=True,
+                      enableOmegaFolding=True,
+                      enableCmf=True,
+                      enableOsf=False)
 
 if __name__ == "__main__":
     main()
