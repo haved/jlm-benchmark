@@ -131,7 +131,7 @@ mkdir -p statistics-out
 Then run every configuration and iteration using
 ```sh
 # To get the clang -> llvm tasks finished without races
-APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1,200 slurm-execute-runs.sh
+APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1,9,17 slurm-execute-runs.sh
 # Later, to run all the jlm-opt tasks in all configurations
-sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=2-199,201-410 slurm-execute-runs.sh
+sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=2-8,10-16,18-418 slurm-execute-runs.sh
 ```

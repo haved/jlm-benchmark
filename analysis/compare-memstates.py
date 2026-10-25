@@ -323,6 +323,7 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
+    # TODO: Only remove completely empty files
     print("Removing files where any configuration has no loads in #LoadNodes-Tree")
     remove_cfiles = file_data.loc[file_data["#LoadNodes-Tree"]==0, "cfile"].unique()
     print(f"Removing {len(remove_cfiles)} files")
@@ -335,10 +336,15 @@ def main():
     # sroa-raw-ip-rcaf-omf-cmf-osf
 
     ### Statistics on number of loads elided
-    ###
-    num_loads_baseconfig = ("sroa-raw-ip-rcaf-omf-cmf-osf", 0)
+    num_loads_baseconfig = ("sroa-noPtG", 4)
     num_loads_configs = [
-        ("sroa-noPtG", 4),
+        ("O0-noPtG", 0),
+        ("O0-noPtG", 4),
+        ("O0-PtGAA", 4),
+        ("O0-rag-omf-cmf-osf", 4),
+        ("O0-raw-ip-rcaf-omf-cmf-osf", 4),
+
+        ("sroa-noPtG", 0),
         ("sroa-PtGAA", 4),
 
         ("sroa-rag", 4),
@@ -362,11 +368,17 @@ def main():
         ("Oz-raw-ip-rcaf-omf-cmf", 4), # Without OSF
     ]
 
+    alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
+    file_data["TotalAliasQueries"] = file_data.loc[:, alias_columns].sum(axis=1)
+    num_alias_queries = lambda config: file_data.loc[file_data["Configuration"] == config, "TotalAliasQueries"].sum()
+
     baseline_loads = num_loads(file_data, *num_loads_baseconfig)
-    print("Num loads in base config: ", *num_loads_baseconfig, ": ", baseline_loads)
+    baseline_alias_queries = num_alias_queries(num_loads_baseconfig[0])
+    print("Num loads in base config: ", *num_loads_baseconfig, f": {baseline_loads} (alias queries: {baseline_alias_queries})")
     for config, tree_num in num_loads_configs:
         loads = num_loads(file_data, config, tree_num)
-        print(f"{config} (Tree{tree_num}): {loads} (-{(1-loads/baseline_loads)*100}%)")
+        alias_queries = num_alias_queries(config)
+        print(f"{config} (Tree{tree_num}): {loads} (-{(1-loads/baseline_loads)*100}%)  (alias queries: {alias_queries} ({alias_queries/baseline_alias_queries*100}%))")
 
     modref_size_configurations = [
         "sroa-rag",
