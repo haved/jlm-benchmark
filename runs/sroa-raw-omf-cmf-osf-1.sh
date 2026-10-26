@@ -5,7 +5,7 @@ set -euo pipefail
 JLM_PATH="${JLM_PATH:-jlm}"
 PARALLEL_TASKS="${PARALLEL_TASKS:-1}"
 TMP_STATS_DIR="${TMP_STATS_DIR:-statistics}"
-echo "Run started at $(date)" | tee -a "statistics-out/sroa-raw-omf-cmf-osf-1.echo"
+echo "Run started at $(date) in SLURM job $SLURM_JOB_ID, array task $SLURM_ARRAY_TASK_ID" | tee -a "statistics-out/sroa-raw-omf-cmf-osf-1.echo"
 echo "Benchmark checkout:" | tee -a "statistics-out/sroa-raw-omf-cmf-osf-1.echo"
 git rev-parse HEAD | tee -a "statistics-out/sroa-raw-omf-cmf-osf-1.echo"
 git status --porcelain | tee -a "statistics-out/sroa-raw-omf-cmf-osf-1.echo"

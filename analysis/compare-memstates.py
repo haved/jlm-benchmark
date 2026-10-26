@@ -323,9 +323,8 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
-    # TODO: Only remove completely empty files
-    print("Removing files where any configuration has no loads in #LoadNodes-Tree")
-    remove_cfiles = file_data.loc[file_data["#LoadNodes-Tree"]==0, "cfile"].unique()
+    print("Removing files with no functions")
+    remove_cfiles = file_data.loc[file_data["#LambdaNodes-Tree"]==0, "cfile"].unique()
     print(f"Removing {len(remove_cfiles)} files")
     file_data = file_data.loc[~file_data["cfile"].isin(remove_cfiles)]
     print(f'cfiles left: {file_data["cfile"].nunique()}')
@@ -336,7 +335,16 @@ def main():
     # sroa-raw-ip-rcaf-omf-cmf-osf
 
     ### Statistics on number of loads elided
-    num_loads_baseconfig = ("sroa-noPtG", 4)
+    base_config = ("sroa-noPtG", 0)
+    base_improvement = ("sroa-noPtG", 4)
+
+    # Define column and accessor for getting number of alias queries made by (first iteration of) SVF
+    alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
+    file_data["TotalAliasQueries"] = file_data.loc[:, alias_columns].sum(axis=1)
+    num_alias_queries = lambda config: file_data.loc[file_data["Configuration"] == config, "TotalAliasQueries"].sum()
+
+
+
     num_loads_configs = [
         ("O0-noPtG", 0),
         ("O0-noPtG", 4),
@@ -368,10 +376,6 @@ def main():
         ("Oz-raw-ip-rcaf-omf-cmf", 4), # Without OSF
     ]
 
-    alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
-    file_data["TotalAliasQueries"] = file_data.loc[:, alias_columns].sum(axis=1)
-    num_alias_queries = lambda config: file_data.loc[file_data["Configuration"] == config, "TotalAliasQueries"].sum()
-
     baseline_loads = num_loads(file_data, *num_loads_baseconfig)
     baseline_alias_queries = num_alias_queries(num_loads_baseconfig[0])
     print("Num loads in base config: ", *num_loads_baseconfig, f": {baseline_loads} (alias queries: {baseline_alias_queries})")
@@ -380,6 +384,8 @@ def main():
         alias_queries = num_alias_queries(config)
         print(f"{config} (Tree{tree_num}): {loads} (-{(1-loads/baseline_loads)*100}%)  (alias queries: {alias_queries} ({alias_queries/baseline_alias_queries*100}%))")
 
+
+    #### ModRef set size printing ####
     modref_size_configurations = [
         "sroa-rag",
         "sroa-rag-cmf",
@@ -414,11 +420,6 @@ def main():
     table_quartiles_per_configuration(file_data, raw_modref_summarizer_time_configs, "MemoryStateEncodingTime[ns]-mean")
 
     table_quartiles_per_configuration(file_data, ["sroa-raw-ip-rcaf-omf-cmf-osf"], "StoreValueForwardingTime[ns]-mean")
-
-
-
-    #plot_scatter_between_configs(file_data, "StoreValueForwardingTime[ns]", x_axis="RegionAwareModRef", y_axis="RegionAwareModRef-NoCompression", plotly=True, line=True)
-    #plot_scatter_between_configs(file_data, "StoreValueForwardingTime[ns]", x_axis="Mem2Reg", y_axis="RegionAwareModRef-NoCompression", plotly=True, line=True)
 
     #table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
     #table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
@@ -558,23 +559,8 @@ def main():
     print("SROA+Raware vs clang SROA+GVN")
     compare("sroa-raware", "Tree4", "gvn-raware", "Tree0")
 
-    print("SROA+Raware with aggressive LocalAA vs clang SROA+GVN")
-    compare("sroa-raware-aggressive-localaa", "Tree4", "gvn-raware", "Tree0")
-
-    print("SROA+Raware with aggressive LocalAA and NodePushOut vs without NodePushOut")
-    compare("sroa-raware-aggressive-localaa-node-push-out", "Tree4", "sroa-raware-aggressive-localaa", "Tree4")
-
-    print("SROA+Raware with aggressive LocalAA and NodePushOut vs clang SROA+GVN")
-    compare("sroa-raware-aggressive-localaa-node-push-out", "Tree4", "gvn-raware", "Tree0")
-
     print("SROA+GVN+Raware+SVF vs clang SROA+GVN")
     compare("gvn-raware", "Tree4", "gvn-raware", "Tree0")
-
-    print("Improvement from making LocalAA aggressive")
-    compare("raware-aggressive-localaa", "Tree4", "raware", "Tree4")
-
-    print("Improvement from making LocalAA aggressive (on top of SROA)")
-    compare("sroa-raware-aggressive-localaa", "Tree4", "sroa-raware", "Tree4")
 
     print("clangOs+Raware+SVF vs clangOs")
     compare("clang-Os-raware", "Tree4", "clang-Os-raware", "Tree0")

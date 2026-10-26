@@ -404,10 +404,23 @@ fi
 
 # The benchmarking invocations below change frequently
 
-./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" \
-    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-    --noStrictAliasing --optSroa --pre-jlm-name sroa \
-    --regionAwareModRef --jlm-name sroa-raware
+# Give environment variables to the sub scripts
+export JLM_PATH
+export PARALLEL_TASKS="${PARALLEL_INVOCATIONS}"
+mkdir -p statistics-out
+
+bash ./runs/sroa-noPtG-0.sh
+
+bash ./runs/sroa-PtGAA-0.sh
+
+export PARALLEL_TASKS=1
+bash ./runs/sroa-rag-cmf-osf-0.sh
+
+bash ./runs/sroa-rag-omf-cmf-osf-0.sh
+export PARALLEL_TASKS="${PARALLEL_INVOCATIONS}"
+
+# This is the "everything enabled" pipeline
+bash ./runs/sroa-raw-ip-rcaf-omf-cmf-osf-0.sh
 
 exit 0
 
@@ -445,8 +458,6 @@ exit 0
 #    --sources="${SOURCES_JSON}" -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
 #    --noStrictAliasing --clangOz --pre-jlm-name clang-Oz \
 #    --regionAwareModRef --jlm-name clang-Oz-raware
-
-exit 0
 
 # For testing with asserts (slow)
 #./benchmark.py --jlm-opt="../jlm/build-debug/jlm-opt" --llvmbin="${LLVM_BIN}" \

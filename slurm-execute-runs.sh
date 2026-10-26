@@ -10,7 +10,7 @@
 #SBATCH --mem=64G
 #SBATCH --time=48:00:00
 #SBATCH --array=1-400
-#SBATCH -o slurm-log/output.%a.out # STDOUT
+#SBATCH -o slurm-log/output-%A_%a.out # STDOUT
 set -euo pipefail
 
 # Set a default JLM_PATH, but let the .env file override it
