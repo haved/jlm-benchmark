@@ -234,6 +234,15 @@ def main():
                       enableCmf=True,
                       enableOsf=True)
 
+        # Using raw with only omega folding
+        createScripts(iterations=1,
+                      optPipeline=clang,
+                      modRefType="raw-ip",
+                      enableRcaf=False,
+                      enableOmegaFolding=True,
+                      enableCmf=False,
+                      enableOsf=False)
+
         # Using our best pipeline
         createScripts(iterations=1,
                       optPipeline=clang,

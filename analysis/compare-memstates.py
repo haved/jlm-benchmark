@@ -298,6 +298,31 @@ def num_loads(file_data, config, tree_num):
         colname = f"{colname}--{tree_num:02d}"
     return file_data.loc[file_data["Configuration"] == config, colname].sum()
 
+def num_alias_queries(file_data, config):
+    return file_data.loc[file_data["Configuration"] == config, "TotalAliasQueries"].sum()
+
+FINAL_TREE = 4
+def print_changes_loads_and_alias_queries(file_data, base_config, load_configs):
+    ### Get number of loads removed in noPtG
+    num_loads_before_jlm_opt = num_loads(file_data, base_config, 0)
+    num_loads_base_config = num_loads(file_data, base_config, FINAL_TREE)
+    num_loads_removed_base = num_loads_before_jlm_opt - num_loads_base_config
+    num_alias_queries_base = num_alias_queries(file_data, base_config)
+
+    print(f"Before jlm-opt, the number of loads is {num_loads_before_jlm_opt}")
+    print(f"Running jlm-opt with the {base_config} pipeline leads to {num_loads_base_config} loads, a reduction of {num_loads_removed_base}")
+    print(f"In this pipeline, a single run of SVF made {num_alias_queries_base} alias queries")
+
+    print("Other configurations:")
+    for config in load_configs:
+        num_loads_config = num_loads(file_data, config, FINAL_TREE)
+        num_alias_queries_config = num_alias_queries(file_data, config)
+
+        num_loads_removed = num_loads_before_jlm_opt - num_loads_config
+        print(f"  {config}: removes {num_loads_removed} loads, ({(num_loads_removed/num_loads_removed_base-1)*100:+}%) ",end="")
+        print(f"using {num_alias_queries_config} alias queries ({(num_alias_queries_config/num_alias_queries_base-1)*100:+}%)")
+        print(f"  {config} alternative: removes {((num_loads_base_config-num_loads_config)/num_loads_base_config)*100}% of loads left after {base_config}")
+
 def main():
     parser = argparse.ArgumentParser(description='Create results from from aggregated statistics.')
     parser.add_argument('--stats-file', dest='stats_file', action='store', default="statistics-out/file-data.csv",
@@ -330,22 +355,58 @@ def main():
     print(f'cfiles left: {file_data["cfile"].nunique()}')
 
     all_configurations = file_data["Configuration"].unique()
+    benchmarks = file_data["cfile"].str.extract(r'^(.*)\+.*')[0].unique()
+    print(f"Benchmarks: {benchmarks}")
+
+    # Define column and accessor for getting number of alias queries made by (first iteration of) SVF
+    alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
+    file_data["TotalAliasQueries"] = file_data.loc[:, alias_columns].sum(axis=1)
 
     # The order of steps is as follows:
     # sroa-raw-ip-rcaf-omf-cmf-osf
 
     ### Statistics on number of loads elided
-    base_config = ("sroa-noPtG", 0)
-    base_improvement = ("sroa-noPtG", 4)
+    base_config = "sroa-noPtG"
+    load_configs = [
+        "sroa-PtGAA",
+        "sroa-rag",
+        "sroa-rag-omf-cmf-osf",
 
-    # Define column and accessor for getting number of alias queries made by (first iteration of) SVF
-    alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
-    file_data["TotalAliasQueries"] = file_data.loc[:, alias_columns].sum(axis=1)
-    num_alias_queries = lambda config: file_data.loc[file_data["Configuration"] == config, "TotalAliasQueries"].sum()
+        "sroa-raw-ip", # Just to confirm against omega folding
+        "sroa-raw-ip-omf",
+        "sroa-raw-ip-cmf-osf", # Just to confirm against omega folding
+        "sroa-raw-ip-omf-cmf-osf",
+        "sroa-raw-ip-rcaf-omf-cmf-osf"
+    ]
+    print_changes_loads_and_alias_queries(file_data, base_config, load_configs)
 
+    base2_config = "Oz-noPtG"
+    load2_configs = [
+        "Oz-PtGAA",
+        "Oz-rag-omf-cmf-osf",
 
+        "Oz-raw-ip-omf",
+        "Oz-raw-ip-omf-cmf-osf",
+        "Oz-raw-ip-rcaf-omf-cmf-osf"
 
-    num_loads_configs = [
+        # Ablation
+        "Oz-raw-ip-omf-cmf-osf", # Without RCAF
+        "Oz-raw-ip-rcaf-omf-osf", # Without CMF
+        "Oz-raw-ip-rcaf-omf-cmf", # Without OSF
+    ]
+    print_changes_loads_and_alias_queries(file_data, base2_config, load2_configs)
+
+    sys.exit(0)
+    for benchmark in benchmarks:
+        print(f"Data for benchmark {benchmark}")
+        file_data_benchmark = file_data[file_data["cfile"].str.startswith(benchmark)]
+        print_changes_loads_and_alias_queries(file_data_benchmark, base_config, load_configs)
+        print()
+        print()
+
+    # Lastly just print out some configurations
+    print("Some other numbers of loads left and number of alias queries")
+    other_num_loads_configs = [
         ("O0-noPtG", 0),
         ("O0-noPtG", 4),
         ("O0-PtGAA", 4),
@@ -375,14 +436,6 @@ def main():
         ("Oz-raw-ip-rcaf-omf-osf", 4), # Without CMF
         ("Oz-raw-ip-rcaf-omf-cmf", 4), # Without OSF
     ]
-
-    baseline_loads = num_loads(file_data, *num_loads_baseconfig)
-    baseline_alias_queries = num_alias_queries(num_loads_baseconfig[0])
-    print("Num loads in base config: ", *num_loads_baseconfig, f": {baseline_loads} (alias queries: {baseline_alias_queries})")
-    for config, tree_num in num_loads_configs:
-        loads = num_loads(file_data, config, tree_num)
-        alias_queries = num_alias_queries(config)
-        print(f"{config} (Tree{tree_num}): {loads} (-{(1-loads/baseline_loads)*100}%)  (alias queries: {alias_queries} ({alias_queries/baseline_alias_queries*100}%))")
 
 
     #### ModRef set size printing ####
