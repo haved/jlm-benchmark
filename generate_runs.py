@@ -47,7 +47,7 @@ def createScript(name, flags, env, number):
         fd.write('JLM_PATH="${JLM_PATH:-jlm}"\n')
         fd.write('PARALLEL_TASKS="${PARALLEL_TASKS:-1}"\n')
         fd.write('TMP_STATS_DIR="${TMP_STATS_DIR:-statistics}"\n')
-        fd.write(f'echo "Run started at $(date) in SLURM job $SLURM_JOB_ID, array task $SLURM_ARRAY_TASK_ID" | tee -a "{echo_file}"\n')
+        fd.write(f'echo "Run started at $(date) in SLURM job ${{SLURM_JOB_ID:-none}}, array task ${{SLURM_ARRAY_TASK_ID:-none}}" | tee -a "{echo_file}"\n')
         fd.write(f'echo "Benchmark checkout:" | tee -a "{echo_file}"\n')
         fd.write(f'git rev-parse HEAD | tee -a "{echo_file}"\n')
         fd.write(f'git status --porcelain | tee -a "{echo_file}"\n')
@@ -77,7 +77,8 @@ def createScript(name, flags, env, number):
         fd.write('"--jlm-opt=${JLM_PATH}/build-release/jlm-opt" ')
         fd.write('--llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j="${PARALLEL_TASKS}" --statsdir="${TMP_STATS_DIR}" ')
         fd.write("--full-spec '--filter=5\\d\\d\\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail ")
-        fd.write("--noStrictAliasing ")
+        # Try without noStrictAliasing
+        #fd.write("--noStrictAliasing ")
         fd.write(" ".join(flags) + " ")
         fd.write(f"--jlm-name {name_and_number} ")
         # Avoid outputting files, to save disk (~600MB per run)

@@ -135,3 +135,8 @@ APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=1,10,19 slurm-execute-runs.
 # Later, to run all the jlm-opt tasks in all configurations
 sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=2-9,11-18,20-420 slurm-execute-runs.sh
 ```
+
+Results can be combined into a single file using
+``` sh
+apptainer exec jlm-benchmark.sif ./analysis/combine-statistics.py
+```

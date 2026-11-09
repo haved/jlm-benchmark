@@ -321,7 +321,7 @@ def print_changes_loads_and_alias_queries(file_data, base_config, load_configs):
         num_loads_removed = num_loads_before_jlm_opt - num_loads_config
         print(f"  {config}: removes {num_loads_removed} loads, ({(num_loads_removed/num_loads_removed_base-1)*100:+}%) ",end="")
         print(f"using {num_alias_queries_config} alias queries ({(num_alias_queries_config/num_alias_queries_base-1)*100:+}%)")
-        print(f"  {config} alternative: removes {((num_loads_base_config-num_loads_config)/num_loads_base_config)*100}% of loads left after {base_config}")
+        print(f"             alternative: removes {((num_loads_base_config-num_loads_config)/num_loads_base_config)*100}% of loads left after {base_config}")
 
 def main():
     parser = argparse.ArgumentParser(description='Create results from from aggregated statistics.')
@@ -348,15 +348,29 @@ def main():
         print("Ingoring cfiles due to missing some configurations:", delete_cfiles)
         file_data = file_data[file_data["cfile"].map(keep_cfiles)]
 
-    print("Removing files with no functions")
-    remove_cfiles = file_data.loc[file_data["#LambdaNodes-Tree"]==0, "cfile"].unique()
+    print("Removing files with no structural nodes")
+    remove_cfiles = file_data.loc[(file_data["#Regions-Tree"]<=1) & (file_data["Configuration"]=="sroa-noPtG"), "cfile"].unique()
     print(f"Removing {len(remove_cfiles)} files")
     file_data = file_data.loc[~file_data["cfile"].isin(remove_cfiles)]
     print(f'cfiles left: {file_data["cfile"].nunique()}')
 
     all_configurations = file_data["Configuration"].unique()
-    benchmarks = file_data["cfile"].str.extract(r'^(.*)\+.*')[0].unique()
-    print(f"Benchmarks: {benchmarks}")
+    file_data["benchmark"] = file_data["cfile"].str.extract(r'^(.*)\+.*')[0]
+    benchmarks = file_data["benchmark"].unique()
+
+    # Print info about each benchmark
+    print(r"\begin{tabular}{l@{}r@{}r@{}r}")
+    print(r"\toprule")
+    print("Benchmark & KLOC & \\#Files & Loads\\\\")
+    print(r"\midrule")
+    for benchmark in sorted(list(benchmarks)):
+        benchmark_name = benchmark.replace("cpu2017-", "")
+        num_cfiles = file_data.loc[file_data['benchmark'] == benchmark, 'cfile'].nunique()
+        total_loads = file_data.loc[(file_data['benchmark'] == benchmark) & (file_data['Configuration']=="sroa-noPtG"), '#LoadNodes-Tree'].sum()
+        print(f"{benchmark_name} &  & {num_cfiles:_} & {total_loads:_}\\\\".replace("_", r"\,"))
+    print(r"\bottomrule")
+    print(r"\end{tabular}")
+
 
     # Define column and accessor for getting number of alias queries made by (first iteration of) SVF
     alias_columns = ["#NoAliasStore", "#MayAliasStore", "#MustAliasStore", "#NoAliasLoad", "#MayAliasLoad", "#MustAliasLoad"]
@@ -364,6 +378,11 @@ def main():
 
     # The order of steps is as follows:
     # sroa-raw-ip-rcaf-omf-cmf-osf
+
+    # Get the number of loads before and after opt --passes=sroa
+    loads_before_sroa = num_loads(file_data, "O0-noPtG", 0)
+    loads_after_sroa = num_loads(file_data, "sroa-noPtG", 0)
+    print(f"Loads before sroa: {loads_before_sroa}  loads after sroa: {loads_after_sroa}  reduction: {(1-loads_after_sroa/loads_before_sroa)*100}%")
 
     ### Statistics on number of loads elided
     base_config = "sroa-noPtG"
@@ -387,7 +406,7 @@ def main():
 
         "Oz-raw-ip-omf",
         "Oz-raw-ip-omf-cmf-osf",
-        "Oz-raw-ip-rcaf-omf-cmf-osf"
+        "Oz-raw-ip-rcaf-omf-cmf-osf",
 
         # Ablation
         "Oz-raw-ip-omf-cmf-osf", # Without RCAF
@@ -396,13 +415,27 @@ def main():
     ]
     print_changes_loads_and_alias_queries(file_data, base2_config, load2_configs)
 
+    base2_config = "O0-noPtG"
+    load2_configs = [
+        "O0-PtGAA",
+        "O0-rag-omf-cmf-osf",
+
+        "O0-raw-ip-omf",
+        "O0-raw-ip-omf-cmf-osf",
+        "O0-raw-ip-rcaf-omf-cmf-osf",
+
+        # Ablation
+        "O0-raw-ip-omf-cmf-osf", # Without RCAF
+        "O0-raw-ip-rcaf-omf-osf", # Without CMF
+        "O0-raw-ip-rcaf-omf-cmf", # Without OSF
+    ]
+    print_changes_loads_and_alias_queries(file_data, base2_config, load2_configs)
+
+    table_quartiles_per_configuration(file_data, ["sroa-noPtG", "sroa-PtGAA", "sroa-raw-ip-rcaf-omf-cmf-osf"], "SvfTracingTime[ns]")
+    table_quartiles_per_configuration(file_data, ["sroa-noPtG", "sroa-PtGAA", "sroa-raw-ip-rcaf-omf-cmf-osf"], "SvfForwardingTime[ns]")
+
     sys.exit(0)
-    for benchmark in benchmarks:
-        print(f"Data for benchmark {benchmark}")
-        file_data_benchmark = file_data[file_data["cfile"].str.startswith(benchmark)]
-        print_changes_loads_and_alias_queries(file_data_benchmark, base_config, load_configs)
-        print()
-        print()
+
 
     # Lastly just print out some configurations
     print("Some other numbers of loads left and number of alias queries")
@@ -474,8 +507,7 @@ def main():
 
     table_quartiles_per_configuration(file_data, ["sroa-raw-ip-rcaf-omf-cmf-osf"], "StoreValueForwardingTime[ns]-mean")
 
-    #table_quartiles_per_configuration(file_data, raware_configurations, "SvfTracingTime[ns]")
-    #table_quartiles_per_configuration(file_data, raware_configurations, "SvfForwardingTime[ns]")
+
     #table_quartiles_per_configuration(file_data, raware_configurations, "#LoadsForwarded")
 
     #file_data["#AAQueriesStore"] = file_data["#NoAliasStore"] + file_data["#MayAliasStore"] + file_data["#MustAliasStore"]

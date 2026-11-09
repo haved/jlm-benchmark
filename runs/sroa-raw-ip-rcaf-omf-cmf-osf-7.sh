@@ -5,7 +5,7 @@ set -euo pipefail
 JLM_PATH="${JLM_PATH:-jlm}"
 PARALLEL_TASKS="${PARALLEL_TASKS:-1}"
 TMP_STATS_DIR="${TMP_STATS_DIR:-statistics}"
-echo "Run started at $(date) in SLURM job $SLURM_JOB_ID, array task $SLURM_ARRAY_TASK_ID" | tee -a "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
+echo "Run started at $(date) in SLURM job ${SLURM_JOB_ID:-none}, array task ${SLURM_ARRAY_TASK_ID:-none}" | tee -a "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
 echo "Benchmark checkout:" | tee -a "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
 git rev-parse HEAD | tee -a "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
 git status --porcelain | tee -a "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
@@ -21,7 +21,7 @@ fi
 
 export JLM_DISABLE_MEMORY_STATE_DISTRIBUTION_STATISTICS=1
 
-./benchmark.py "--jlm-opt=${JLM_PATH}/build-release/jlm-opt" --llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j="${PARALLEL_TASKS}" --statsdir="${TMP_STATS_DIR}" --full-spec '--filter=5\d\d\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail --noStrictAliasing --optSroa --pre-jlm-name sroa --regionAwareModRef --jlm-name sroa-raw-ip-rcaf-omf-cmf-osf-7 --nullOutput
+./benchmark.py "--jlm-opt=${JLM_PATH}/build-release/jlm-opt" --llvmbin=/usr/lib/llvm-18/bin --sources=sources/sources.json -j="${PARALLEL_TASKS}" --statsdir="${TMP_STATS_DIR}" --full-spec '--filter=5\d\d\.' --filter=emacs --filter=gdb --filter=ghostscript --filter=sendmail --optSroa --pre-jlm-name sroa --regionAwareModRef --jlm-name sroa-raw-ip-rcaf-omf-cmf-osf-7 --nullOutput
 
 echo "Done with status code $? at $(date)" >> "statistics-out/sroa-raw-ip-rcaf-omf-cmf-osf-7.echo"
 

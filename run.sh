@@ -398,7 +398,7 @@ set -x
 if [ ${RUNNING_IN_CI} = true ]; then
     ./benchmark.py --jlm-opt="${JLM_OPT}" --llvmbin="${LLVM_BIN}" --sources="${SOURCES_JSON}" \
         -j="${PARALLEL_INVOCATIONS}" ${EXTRA_BENCH_OPTIONS:-} \
-        --regionAwareModRef --jlm-name ci
+        --noStrictAliasing --optSroa --regionAwareModRef --jlm-name ci
     exit $?
 fi
 
@@ -409,18 +409,32 @@ export JLM_PATH
 export PARALLEL_TASKS="${PARALLEL_INVOCATIONS}"
 mkdir -p statistics-out
 
-bash ./runs/sroa-noPtG-0.sh
+bash runs/sroa-noPtG-0.sh
+bash runs/sroa-PtGAA-0.sh
+bash runs/sroa-rag-omf-cmf-osf-0.sh
+bash runs/sroa-raw-ip-omf-0.sh
+bash runs/sroa-raw-ip-omf-cmf-osf-0.sh
+bash runs/sroa-raw-ip-rcaf-omf-cmf-osf-0.sh
 
-bash ./runs/sroa-PtGAA-0.sh
+bash runs/Oz-noPtG-0.sh
+bash runs/Oz-PtGAA-0.sh
+bash runs/Oz-rag-omf-cmf-osf-0.sh
+bash runs/Oz-raw-ip-omf-0.sh
+bash runs/Oz-raw-ip-omf-cmf-osf-0.sh
+bash runs/Oz-raw-ip-rcaf-omf-cmf-osf-0.sh
+
+#bash ./runs/sroa-noPtG-0.sh
+
+#bash ./runs/sroa-PtGAA-0.sh
 
 export PARALLEL_TASKS=1
-bash ./runs/sroa-rag-cmf-osf-0.sh
+#bash ./runs/sroa-rag-cmf-osf-0.sh
 
-bash ./runs/sroa-rag-omf-cmf-osf-0.sh
+#bash ./runs/sroa-rag-omf-cmf-osf-0.sh
 export PARALLEL_TASKS="${PARALLEL_INVOCATIONS}"
 
 # This is the "everything enabled" pipeline
-bash ./runs/sroa-raw-ip-rcaf-omf-cmf-osf-0.sh
+#bash ./runs/sroa-raw-ip-rcaf-omf-cmf-osf-0.sh
 
 exit 0
 
