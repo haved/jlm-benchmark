@@ -139,4 +139,11 @@ sleep 3000 && APPTAINER_CONTAINER=jlm-benchmark.sif sbatch --array=2-9,11-18,20-
 Results can be combined into a single file using
 ``` sh
 apptainer exec jlm-benchmark.sif ./analysis/combine-statistics.py
+
+# Package up all individual statistics-out files
+DATE=nov10th
+tar --exclude=statistics-out/file-data.csv --exclude='*.echo' -czf archives/statistics-out-${DATE}.tar.gz statistics-out/
+
+# Package up the file-data output file
+tar czf archives/file-data-${DATE}.tar.gz statistics-out/file-data.csv
 ```

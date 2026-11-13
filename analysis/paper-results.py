@@ -108,7 +108,7 @@ def print_mod_ref_set_table(file_data, fd):
     configurations = [
         ("sroa-rag", r"\Rag"),
         ("sroa-rag-cmf-osf", r"\RagCmfOsf"),
-        ("sora-rag-omf", r"\RagOf"),
+        ("sroa-rag-omf", r"\RagOf"),
         ("sroa-rag-omf-cmf-osf", r"\RagOfCmfOsf"),
 
         ("midrule", ""),
@@ -123,8 +123,8 @@ def print_mod_ref_set_table(file_data, fd):
 
     print(r"\begin{tabular}{lrrrrrrrrr}", file=fd)
     print(r"\toprule", file=fd)
-    print("Configuration & $p_{25}$ & $p_{50}$ & $p_{75}$ & $p_{90}$ & $p_{95}$ & $p_{99}$ & Max & Mean & Sum", file=fd)
-    print(r"\midule", file=fd)
+    print(r"Configuration & $p_{25}$ & $p_{50}$ & $p_{75}$ & $p_{90}$ & $p_{95}$ & $p_{99}$ & Max & Mean & Sum \\", file=fd)
+    print(r"\midrule", file=fd)
     for config, name in configurations:
         if config == "midrule":
             print(r"\midrule", file=fd)
@@ -199,7 +199,7 @@ def print_mse_runtime_table(file_data, fd):
 
     print(r"\begin{tabular}{llrrrrrrrr}", file=fd)
     print(r"\toprule", file=fd)
-    print(r" & Configuration & $p_{50}$ & $p_{75}$ & $p_{90}$ & $p_{95}$ & $p_{99}$ & Max & Mean \\\\", file=fd)
+    print(r" & Configuration & $p_{50}$ & $p_{75}$ & $p_{90}$ & $p_{95}$ & $p_{99}$ & Max & Mean \\", file=fd)
     print(r"\midrule", file=fd)
     print(r"\multirow{6}{*}{\rotatebox[origin=c]{90}{Construction}}", file=fd)
 
